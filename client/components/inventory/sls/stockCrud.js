@@ -129,17 +129,24 @@ export function openCreateStockModal(state, onStockSaved) {
             // Call API to create stock
             const response = await fetch('/api/inventory/sales/stocks', {
                 method: 'POST',
-                credentials: 'include',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || `HTTP ${response.status}`);
+                showToast(error.error || `Failed (${response.status})`, 'error');
+                console.error(`[CREATE] HTTP ${response.status}:`, error);
+                return;
             }
             
             const result = await response.json();
+            if (!result.success) {
+                showToast(result.error || 'Failed to create stock', 'error');
+                return;
+            }
+            
             console.log('Stock created:', result);
             showToast('Stock item created successfully!', 'success');
             await onStockSaved(data);
@@ -292,17 +299,24 @@ export function openEditStockModal(stock, state, onStockSaved) {
             // Call API to update stock
             const response = await fetch(`/api/inventory/sales/stocks/${stock.id}`, {
                 method: 'PUT',
-                credentials: 'include',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || `HTTP ${response.status}`);
+                showToast(error.error || `Failed (${response.status})`, 'error');
+                console.error(`[UPDATE] HTTP ${response.status}:`, error);
+                return;
             }
             
             const result = await response.json();
+            if (!result.success) {
+                showToast(result.error || 'Failed to update stock', 'error');
+                return;
+            }
+            
             console.log('Stock updated:', result);
             showToast('Stock item updated successfully!', 'success');
             await onStockSaved(stock.id, data);

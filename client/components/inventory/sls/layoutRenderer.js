@@ -152,19 +152,25 @@ export async function renderPartyCard(state) {
         try {
             const response = await fetch(`/api/inventory/sales/party-balance/${state.selectedParty.id}`, {
                 method: 'GET',
-                credentials: 'include',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' }
             });
             
-            if (response.ok) {
-                const data = await response.json();
-                balanceInfo = {
-                    balance: data.balance || 0,
-                    balanceType: data.balance >= 0 ? 'Credit' : 'Debit',
-                    balanceFormatted: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Math.abs(data.balance || 0))
-                };
-            } else {
+            if (!response.ok) {
+                console.warn('Failed to fetch party balance:', response.status);
                 balanceInfo = { balance: 0, balanceType: 'Credit', balanceFormatted: '₹0.00' };
+            } else {
+                const data = await response.json();
+                if (data.success) {
+                    balanceInfo = {
+                        balance: data.data?.balance || 0,
+                        balanceType: (data.data?.balance || 0) >= 0 ? 'Credit' : 'Debit',
+                        balanceFormatted: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Math.abs(data.data?.balance || 0))
+                    };
+                } else {
+                    console.warn('Failed to fetch party balance:', data.error);
+                    balanceInfo = { balance: 0, balanceType: 'Credit', balanceFormatted: '₹0.00' };
+                }
             }
         } catch (error) {
             console.error('Error fetching party balance:', error);

@@ -115,20 +115,27 @@ export function openCreatePartyModal(state, onPartySaved) {
         try {
             const response = await fetch('/api/inventory/sales/parties', {
                 method: 'POST',
-                credentials: 'include',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || `HTTP ${response.status}`);
+                showToast(error.error || `Failed (${response.status})`, 'error');
+                console.error(`[CREATE] HTTP ${response.status}:`, error);
+                return;
             }
 
             const result = await response.json();
+            if (!result.success) {
+                showToast(result.error || 'Failed to create party', 'error');
+                return;
+            }
+            
             closeFunc();
             showToast('Party created successfully!', 'success');
-            await onPartySaved(result);
+            await onPartySaved(result.data || result);
 
         } catch (err) {
             console.error('Error creating party:', err);

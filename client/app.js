@@ -34,6 +34,11 @@ const loadWagesDashboard = async () => {
   return renderWagesDashboard;
 };
 
+const loadSales = async () => {
+  const { renderSales } = await import('./pages/sales.js');
+  return renderSales;
+};
+
 // Loading UI functions
 const showLoading = () => {
   let loadingEl = document.getElementById('page-loading');
@@ -111,6 +116,12 @@ router
     showLoading();
     const renderWagesDashboard = await loadWagesDashboard();
     renderWagesDashboard(router);
+    hideLoading();
+  })
+  .on('/inventory/sls', async () => {
+    showLoading();
+    const renderSales = await loadSales();
+    renderSales(router);
     hideLoading();
   })
   .notFound(() => {

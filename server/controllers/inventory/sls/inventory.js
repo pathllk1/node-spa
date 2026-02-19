@@ -12,7 +12,7 @@ export const getAllStocks = (req, res) => {
     try {
         // Check if user has firm access
         if (!req.user || !req.user.firm_id) {
-            return res.status(403).json({ error: 'User is not associated with any firm' });
+            return res.status(403).json({ success: false, error: 'User is not associated with any firm' });
         }
         
         const stocks = Stock.getByFirm.all(req.user.firm_id);
@@ -23,9 +23,9 @@ export const getAllStocks = (req, res) => {
             batches: stock.batches ? JSON.parse(stock.batches) : []
         }));
         
-        res.json(stocksWithBatches);
+        res.json({ success: true, data: stocksWithBatches });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 
@@ -77,7 +77,7 @@ export const getPartyItemHistory = (req, res) => {
 
         const rows = db.prepare(query).all(...params);
         
-        res.json({ partyId, stockId, rows });
+        res.json({ success: true, data: { partyId, stockId, rows } });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -187,7 +187,7 @@ export const createStock = (req, res) => {
                 req.user.firm_id
             );
             
-            res.json({ id: existingStock.id, message: 'Stock batch updated successfully' });
+            res.json({ success: true, id: existingStock.id, message: 'Stock batch updated successfully' });
         } else {
             // Item doesn't exist in this firm, create new record with batch
             const batchesToStore = (normalizedBatches && normalizedBatches.length > 0)
@@ -241,7 +241,7 @@ export const createStock = (req, res) => {
             const result = Stock.create.run(stockParams);
 
             console.log('[CREATE_STOCK] Stock created successfully:', result);
-            res.json({ id: result.lastInsertRowid, message: 'Stock added successfully' });
+            res.json({ success: true, id: result.lastInsertRowid, message: 'Stock added successfully' });
         }
     } catch (err) {
         console.error('[CREATE_STOCK] Error:', err.message);
@@ -356,7 +356,7 @@ export const updateStock = (req, res) => {
             req.user.firm_id
         );
 
-        res.json({ message: 'Stock updated successfully' });
+        res.json({ success: true, message: 'Stock updated successfully' });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -383,7 +383,7 @@ export const deleteStock = (req, res) => {
         
         // For Turso compatibility, we rely on the existence check above
         // rather than result.changes which may not be reliable in Turso
-        res.json({ message: 'Stock deleted successfully' });
+        res.json({ success: true, message: 'Stock deleted successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -395,13 +395,13 @@ export const getAllParties = (req, res) => {
     try {
         // Check if user has firm access
         if (!req.user || !req.user.firm_id) {
-            return res.status(403).json({ error: 'User is not associated with any firm' });
+            return res.status(403).json({ success: false, error: 'User is not associated with any firm' });
         }
         
         const parties = Party.getByFirm.all(req.user.firm_id);
-        res.json(parties);
+        res.json({ success: true, data: parties });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 
@@ -437,6 +437,7 @@ export const createParty = (req, res) => {
         const newParty = Party.getById.get(result.lastInsertRowid, req.user.firm_id);
         
         res.json({ 
+            success: true,
             id: newParty.id,
             firm: newParty.firm,
             gstin: newParty.gstin,
@@ -860,7 +861,7 @@ export const createBill = async (req, res) => {
             ledgerBase.created_by
         );
 
-        res.json({ id: billId, billNo: meta.billNo, message: 'Bill created successfully' });
+        res.json({ success: true, id: billId, billNo: meta.billNo, message: 'Bill created successfully' });
     } catch (err) {
         console.error('Error creating bill:', err);
         res.status(400).json({ error: err.message });
@@ -887,11 +888,11 @@ export const getBillById = (req, res) => {
         // Parse other charges JSON
         const otherCharges = bill.oth_chg_json ? JSON.parse(bill.oth_chg_json) : [];
 
-        res.json({
+        res.json({ success: true, data: {
             ...bill,
             items,
             otherCharges
-        });
+        } });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1289,7 +1290,7 @@ export const updateBill = async (req, res) => {
             ledgerBase.created_by
         );
 
-        res.json({ message: 'Bill updated successfully' });
+        res.json({ success: true, message: 'Bill updated successfully' });
     } catch (err) {
         console.error('Error updating bill:', err);
         res.status(400).json({ error: err.message });
@@ -1373,7 +1374,7 @@ export const cancelBill = (req, res) => {
             req.user.firm_id
         );
 
-        res.json({ message: 'Bill cancelled successfully' });
+        res.json({ success: true, message: 'Bill cancelled successfully' });
     } catch (err) {
         console.error('Error cancelling bill:', err);
         res.status(500).json({ error: err.message });
@@ -1397,7 +1398,7 @@ export const getStockBatches = (req, res) => {
         }
 
         const batches = stock.batches ? JSON.parse(stock.batches) : [];
-        res.json({ id, item: stock.item, batches });
+        res.json({ success: true, data: { id, item: stock.item, batches } });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1454,7 +1455,7 @@ export const getStockMovements = (req, res) => {
         params.push(parseInt(limit), offset);
 
         const rows = db.prepare(query).all(...params);
-        res.json({ page: parseInt(page), limit: parseInt(limit), rows });
+        res.json({ success: true, data: { page: parseInt(page), limit: parseInt(limit), rows } });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1478,7 +1479,7 @@ export const getStockMovementsByStock = (req, res) => {
             LIMIT ? OFFSET ?
         `).all(stockId, req.user.firm_id, parseInt(limit), offset);
 
-        res.json({ stockId, page: parseInt(page), limit: parseInt(limit), rows });
+        res.json({ success: true, data: { stockId, page: parseInt(page), limit: parseInt(limit), rows } });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1559,7 +1560,7 @@ export const createStockMovement = (req, res) => {
             req.user.firm_id
         );
 
-        res.json({ message: `Stock movement (${type}) created successfully` });
+        res.json({ success: true, message: `Stock movement (${type}) created successfully` });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -1570,7 +1571,7 @@ export const createStockMovement = (req, res) => {
 export const getOtherChargesTypes = (req, res) => {
     try {
         if (!req.user || !req.user.firm_id) {
-            return res.status(403).json({ error: 'User is not associated with any firm' });
+            return res.status(403).json({ success: false, error: 'User is not associated with any firm' });
         }
 
         // Get all bills with other charges for this firm
@@ -1609,40 +1610,40 @@ export const getOtherChargesTypes = (req, res) => {
 
         // Convert map to array
         const charges = Array.from(chargesMap.values());
-        res.json({ charges });
+        res.json({ success: true, data: charges });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 
 export const getNextBillNumberPreviewEndpoint = async (req, res) => {
     try {
         if (!req.user || !req.user.firm_id) {
-            return res.status(403).json({ error: 'User is not associated with any firm' });
+            return res.status(403).json({ success: false, error: 'User is not associated with any firm' });
         }
 
         const billNo = previewNextBillNumber(req.user.firm_id, 'SALES');
-        res.json({ nextBillNumber: billNo });
+        res.json({ success: true, nextBillNumber: billNo });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 
 export const getCurrentUserFirmName = (req, res) => {
     try {
         if (!req.user || !req.user.firm_id) {
-            return res.status(403).json({ error: 'User is not associated with any firm' });
+            return res.status(403).json({ success: false, error: 'User is not associated with any firm' });
         }
 
         const firm = db.prepare('SELECT name, address FROM firms WHERE id = ?').get(req.user.firm_id);
         
         if (!firm) {
-            return res.status(404).json({ error: 'Firm not found' });
+            return res.status(404).json({ success: false, error: 'Firm not found' });
         }
 
-        res.json(firm);
+        res.json({ success: true, data: firm });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 
@@ -1651,7 +1652,7 @@ export const getPartyBalance = (req, res) => {
         const { partyId } = req.params;
 
         if (!req.user || !req.user.firm_id) {
-            return res.status(403).json({ error: 'User is not associated with any firm' });
+            return res.status(403).json({ success: false, error: 'User is not associated with any firm' });
         }
 
         const result = db.prepare(`
@@ -1663,9 +1664,9 @@ export const getPartyBalance = (req, res) => {
         `).get(req.user.firm_id, partyId);
 
         const balance = (result.total_debit || 0) - (result.total_credit || 0);
-        res.json({ partyId, balance, debit: result.total_debit || 0, credit: result.total_credit || 0 });
+        res.json({ success: true, data: { partyId, balance, debit: result.total_debit || 0, credit: result.total_credit || 0 } });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 

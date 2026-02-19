@@ -84,7 +84,7 @@ export function exportInvoiceToPDF(state, formatCurrency, billId) {
             // Fetch the PDF with authentication
             fetch(pdfUrl, {
                 method: 'GET',
-                credentials: 'include'
+                credentials: 'same-origin'
             })
             .then(response => {
                 console.log('PDF response status:', response.status, response.ok);

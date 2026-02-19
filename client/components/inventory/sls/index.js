@@ -351,11 +351,16 @@ export function initSalesSystem() {
                             try {
                                 const response = await fetch('/api/inventory/sales/stocks', {
                                     method: 'GET',
-                                    credentials: 'include',
+                                    credentials: 'same-origin',
                                     headers: { 'Content-Type': 'application/json' }
                                 });
-                                if (response.ok) {
-                                    state.stocks = await response.json();
+                                if (!response.ok) {
+                                    console.warn('Failed to refresh stocks:', response.status);
+                                } else {
+                                    const data = await response.json();
+                                    if (data.success) {
+                                        state.stocks = Array.isArray(data.data) ? data.data : [];
+                                    }
                                 }
                             } catch (err) {
                                 console.error('Failed to refresh stocks:', err);
@@ -382,11 +387,16 @@ export function initSalesSystem() {
                                         try {
                                             const response = await fetch('/api/inventory/sales/stocks', {
                                                 method: 'GET',
-                                                credentials: 'include',
+                                                credentials: 'same-origin',
                                                 headers: { 'Content-Type': 'application/json' }
                                             });
-                                            if (response.ok) {
-                                                state.stocks = await response.json();
+                                            if (!response.ok) {
+                                                console.warn('Failed to refresh stocks:', response.status);
+                                            } else {
+                                                const data = await response.json();
+                                                if (data.success) {
+                                                    state.stocks = Array.isArray(data.data) ? data.data : [];
+                                                }
                                             }
                                         } catch (err) {
                                             console.error('Failed to refresh stocks:', err);
@@ -409,11 +419,16 @@ export function initSalesSystem() {
                             try {
                                 const response = await fetch('/api/inventory/sales/stocks', {
                                     method: 'GET',
-                                    credentials: 'include',
+                                    credentials: 'same-origin',
                                     headers: { 'Content-Type': 'application/json' }
                                 });
-                                if (response.ok) {
-                                    state.stocks = await response.json();
+                                if (!response.ok) {
+                                    console.warn('Failed to refresh stocks:', response.status);
+                                } else {
+                                    const data = await response.json();
+                                    if (data.success) {
+                                        state.stocks = Array.isArray(data.data) ? data.data : [];
+                                    }
                                 }
                             } catch (err) {
                                 console.error('Failed to refresh stocks:', err);
@@ -505,18 +520,25 @@ export function initSalesSystem() {
                     
                     const response = await fetch(url, {
                         method: method,
-                        credentials: 'include',
+                        credentials: 'same-origin',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(billData)
                     });
                     
                     if (!response.ok) {
                         const error = await response.json();
-                        throw new Error(error.error || `HTTP ${response.status}`);
+                        showToast(error.error || `Failed (${response.status})`, 'error');
+                        console.error(`[${method}] HTTP ${response.status}:`, error);
+                        return;
                     }
                     
                     const result = await response.json();
                     console.log('Bill operation response:', result);
+                    
+                    if (!result.success) {
+                        showToast(result.error || 'Failed to save bill', 'error');
+                        return;
+                    }
                     
                     const successMessage = isEditMode 
                         ? `Bill updated successfully! Bill No: ${result.billNo || state.meta.billNo}`

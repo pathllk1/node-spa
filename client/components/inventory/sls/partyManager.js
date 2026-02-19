@@ -103,18 +103,27 @@ export async function fetchPartyByGST(buttonElement) {
     try {
         const response = await fetch('/api/inventory/sales/gst-lookup', {
             method: 'POST',
-            credentials: 'include',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ gstin })
         });
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || `HTTP ${response.status}`);
+            showToast(error.error || `Failed (${response.status})`, 'error');
+            console.error(`[GST_LOOKUP] HTTP ${response.status}:`, error);
+            fetchButton.innerHTML = originalText;
+            fetchButton.disabled = false;
+            return;
         }
 
         const data = await response.json();
-        if (data.error) throw new Error(data.error);
+        if (!data.success) {
+            showToast(data.error || 'Failed to fetch GST details', 'error');
+            fetchButton.innerHTML = originalText;
+            fetchButton.disabled = false;
+            return;
+        }
 
         const partyData = data.data || data;
         populatePartyFromRapidAPI(partyData, gstin);
@@ -124,7 +133,7 @@ export async function fetchPartyByGST(buttonElement) {
 
     } catch (error) {
         console.error('GST Lookup Error:', error);
-        alert('Failed to fetch details. ' + (error.message || 'Server error'));
+        showToast('Failed to fetch details. ' + (error.message || 'Server error'), 'error');
         fetchButton.innerHTML = originalText;
     } finally {
         fetchButton.disabled = false;

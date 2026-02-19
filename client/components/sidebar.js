@@ -59,6 +59,15 @@ export function renderSidebar(router) {
             <span class="ml-3 sidebar-text hidden whitespace-nowrap">Wages</span>
           </a>
         </li>
+
+        <li>
+          <a href="/inventory/sls" data-navigo title="Sales Invoice" class="sidebar-item flex items-center py-3 px-3 cursor-pointer hover:bg-purple-500 rounded transition" data-tooltip="Sales Invoice">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 flex-shrink-0">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 0V.75m0 4.875h3.75a3.375 3.375 0 0 1 3.375 3.375v1.5a1.125 1.125 0 0 1-1.125 1.125h-1.5A3.375 3.375 0 0 0 8.25 12.75v2.625m0 0V16.5m0 3.375v2.625a3.375 3.375 0 0 1-3.375 3.375H5.25a3.375 3.375 0 0 1-3.375-3.375V12.75a3.375 3.375 0 0 1 3.375-3.375h1.5A1.125 1.125 0 0 1 7.875 8.25v1.5a3.375 3.375 0 0 1-3.375 3.375H2.625" />
+            </svg>
+            <span class="ml-3 sidebar-text hidden whitespace-nowrap">Sales</span>
+          </a>
+        </li>
         ` : ''}
 
         <li>

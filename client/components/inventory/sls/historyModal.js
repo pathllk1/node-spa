@@ -20,26 +20,31 @@ export async function openPartyItemHistoryModal(stock, state, onFetchHistory) {
     try {
         const response = await fetch(`/api/inventory/sales/stock-movements?partyId=${state.selectedParty.id}&stockId=${stock.id}`, {
             method: 'GET',
-            credentials: 'include',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' }
         });
         
-        if (response.ok) {
-            const data = await response.json();
-            // Extract rows from the response and format them
-            if (data.rows && Array.isArray(data.rows)) {
-                historyData = data.rows.map(row => ({
-                    date: row.bdate ? new Date(row.bdate).toLocaleDateString('en-IN') : '-',
-                    batch: row.batch || '-',
-                    qty: row.qty || 0,
-                    rate: row.rate || 0,
-                    total: (row.qty * row.rate).toFixed(2),
-                    refNo: row.bno || '-'
-                }));
-            }
-        } else {
+        if (!response.ok) {
             console.warn('Failed to fetch history:', response.status);
             historyData = [];
+        } else {
+            const data = await response.json();
+            if (data.success) {
+                // Extract rows from the response and format them
+                if (data.data && Array.isArray(data.data)) {
+                    historyData = data.data.map(row => ({
+                        date: row.bdate ? new Date(row.bdate).toLocaleDateString('en-IN') : '-',
+                        batch: row.batch || '-',
+                        qty: row.qty || 0,
+                        rate: row.rate || 0,
+                        total: (row.qty * row.rate).toFixed(2),
+                        refNo: row.bno || '-'
+                    }));
+                }
+            } else {
+                console.warn('Failed to fetch history:', data.error);
+                historyData = [];
+            }
         }
     } catch (error) {
         console.error('Error fetching history:', error);

@@ -138,14 +138,21 @@ export function openOtherChargesModal(state, callbacks) {
         try {
             const response = await fetch('/api/inventory/sales/other-charges-types', {
                 method: 'GET',
-                credentials: 'include',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' }
             });
             
-            if (response.ok) {
-                const data = await response.json();
+            if (!response.ok) {
+                console.warn('Failed to load charges:', response.status);
+                return;
+            }
+            
+            const data = await response.json();
+            if (data.success) {
                 // Use the full charge objects returned from API
-                existingCharges = data.charges || [];
+                existingCharges = data.data || [];
+            } else {
+                console.warn('Failed to load charges:', data.error);
             }
         } catch (error) {
             console.warn('Error loading existing charges:', error);

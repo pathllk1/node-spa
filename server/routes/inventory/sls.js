@@ -2,8 +2,12 @@ import express from 'express';
 import * as inventoryController from '../../controllers/inventory/sls/inventory.js';
 import { generateInvoicePDF } from '../../controllers/inventory/pdfMakeController.js';
 import * as firmManagementController from "../../controllers/firmManagementController.js";
+import { authMiddleware } from '../../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// All routes require authentication
+router.use(authMiddleware);
 
 // --- STOCKS API ---
 router.get('/stocks', inventoryController.getAllStocks);
