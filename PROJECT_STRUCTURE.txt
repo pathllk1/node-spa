@@ -1,0 +1,89 @@
+PROJECT STRUCTURE
+==================
+
+nodejs-spa-auth/
+│
+├── 📄 package.json              # Node.js dependencies and scripts
+├── 📄 README.md                 # Complete documentation
+├── 📄 .gitignore               # Git ignore rules
+├── 🔧 setup.sh                 # Linux/Mac setup script
+├── 🔧 setup.bat                # Windows setup script
+│
+├── 📁 server/                   # Backend (Node.js + Express)
+│   ├── 📄 server.js            # Main server entry point
+│   │
+│   ├── 📁 controllers/         # Business logic
+│   │   ├── authController.js   # Login, logout, token refresh
+│   │   └── pageController.js   # API endpoints for pages
+│   │
+│   ├── 📁 routes/              # API routes
+│   │   ├── authRoutes.js       # /api/auth/* routes
+│   │   └── pageRoutes.js       # /api/pages/* routes
+│   │
+│   ├── 📁 middleware/          # Express middleware
+│   │   ├── authMiddleware.js   # JWT validation & auto-refresh
+│   │   └── securityMiddleware.js # CSP/XSS headers
+│   │
+│   ├── 📁 utils/               # Utilities
+│   │   ├── users.json          # Demo users database
+│   │   └── tokenUtils.js       # JWT generation & verification
+│   │
+│   └── 📁 plugins/             # Custom plugins (empty, ready for extensions)
+│
+└── 📁 client/                  # Frontend (Vanilla JS SPA)
+    ├── 📄 index.html           # Main HTML file (entry point)
+    ├── 📄 app.js               # Router configuration
+    │
+    ├── 📁 public/              # Static assets
+    │   ├── 📁 cdns/
+    │   │   └── navigo.min.js   # Navigo.js router (local)
+    │   └── 📁 css/
+    │       └── style.css        # Application styles
+    │
+    ├── 📁 pages/               # Page components (views)
+    │   ├── home.js             # Public home page
+    │   ├── about.js            # Public about page
+    │   ├── login.js            # Login page
+    │   ├── dashboard.js        # Protected dashboard
+    │   └── profile.js          # Protected profile
+    │
+    ├── 📁 components/          # Reusable UI components
+    │   ├── navbar.js           # Navigation bar
+    │   └── layout.js           # Page layout wrapper
+    │
+    ├── 📁 utils/               # Client utilities
+    │   ├── api.js              # HTTP client wrapper
+    │   └── auth.js             # Authentication manager
+    │
+    └── 📁 middleware/          # Client-side middleware
+        └── authMiddleware.js   # Route guards (requireAuth, guestOnly)
+
+
+KEY FEATURES
+============
+
+✅ Dual Token Authentication (Access: 15min, Refresh: 30 days)
+✅ Automatic Token Refresh (every 10 minutes)
+✅ HTTP-only Cookies with SameSite protection
+✅ Content Security Policy (CSP) headers
+✅ XSS Protection
+✅ SPA with Navigo.js routing
+✅ Protected and public routes
+✅ Clean ES6 module architecture
+
+
+QUICK START
+===========
+
+1. Run setup:
+   Linux/Mac: ./setup.sh
+   Windows:   setup.bat
+
+2. Start server:
+   npm start
+
+3. Open browser:
+   http://localhost:3000
+
+4. Login with demo credentials:
+   admin/admin123, user/user123, or demo/demo123
