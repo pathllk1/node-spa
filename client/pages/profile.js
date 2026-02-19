@@ -10,8 +10,34 @@ export async function renderProfile(router) {
   const user = authManager.getUser();
 
   try {
-    const response = await api.get('/api/pages/profile');
-    const data = response.data;
+    // Fetch profile data
+    const profileRes = await fetch('/api/pages/profile', {
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!profileRes.ok) {
+      throw new Error(`HTTP ${profileRes.status}`);
+    }
+    
+    const profileData = await profileRes.json();
+    if (!profileData.success) {
+      throw new Error(profileData.error || 'Failed to fetch profile data');
+    }
+
+    // Fetch system settings (GST status)
+    const settingsRes = await fetch('/api/settings/system-config/gst-status', {
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    let gstEnabled = true;
+    if (settingsRes.ok) {
+      const settingsData = await settingsRes.json();
+      if (settingsData.success) {
+        gstEnabled = settingsData.data?.gst_enabled ?? true;
+      }
+    }
 
     const content = `
       <div class="max-w-6xl mx-auto px-4 py-12 space-y-12">
@@ -44,9 +70,9 @@ export async function renderProfile(router) {
 
           <div class="bg-white border border-gray-200 rounded-xl p-8 shadow-sm grid md:grid-cols-3 gap-6">
 
-            ${createInput("Theme", data.preferences.theme)}
-            ${createInput("Notifications", data.preferences.notifications ? "Enabled" : "Disabled")}
-            ${createInput("Language", data.preferences.language)}
+            ${createInput("Theme", profileData.data?.preferences?.theme || "light")}
+            ${createInput("Notifications", profileData.data?.preferences?.notifications ? "Enabled" : "Disabled")}
+            ${createInput("Language", profileData.data?.preferences?.language || "en")}
 
           </div>
         </section>
@@ -56,9 +82,36 @@ export async function renderProfile(router) {
           <h2 class="text-xl font-semibold text-gray-800">Account Information</h2>
 
           <div class="bg-gray-50 border border-gray-200 rounded-xl p-8 space-y-3 text-gray-700">
-            <p><strong>Member Since:</strong> ${data.accountInfo.memberSince}</p>
-            <p><strong>Last Password Change:</strong> ${data.accountInfo.lastPasswordChange}</p>
-            <p><strong>Two-Factor Authentication:</strong> ${data.accountInfo.twoFactorEnabled ? "Enabled" : "Disabled"}</p>
+            <p><strong>Member Since:</strong> ${profileData.data?.accountInfo?.memberSince || "N/A"}</p>
+            <p><strong>Last Password Change:</strong> ${profileData.data?.accountInfo?.lastPasswordChange || "N/A"}</p>
+            <p><strong>Two-Factor Authentication:</strong> ${profileData.data?.accountInfo?.twoFactorEnabled ? "Enabled" : "Disabled"}</p>
+          </div>
+        </section>
+
+        <!-- System Settings -->
+        <section class="space-y-6">
+          <h2 class="text-xl font-semibold text-gray-800">System Settings</h2>
+
+          <div class="bg-white border border-gray-200 rounded-xl p-8 shadow-sm space-y-4">
+
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-semibold text-gray-800">GST Calculation</h3>
+                <p class="text-sm text-gray-600 mt-1">Enable or disable GST in invoices</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  id="gst-toggle" 
+                  ${gstEnabled ? 'checked' : ''} 
+                  class="sr-only peer"
+                />
+                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div id="gst-message" class="pt-2"></div>
+
           </div>
         </section>
 
@@ -96,6 +149,58 @@ export async function renderProfile(router) {
 
     renderLayout(content, router);
 
+    // GST Toggle Handler
+    const gstToggle = document.getElementById('gst-toggle');
+    const gstMessage = document.getElementById('gst-message');
+
+    if (gstToggle) {
+      gstToggle.addEventListener('change', async () => {
+        try {
+          gstMessage.innerHTML = `
+            <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
+              Updating GST setting...
+            </div>
+          `;
+
+          const res = await fetch('/api/settings/system-config/gst-status', {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: gstToggle.checked })
+          });
+
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || `Failed (${res.status})`);
+          }
+
+          const result = await res.json();
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to update GST setting');
+          }
+
+          gstMessage.innerHTML = `
+            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+              GST setting updated successfully!
+            </div>
+          `;
+
+          setTimeout(() => {
+            gstMessage.innerHTML = '';
+          }, 3000);
+
+        } catch (error) {
+          gstToggle.checked = !gstToggle.checked;
+          gstMessage.innerHTML = `
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              Error: ${error.message}
+            </div>
+          `;
+        }
+      });
+    }
+
+    // Token Refresh Handler
     const refreshBtn = document.getElementById('manual-refresh-btn');
     const refreshMessage = document.getElementById('refresh-message');
 

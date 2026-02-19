@@ -13,12 +13,15 @@ export const getAllSettings = (req, res) => {
     }
     
     res.json({ 
-      global_settings: globalSettings,
-      firm_settings: firmSettings
+      success: true,
+      data: {
+        global_settings: globalSettings,
+        firm_settings: firmSettings
+      }
     });
   } catch (err) {
     console.error('Error fetching settings:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -32,7 +35,7 @@ export const getSetting = (req, res) => {
       const firmSetting = FirmSettings.getByFirmAndKey.get(req.user.firm_id, key);
       
       if (firmSetting) {
-        res.json(firmSetting);
+        res.json({ success: true, data: firmSetting });
         return;
       }
     }
@@ -41,13 +44,13 @@ export const getSetting = (req, res) => {
     const setting = Settings.getByKey.get(key);
     
     if (!setting) {
-      return res.status(404).json({ error: 'Setting not found' });
+      return res.status(404).json({ success: false, error: 'Setting not found' });
     }
     
-    res.json(setting);
+    res.json({ success: true, data: setting });
   } catch (err) {
     console.error('Error fetching setting:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -58,7 +61,7 @@ export const updateSetting = (req, res) => {
     const { setting_value, description } = req.body;
     
     if (!setting_value) {
-      return res.status(400).json({ error: 'Setting value is required' });
+      return res.status(400).json({ success: false, error: 'Setting value is required' });
     }
     
     // Check if user has firm access (for firm-specific settings)
@@ -78,7 +81,7 @@ export const updateSetting = (req, res) => {
         
         // Return updated setting
         const updatedSetting = FirmSettings.getByFirmAndKey.get(req.user.firm_id, key);
-        res.json({ message: 'Setting updated successfully', setting: updatedSetting });
+        res.json({ success: true, message: 'Setting updated successfully', data: updatedSetting });
       } else {
         // Create new firm setting
         // For Turso compatibility: don't check result.changes - just execute and assume success
@@ -91,13 +94,13 @@ export const updateSetting = (req, res) => {
         
         // Return newly created setting
         const newSetting = FirmSettings.getByFirmAndKey.get(req.user.firm_id, key);
-        res.json({ message: 'Setting created successfully', setting: newSetting });
+        res.json({ success: true, message: 'Setting created successfully', data: newSetting });
       }
     } else {
       // Update global setting if no firm context
       const existingSetting = Settings.getByKey.get(key);
       if (!existingSetting) {
-        return res.status(404).json({ error: 'Setting not found' });
+        return res.status(404).json({ success: false, error: 'Setting not found' });
       }
       
       // Update the setting
@@ -110,11 +113,11 @@ export const updateSetting = (req, res) => {
       
       // Return updated setting
       const updatedSetting = Settings.getByKey.get(key);
-      res.json({ message: 'Setting updated successfully', setting: updatedSetting });
+      res.json({ success: true, message: 'Setting updated successfully', data: updatedSetting });
     }
   } catch (err) {
     console.error('Error updating setting:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -129,7 +132,7 @@ export const getGstStatus = (req, res) => {
       if (firmSetting) {
         // Use firm-specific setting
         const gstEnabled = firmSetting.setting_value === 'true';
-        res.json({ gst_enabled: gstEnabled });
+        res.json({ success: true, data: { gst_enabled: gstEnabled } });
         return;
       }
     }
@@ -137,10 +140,10 @@ export const getGstStatus = (req, res) => {
     // Fall back to global setting if no firm-specific setting exists
     const setting = Settings.getByKey.get('gst_enabled');
     const gstEnabled = setting ? setting.setting_value === 'true' : true; // Default to true if not found
-    res.json({ gst_enabled: gstEnabled });
+    res.json({ success: true, data: { gst_enabled: gstEnabled } });
   } catch (err) {
     console.error('Error fetching GST status:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -150,7 +153,7 @@ export const toggleGstStatus = (req, res) => {
     const { enabled } = req.body;
     
     if (enabled === undefined) {
-      return res.status(400).json({ error: 'Enabled parameter is required (true/false)' });
+      return res.status(400).json({ success: false, error: 'Enabled parameter is required (true/false)' });
     }
     
     const settingValue = enabled ? 'true' : 'false';
@@ -198,9 +201,9 @@ export const toggleGstStatus = (req, res) => {
       }
     }
     
-    res.json({ message: `GST has been ${enabled ? 'enabled' : 'disabled'} successfully`, gst_enabled: enabled });
+    res.json({ success: true, message: `GST has been ${enabled ? 'enabled' : 'disabled'} successfully`, data: { gst_enabled: enabled } });
   } catch (err) {
     console.error('Error updating GST status:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };

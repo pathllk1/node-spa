@@ -283,7 +283,7 @@ export async function fetchData(state) {
             } else {
                 const gstData = await gstResponse.json();
                 if (gstData.success) {
-                    state.gstEnabled = gstData.gst_enabled !== false;
+                    state.gstEnabled = gstData.data?.gst_enabled !== false;
                 } else {
                     console.warn('Failed to fetch GST status:', gstData.error);
                     state.gstEnabled = true;
