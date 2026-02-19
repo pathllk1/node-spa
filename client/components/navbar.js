@@ -21,20 +21,12 @@ export function renderNavbar(router) {
       <a href="/profile" data-navigo class="nav-link">Profile</a>
     </li>
     <li>
-      <a href="/master-roll" data-navigo class="nav-link">Profile</a>
-    </li>
-    <li>
       <div class="flex items-center gap-2 px-3 py-2">
         <div class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-semibold">
           ${user.username.charAt(0).toUpperCase()}
         </div>
         <span class="text-gray-700 font-medium">${user.username}</span>
       </div>
-    </li>
-    <li>
-      <a href="#" id="logout-btn" class="nav-link text-red-600 hover:text-red-700">
-        Logout
-      </a>
     </li>
   ` : `
     <li>

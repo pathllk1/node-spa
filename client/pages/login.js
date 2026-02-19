@@ -66,14 +66,6 @@ export async function renderLogin(router) {
 
         </form>
 
-        <!-- Demo Credentials -->
-        <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 text-sm text-gray-700">
-          <h3 class="font-semibold mb-2">Demo Credentials</h3>
-          <p><strong>Admin:</strong> admin / admin123</p>
-          <p><strong>User:</strong> user / user123</p>
-          <p><strong>Demo:</strong> demo / demo123</p>
-        </div>
-
       </div>
     </div>
   `;

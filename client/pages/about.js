@@ -88,25 +88,6 @@ export function renderAbout(router) {
         </div>
       </div>
 
-      <!-- Demo Credentials -->
-      <div class="space-y-6">
-        <h2 class="text-2xl font-semibold text-gray-800">
-          Demo Credentials
-        </h2>
-
-        <div class="bg-yellow-50 border border-yellow-200 p-6 rounded-xl">
-          <p class="text-gray-700 mb-2">
-            <strong>Admin:</strong> username: admin, password: admin123
-          </p>
-          <p class="text-gray-700 mb-2">
-            <strong>User:</strong> username: user, password: user123
-          </p>
-          <p class="text-gray-700">
-            <strong>Demo:</strong> username: demo, password: demo123
-          </p>
-        </div>
-      </div>
-
     </div>
   `;
   

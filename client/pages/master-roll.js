@@ -790,6 +790,32 @@ class MasterRollManager {
     }));
     ws['!cols'] = colWidths;
 
+    // Add styling: header color and borders
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    
+    // Style header row (bold, gold background)
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cell_ref = XLSX.utils.encode_cell({ c: C, r: 0 });
+      if (ws[cell_ref]) {
+        ws[cell_ref].s = {
+          font: { bold: true },
+          fill: { fgColor: { rgb: "FFD700" } }, // Gold color
+          border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } }
+        };
+      }
+    }
+    
+    // Add borders to all cells
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cell_ref = XLSX.utils.encode_cell({ c: C, r: R });
+        if (ws[cell_ref]) {
+          if (!ws[cell_ref].s) ws[cell_ref].s = {};
+          ws[cell_ref].s.border = { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } };
+        }
+      }
+    }
+
     XLSX.utils.book_append_sheet(wb, ws, "Master Roll");
     XLSX.writeFile(wb, filename);
     this.showToast(`Excel file exported successfully! (${data.length} records)`);

@@ -1,23 +1,118 @@
-import { renderHome } from './pages/home.js';
-import { renderAbout } from './pages/about.js';
-import { renderLogin } from './pages/login.js';
-import { renderDashboard } from './pages/dashboard.js';
-import { renderProfile } from './pages/profile.js';
-import {renderMasterRoll} from './pages/master-roll.js';
-import { renderWagesDashboard } from './pages/WagesDashboard.js';
+// Lazy loading functions for pages
+const loadHome = async () => {
+  const { renderHome } = await import('./pages/home.js');
+  return renderHome;
+};
+
+const loadAbout = async () => {
+  const { renderAbout } = await import('./pages/about.js');
+  return renderAbout;
+};
+
+const loadLogin = async () => {
+  const { renderLogin } = await import('./pages/login.js');
+  return renderLogin;
+};
+
+const loadDashboard = async () => {
+  const { renderDashboard } = await import('./pages/dashboard.js');
+  return renderDashboard;
+};
+
+const loadProfile = async () => {
+  const { renderProfile } = await import('./pages/profile.js');
+  return renderProfile;
+};
+
+const loadMasterRoll = async () => {
+  const { renderMasterRoll } = await import('./pages/master-roll.js');
+  return renderMasterRoll;
+};
+
+const loadWagesDashboard = async () => {
+  const { renderWagesDashboard } = await import('./pages/WagesDashboard.js');
+  return renderWagesDashboard;
+};
+
+// Loading UI functions
+const showLoading = () => {
+  let loadingEl = document.getElementById('page-loading');
+  if (!loadingEl) {
+    loadingEl = document.createElement('div');
+    loadingEl.id = 'page-loading';
+    loadingEl.innerHTML = `
+      <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+        <div style="text-align: center;">
+          <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>
+          <p style="color: #666; font-family: Arial, sans-serif;">Loading...</p>
+        </div>
+      </div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    `;
+    document.body.appendChild(loadingEl);
+  }
+  loadingEl.style.display = 'block';
+};
+
+const hideLoading = () => {
+  const loadingEl = document.getElementById('page-loading');
+  if (loadingEl) {
+    loadingEl.style.display = 'none';
+  }
+};
 
 // Initialize Navigo router
 const router = new Navigo('/', { hash: false });
 
 // Define routes
 router
-  .on('/', () => renderHome(router))
-  .on('/about', () => renderAbout(router))
-  .on('/login', () => renderLogin(router))
-  .on('/dashboard', () => renderDashboard(router))
-  .on('/profile', () => renderProfile(router))
-  .on('/master-roll', () => renderMasterRoll(router))
-  .on('/wages-dashboard', () => renderWagesDashboard(router))
+  .on('/', async () => {
+    showLoading();
+    const renderHome = await loadHome();
+    renderHome(router);
+    hideLoading();
+  })
+  .on('/about', async () => {
+    showLoading();
+    const renderAbout = await loadAbout();
+    renderAbout(router);
+    hideLoading();
+  })
+  .on('/login', async () => {
+    showLoading();
+    const renderLogin = await loadLogin();
+    renderLogin(router);
+    hideLoading();
+  })
+  .on('/dashboard', async () => {
+    showLoading();
+    const renderDashboard = await loadDashboard();
+    renderDashboard(router);
+    hideLoading();
+  })
+  .on('/profile', async () => {
+    showLoading();
+    const renderProfile = await loadProfile();
+    renderProfile(router);
+    hideLoading();
+  })
+  .on('/master-roll', async () => {
+    showLoading();
+    const renderMasterRoll = await loadMasterRoll();
+    renderMasterRoll(router);
+    hideLoading();
+  })
+  .on('/wages-dashboard', async () => {
+    showLoading();
+    const renderWagesDashboard = await loadWagesDashboard();
+    renderWagesDashboard(router);
+    hideLoading();
+  })
   .notFound(() => {
     document.getElementById('app').innerHTML = `
       <div class="container">
