@@ -14,16 +14,13 @@ export const createSetting = (req, res) => {
     if (existing) {
       return res.status(409).json({ error: 'Setting already exists' });
     }
-    
-    const result = Settings.create.run(
+
+    // For Turso compatibility: don't check result.changes - just execute and assume success
+    Settings.create.run(
       setting_key,
       setting_value,
       description || null
     );
-    
-    if (result.changes === 0) {
-      return res.status(400).json({ error: 'Failed to create setting' });
-    }
     
     const newSetting = Settings.getByKey.get(setting_key);
     res.status(201).json({ message: 'Setting created successfully', setting: newSetting });
@@ -78,15 +75,12 @@ export const updateSetting = (req, res) => {
     }
     
     // Update the setting
-    const result = Settings.update.run(
+    // For Turso compatibility: don't check result.changes - just execute and assume success
+    Settings.update.run(
       setting_value,
       description || existingSetting.description,
       key
     );
-    
-    if (result.changes === 0) {
-      return res.status(400).json({ error: 'No changes made to setting' });
-    }
     
     // Return updated setting
     const updatedSetting = Settings.getByKey.get(key);

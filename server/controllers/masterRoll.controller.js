@@ -1,6 +1,6 @@
 'use strict';
 
-import { db } from '../utils/db.js';
+import { db, MasterRoll } from '../utils/db.js';
 
 /* --------------------------------------------------
    PREPARED STATEMENTS - WITH FIRM ISOLATION & USER TRACKING
@@ -315,6 +315,139 @@ export const updateMasterRoll = (req, res) => {
     // Check ownership - allow super_admin to bypass firm check
     if (role !== 'super_admin') {
       const ownership = checkFirmOwnership.get(masterId, firmId);
+      console.log(`[UPDATE] Ownership check - ID: ${masterId}, Firm: ${firmId}, Result:`, ownership);
+      if (!ownership) {
+        console.log(`[UPDATE] Access denied - employee not found in user's firm`);
+        return res.status(404).json({
+          success: false,
+          error: 'Employee not found or access denied'
+        });
+      }
+    } else {
+      // Super admin - just check if employee exists
+      const exists = db.prepare('SELECT id FROM master_rolls WHERE id = ?').get(masterId);
+      console.log(`[UPDATE] Super admin check - ID: ${masterId}, Exists:`, exists);
+      if (!exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'Employee not found'
+        });
+      }
+    }
+
+    // Get current record to preserve unchanged fields
+    const currentRecord = db.prepare('SELECT * FROM master_rolls WHERE id = ?').get(masterId);
+    if (!currentRecord) {
+      return res.status(404).json({
+        success: false,
+        error: 'Employee not found'
+      });
+    }
+
+    // Use nullish coalescing to preserve current values for fields not in request body
+    const updateData = {
+      employee_name: req.body.employee_name ?? currentRecord.employee_name,
+      father_husband_name: req.body.father_husband_name ?? currentRecord.father_husband_name,
+      date_of_birth: req.body.date_of_birth ?? currentRecord.date_of_birth,
+      aadhar: req.body.aadhar ?? currentRecord.aadhar,
+      pan: req.body.pan ?? currentRecord.pan,
+      phone_no: req.body.phone_no ?? currentRecord.phone_no,
+      address: req.body.address ?? currentRecord.address,
+      bank: req.body.bank ?? currentRecord.bank,
+      account_no: req.body.account_no ?? currentRecord.account_no,
+      ifsc: req.body.ifsc ?? currentRecord.ifsc,
+      branch: req.body.branch ?? currentRecord.branch,
+      uan: req.body.uan ?? currentRecord.uan,
+      esic_no: req.body.esic_no ?? currentRecord.esic_no,
+      s_kalyan_no: req.body.s_kalyan_no ?? currentRecord.s_kalyan_no,
+      category: req.body.category ?? currentRecord.category,
+      p_day_wage: req.body.p_day_wage ?? currentRecord.p_day_wage,
+      project: req.body.project ?? currentRecord.project,
+      site: req.body.site ?? currentRecord.site,
+      date_of_joining: req.body.date_of_joining ?? currentRecord.date_of_joining,
+      date_of_exit: req.body.date_of_exit ?? currentRecord.date_of_exit,
+      doe_rem: req.body.doe_rem ?? currentRecord.doe_rem,
+      status: req.body.status ?? currentRecord.status
+    };
+
+    // Use prepared statement with fixed parameter order
+    // MasterRoll.update expects: 23 fields + updated_by + updated_at + id + firm_id = 26 parameters
+    const params = [
+      updateData.employee_name,
+      updateData.father_husband_name,
+      updateData.date_of_birth,
+      updateData.aadhar,
+      updateData.pan,
+      updateData.phone_no,
+      updateData.address,
+      updateData.bank,
+      updateData.account_no,
+      updateData.ifsc,
+      updateData.branch,
+      updateData.uan,
+      updateData.esic_no,
+      updateData.s_kalyan_no,
+      updateData.category,
+      updateData.p_day_wage,
+      updateData.project,
+      updateData.site,
+      updateData.date_of_joining,
+      updateData.date_of_exit,
+      updateData.doe_rem,
+      updateData.status,
+      user_id,
+      new Date().toISOString(),
+      masterId,
+      firmId
+    ];
+
+    // Use inline prepared statement for Turso compatibility
+    const updateStmt = db.prepare(`
+      UPDATE master_rolls
+      SET employee_name = ?, father_husband_name = ?, date_of_birth = ?,
+          aadhar = ?, pan = ?, phone_no = ?, address = ?, bank = ?,
+          account_no = ?, ifsc = ?, branch = ?, uan = ?, esic_no = ?,
+          s_kalyan_no = ?, category = ?, p_day_wage = ?, project = ?,
+          site = ?, date_of_joining = ?, date_of_exit = ?, doe_rem = ?,
+          status = ?, updated_by = ?, updated_at = ?
+      WHERE id = ? AND firm_id = ?
+    `);
+    
+    // For Turso compatibility: don't check result.changes - it returns 0 even on success
+    // Just execute and assume success if no error is thrown (like Stock.update does)
+    updateStmt.run(...params);
+
+    console.log(`[UPDATE] Employee ${masterId} updated successfully`);
+    
+    res.json({
+      success: true,
+      message: 'Employee updated successfully',
+      updated_by: user_id
+    });
+  } catch (err) {
+    console.error(`[UPDATE] Error:`, err.message);
+    console.error(`[UPDATE] Error stack:`, err.stack);
+    res.status(400).json({
+      success: false,
+      error: err.message
+    });
+  }
+};
+
+// DELETE - with firm check
+export const deleteMasterRoll = (req, res) => {
+  try {
+    const { firm_id, id: user_id, role } = req.user;
+    const { id } = req.params;
+
+    const masterId = parseInt(id, 10);
+    const firmId = parseInt(firm_id, 10);
+
+    // First, check if the employee exists and belongs to the user's firm
+    // For Turso compatibility, we rely on the existence check
+    // rather than result.changes which may not be reliable in Turso
+    if (role !== 'super_admin') {
+      const ownership = checkFirmOwnership.get(masterId, firmId);
       if (!ownership) {
         return res.status(404).json({
           success: false,
@@ -332,95 +465,8 @@ export const updateMasterRoll = (req, res) => {
       }
     }
 
-    // Build update query dynamically based on provided fields
-    const allowedFields = [
-      'employee_name', 'father_husband_name', 'date_of_birth',
-      'aadhar', 'pan', 'phone_no', 'address', 'bank', 'account_no',
-      'ifsc', 'branch', 'uan', 'esic_no', 's_kalyan_no', 'category',
-      'p_day_wage', 'project', 'site', 'date_of_joining', 'date_of_exit',
-      'doe_rem', 'status'
-    ];
-
-    const updates = [];
-    const values = [];
-
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updates.push(`${field} = ?`);
-        values.push(req.body[field]);
-      }
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'No valid fields to update'
-      });
-    }
-
-    // Add updated_by and updated_at
-    updates.push('updated_by = ?');
-    updates.push('updated_at = ?');
-    values.push(user_id);
-    values.push(new Date().toISOString());
-
-    // Add WHERE clause parameters
-    values.push(masterId);
-    
-    // Build WHERE clause based on role
-    let updateQuery;
-    if (role === 'super_admin') {
-      // Super admin can update any employee
-      updateQuery = `UPDATE master_rolls SET ${updates.join(', ')} WHERE id = ?`;
-    } else {
-      // Regular users can only update employees in their firm
-      values.push(firmId);
-      updateQuery = `UPDATE master_rolls SET ${updates.join(', ')} WHERE id = ? AND firm_id = ?`;
-    }
-
-    // Use db.exec() with raw SQL instead of prepared statements for UPDATE
-    // Turso has issues with prepared statement UPDATEs with many parameters
-    try {
-      db.exec(updateQuery, values);
-      
-      console.log(`[UPDATE] Query executed successfully`);
-      console.log(`[UPDATE] Query: ${updateQuery}`);
-      console.log(`[UPDATE] Values: ${JSON.stringify(values)}`);
-      
-      res.json({
-        success: true,
-        message: 'Employee updated successfully',
-        updated_by: user_id
-      });
-    } catch (execErr) {
-      console.error(`[UPDATE] Error:`, execErr.message);
-      return res.status(400).json({
-        success: false,
-        error: execErr.message
-      });
-    }
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      error: err.message
-    });
-  }
-};
-
-// DELETE - with firm check
-export const deleteMasterRoll = (req, res) => {
-  try {
-    const { firm_id } = req.user;
-    const { id } = req.params;
-
-    const result = deleteStmt.run(id, firm_id);
-
-    if (result.changes === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Employee not found or access denied'
-      });
-    }
+    // Perform the deletion
+    deleteStmt.run(masterId, firmId);
 
     res.json({
       success: true,
@@ -762,8 +808,10 @@ export const bulkDeleteMasterRolls = (req, res) => {
     const bulkDelete = db.transaction((employeeIds) => {
       for (const id of employeeIds) {
         try {
-          const result = deleteStmt.run(id, firm_id);
-          if (result.changes > 0) {
+          // For Turso compatibility, check existence first instead of relying on result.changes
+          const exists = db.prepare('SELECT id FROM master_rolls WHERE id = ? AND firm_id = ?').get(id, firm_id);
+          if (exists) {
+            deleteStmt.run(id, firm_id);
             successCount++;
           } else {
             failedIds.push({ id, reason: 'Not found or access denied' });

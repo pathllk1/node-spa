@@ -68,32 +68,26 @@ export const updateSetting = (req, res) => {
       
       if (existingFirmSetting) {
         // Update existing firm setting
-        const result = FirmSettings.update.run(
+        // For Turso compatibility: don't check result.changes - just execute and assume success
+        FirmSettings.update.run(
           setting_value,
           description || existingFirmSetting.description,
           req.user.firm_id,
           key
         );
         
-        if (result.changes === 0) {
-          return res.status(400).json({ error: 'No changes made to setting' });
-        }
-        
         // Return updated setting
         const updatedSetting = FirmSettings.getByFirmAndKey.get(req.user.firm_id, key);
         res.json({ message: 'Setting updated successfully', setting: updatedSetting });
       } else {
         // Create new firm setting
-        const result = FirmSettings.create.run(
+        // For Turso compatibility: don't check result.changes - just execute and assume success
+        FirmSettings.create.run(
           req.user.firm_id,
           key,
           setting_value,
           description || `Firm-specific ${key} setting`
         );
-        
-        if (result.changes === 0) {
-          return res.status(400).json({ error: 'Failed to create setting' });
-        }
         
         // Return newly created setting
         const newSetting = FirmSettings.getByFirmAndKey.get(req.user.firm_id, key);
@@ -107,15 +101,12 @@ export const updateSetting = (req, res) => {
       }
       
       // Update the setting
-      const result = Settings.update.run(
+      // For Turso compatibility: don't check result.changes - just execute and assume success
+      Settings.update.run(
         setting_value,
         description || existingSetting.description,
         key
       );
-      
-      if (result.changes === 0) {
-        return res.status(400).json({ error: 'No changes made to setting' });
-      }
       
       // Return updated setting
       const updatedSetting = Settings.getByKey.get(key);

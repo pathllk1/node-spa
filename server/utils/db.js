@@ -865,6 +865,17 @@ export const MasterRoll = {
     LEFT JOIN users uu ON uu.id = mr.updated_by
     WHERE mr.firm_id = ?
     ORDER BY mr.created_at DESC
+  `),
+
+  update: db.prepare(`
+    UPDATE master_rolls
+    SET employee_name = ?, father_husband_name = ?, date_of_birth = ?,
+        aadhar = ?, pan = ?, phone_no = ?, address = ?, bank = ?,
+        account_no = ?, ifsc = ?, branch = ?, uan = ?, esic_no = ?,
+        s_kalyan_no = ?, category = ?, p_day_wage = ?, project = ?,
+        site = ?, date_of_joining = ?, date_of_exit = ?, doe_rem = ?,
+        status = ?, updated_by = ?, updated_at = ?
+    WHERE id = ? AND firm_id = ?
   `)
 
 };

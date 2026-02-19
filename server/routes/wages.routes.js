@@ -10,9 +10,11 @@ import {
   deleteWagesBulk,
   getWageById
 } from '../controllers/wages.controller.js';
-import { requireRole } from '../middleware/auth.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+router.use(authMiddleware);
 
 /* --------------------------------------------------
    CREATE WAGES TAB ROUTES

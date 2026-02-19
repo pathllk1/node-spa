@@ -182,7 +182,8 @@ export function updateFirm(req, res) {
         
         const now = new Date().toISOString();
         
-        const result = db.prepare(`
+        // For Turso compatibility: don't check result.changes - just execute and assume success
+        db.prepare(`
             UPDATE firms 
             SET name = COALESCE(?, name), 
                 legal_name = COALESCE(?, legal_name),
@@ -269,10 +270,6 @@ export function updateFirm(req, res) {
             id
         );
         
-        if (result.changes === 0) {
-            return res.status(400).json({ error: 'No changes made to firm' });
-        }
-        
         res.json({ message: 'Firm updated successfully' });
     } catch (err) {
         console.error('Error updating firm:', err.message);
@@ -320,11 +317,8 @@ export function deleteFirm(req, res) {
         }
         
         // Delete the firm
-        const result = db.prepare('DELETE FROM firms WHERE id = ?').run(id);
-        
-        if (result.changes === 0) {
-            return res.status(400).json({ error: 'No firm was deleted' });
-        }
+        // For Turso compatibility: check existence first instead of relying on result.changes
+        db.prepare('DELETE FROM firms WHERE id = ?').run(id);
         
         res.json({ message: 'Firm deleted successfully' });
     } catch (err) {
@@ -368,11 +362,8 @@ export function assignUserToFirm(req, res) {
         }
         
         // Assign user to firm
-        const result = db.prepare('UPDATE users SET firm_id = ? WHERE id = ?').run(firmId, userId);
-        
-        if (result.changes === 0) {
-            return res.status(400).json({ error: 'Failed to assign user to firm' });
-        }
+        // For Turso compatibility: don't check result.changes - just execute and assume success
+        db.prepare('UPDATE users SET firm_id = ? WHERE id = ?').run(firmId, userId);
         
         res.json({ message: 'User assigned to firm successfully' });
     } catch (err) {

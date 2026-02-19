@@ -4,6 +4,7 @@ import { renderLogin } from './pages/login.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderProfile } from './pages/profile.js';
 import {renderMasterRoll} from './pages/master-roll.js';
+import { renderWagesDashboard } from './pages/WagesDashboard.js';
 
 // Initialize Navigo router
 const router = new Navigo('/', { hash: false });
@@ -16,6 +17,7 @@ router
   .on('/dashboard', () => renderDashboard(router))
   .on('/profile', () => renderProfile(router))
   .on('/master-roll', () => renderMasterRoll(router))
+  .on('/wages-dashboard', () => renderWagesDashboard(router))
   .notFound(() => {
     document.getElementById('app').innerHTML = `
       <div class="container">

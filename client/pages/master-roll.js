@@ -637,10 +637,22 @@ class MasterRollManager {
         },
         body: JSON.stringify(data),
       });
+      
+      // Check HTTP status first
+      if (!res.ok) {
+        const json = await res.json();
+        this.showToast(json.error || `Failed to add employee (${res.status})`, "error");
+        console.error(`[CREATE] HTTP ${res.status}:`, json);
+        return;
+      }
+      
       const json = await res.json();
-      if (json.success) this.showToast(`Employee "${data.employee_name}" added successfully!`);
-      else this.showToast("Failed to add employee", "error");
-      await this.fetchMasterRolls();
+      if (json.success) {
+        this.showToast(`Employee "${data.employee_name}" added successfully!`);
+        await this.fetchMasterRolls();
+      } else {
+        this.showToast(json.error || "Failed to add employee", "error");
+      }
     } catch (err) {
       this.showToast("Error adding employee", "error");
       console.error(err);
@@ -657,10 +669,22 @@ class MasterRollManager {
         },
         body: JSON.stringify(data),
       });
+      
+      // Check HTTP status first
+      if (!res.ok) {
+        const json = await res.json();
+        this.showToast(json.error || `Failed to update employee (${res.status})`, "error");
+        console.error(`[UPDATE] HTTP ${res.status}:`, json);
+        return;
+      }
+      
       const json = await res.json();
-      if (json.success) this.showToast(`Employee "${data.employee_name}" updated successfully!`);
-      else this.showToast("Failed to update employee", "error");
-      await this.fetchMasterRolls();
+      if (json.success) {
+        this.showToast(`Employee "${data.employee_name}" updated successfully!`);
+        await this.fetchMasterRolls();
+      } else {
+        this.showToast(json.error || "Failed to update employee", "error");
+      }
     } catch (err) {
       this.showToast("Error updating employee", "error");
       console.error(err);
@@ -678,9 +702,22 @@ class MasterRollManager {
           'Content-Type': 'application/json'
         }
       });
+      
+      // Check HTTP status first
+      if (!res.ok) {
+        const json = await res.json();
+        this.showToast(json.error || `Failed to delete employee (${res.status})`, "error");
+        console.error(`[DELETE] HTTP ${res.status}:`, json);
+        return;
+      }
+      
       const json = await res.json();
-      if (json.success) this.showToast(`Employee "${row.employee_name}" deleted successfully!`);
-      else this.showToast("Failed to delete employee", "error");
+      if (json.success) {
+        this.showToast(`Employee "${row.employee_name}" deleted successfully!`);
+        await this.fetchMasterRolls();
+      } else {
+        this.showToast(json.error || "Failed to delete employee", "error");
+      }
       await this.fetchMasterRolls();
     } catch (err) {
       this.showToast("Error deleting employee", "error");
@@ -701,13 +738,22 @@ class MasterRollManager {
         },
         body: JSON.stringify({ ids })
       });
+      
+      // Check HTTP status first
+      if (!res.ok) {
+        const json = await res.json();
+        this.showToast(json.error || `Failed to delete employees (${res.status})`, "error");
+        console.error(`[BULK DELETE] HTTP ${res.status}:`, json);
+        return;
+      }
+      
       const json = await res.json();
       if (json.success) {
         this.showToast(`${ids.length} employees deleted successfully!`);
         this.selectedRows.clear();
         await this.fetchMasterRolls();
       } else {
-        this.showToast("Failed to delete employees", "error");
+        this.showToast(json.error || "Failed to delete employees", "error");
       }
     } catch (err) {
       this.showToast("Error deleting employees", "error");
@@ -813,6 +859,14 @@ class MasterRollManager {
         },
         body: JSON.stringify(jsonData)
       });
+
+      // Check HTTP status first
+      if (!res.ok) {
+        const json = await res.json();
+        this.showToast(json.error || `Upload failed (${res.status})`, "error");
+        console.error(`[BULK UPLOAD] HTTP ${res.status}:`, json);
+        return;
+      }
 
       const result = await res.json();
 
