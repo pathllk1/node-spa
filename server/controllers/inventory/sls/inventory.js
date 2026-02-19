@@ -257,18 +257,18 @@ export const updateStock = (req, res) => {
 
         const actorUsername = getActorUsername(req);
         if (!actorUsername) {
-            return res.status(401).json({ error: 'Unauthorized' });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         
         // Check if user has firm access
         if (!req.user || !req.user.firm_id) {
-            return res.status(403).json({ error: 'User is not associated with any firm' });
+            return res.status(403).json({ success: false, error: 'User is not associated with any firm' });
         }
         
         // Get the current stock record
         const currentStock = Stock.getById.get(id, req.user.firm_id);
         if (!currentStock) {
-            return res.status(404).json({ error: 'Stock not found or does not belong to your firm' });
+            return res.status(404).json({ success: false, error: 'Stock not found or does not belong to your firm' });
         }
         
         // Parse existing batches
@@ -300,11 +300,11 @@ export const updateStock = (req, res) => {
         if (!incomingBatches && batch) {
             const batchIndex = batches.findIndex(b => b.batch === batch);
             if (batchIndex !== -1) {
-                // Update existing batch
-                batches[batchIndex].qty = parseFloat(qty);
-                if (rate) batches[batchIndex].rate = parseFloat(rate);
-                if (expiryDate) batches[batchIndex].expiry = expiryDate;
-                if (mrp) batches[batchIndex].mrp = parseFloat(mrp);
+                // Update existing batch - STRICT CONSISTENCY: update all fields
+                batches[batchIndex].qty = parseFloat(qty) || batches[batchIndex].qty;
+                if (rate !== undefined && rate !== null) batches[batchIndex].rate = parseFloat(rate);
+                if (expiryDate !== undefined && expiryDate !== null) batches[batchIndex].expiry = expiryDate;
+                if (mrp !== undefined && mrp !== null) batches[batchIndex].mrp = parseFloat(mrp);
             } else {
                 // If batch doesn't exist in the array, add it
                 batches.push({
@@ -318,10 +318,11 @@ export const updateStock = (req, res) => {
         } else if (!incomingBatches) {
             // If no batch specified, update the first batch or add as non-batched
             if (batches.length > 0) {
-                batches[0].qty = parseFloat(qty);
-                if (rate) batches[0].rate = parseFloat(rate);
-                if (expiryDate) batches[0].expiry = expiryDate;
-                if (mrp) batches[0].mrp = parseFloat(mrp);
+                // Update first batch - STRICT CONSISTENCY: update all fields
+                batches[0].qty = parseFloat(qty) || batches[0].qty;
+                if (rate !== undefined && rate !== null) batches[0].rate = parseFloat(rate);
+                if (expiryDate !== undefined && expiryDate !== null) batches[0].expiry = expiryDate;
+                if (mrp !== undefined && mrp !== null) batches[0].mrp = parseFloat(mrp);
             } else {
                 // Add as non-batched entry
                 batches.push({
@@ -334,31 +335,73 @@ export const updateStock = (req, res) => {
             }
         }
         
-        // Calculate new total quantity
-        const newTotalQty = batches.reduce((sum, b) => sum + b.qty, 0);
-        const effectiveRate = parseFloat(rate || currentStock.rate || 0);
-        const newTotal = newTotalQty * effectiveRate;
+        // CRITICAL FIX: Sync root-level fields with batch data for consistency
+        // When batches exist, derive root fields from first batch to maintain consistency
+        let rootRate = parseFloat(rate || currentStock.rate || 0);
+        let rootQty = 0;
+        let rootMrp = mrp ? parseFloat(mrp) : currentStock.mrp;
         
-        Stock.update.run(
+        // Calculate new total quantity from all batches
+        const newTotalQty = batches.reduce((sum, b) => sum + (parseFloat(b.qty) || 0), 0);
+        
+        // If batches exist, use first batch's rate as root rate for consistency
+        if (batches.length > 0 && batches[0].rate !== undefined) {
+            rootRate = parseFloat(batches[0].rate);
+        }
+        
+        // If batches exist, use first batch's MRP as root MRP for consistency
+        if (batches.length > 0 && batches[0].mrp !== undefined && batches[0].mrp !== null) {
+            rootMrp = parseFloat(batches[0].mrp);
+        }
+        
+        const newTotal = newTotalQty * rootRate;
+        
+        console.log(`[UPDATE_STOCK] Updating stock ${id}:`, {
+            item,
+            qty: newTotalQty,
+            rate: rootRate,
+            mrp: rootMrp,
+            batchCount: batches.length,
+            batches: batches
+        });
+        
+        // For Turso compatibility: don't check result.changes - just execute and assume success if no error
+        const updateResult = Stock.update.run(
             item,
             pno || null,
             oem || null,
             hsn,
             newTotalQty,
             uom,
-            effectiveRate,
+            rootRate,
             parseFloat(grate),
             newTotal,
-            mrp ? parseFloat(mrp) : null,
+            rootMrp,
             JSON.stringify(batches),
             actorUsername,
             id,
             req.user.firm_id
         );
 
+        console.log(`[UPDATE_STOCK] Update result:`, updateResult);
+
+        // VERIFICATION: Fetch the updated record to confirm changes
+        const verifyStock = Stock.getById.get(id, req.user.firm_id);
+        console.log(`[UPDATE_STOCK] Verification - Stock after update:`, {
+            id: verifyStock.id,
+            item: verifyStock.item,
+            qty: verifyStock.qty,
+            rate: verifyStock.rate,
+            mrp: verifyStock.mrp,
+            batches: verifyStock.batches ? JSON.parse(verifyStock.batches) : null,
+            updated_at: verifyStock.updated_at
+        });
+
+        console.log(`[UPDATE_STOCK] Stock ${id} updated successfully`);
         res.json({ success: true, message: 'Stock updated successfully' });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        console.error(`[UPDATE_STOCK] Error:`, err.message);
+        res.status(400).json({ success: false, error: err.message });
     }
 };
 

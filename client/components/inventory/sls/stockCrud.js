@@ -275,10 +275,70 @@ export function openEditStockModal(stock, state, onStockSaved) {
         const formData = new FormData(e.target);
         let data = Object.fromEntries(formData.entries());
 
+        console.log('[FORM_SUBMIT] Raw form data:', data);
+        console.log('[FORM_SUBMIT] selectedBatchIndex value:', data.selectedBatchIndex);
+        console.log('[FORM_SUBMIT] batch value:', data.batch);
+
         data.total = (parseFloat(data.qty) * parseFloat(data.rate)).toFixed(2);
         data.updated_at = new Date().toISOString();
         
-        if (data.batch || data.expiryDate || data.mrp) {
+        // CRITICAL FIX: Update the specific batch in the batches array with form values
+        if (stock.batches && Array.isArray(stock.batches) && stock.batches.length > 0) {
+            // Make a deep copy of batches to avoid mutating original
+            let updatedBatches = JSON.parse(JSON.stringify(stock.batches));
+            
+            console.log('[FORM_SUBMIT] Original batches:', updatedBatches);
+            
+            // Check if a specific batch was selected via dropdown
+            const selectedBatchIndex = parseInt(data.selectedBatchIndex);
+            let targetBatchIndex = -1;
+            
+            console.log('[FORM_SUBMIT] Parsed selectedBatchIndex:', selectedBatchIndex, 'isNaN:', isNaN(selectedBatchIndex));
+            
+            if (!isNaN(selectedBatchIndex) && selectedBatchIndex >= 0 && selectedBatchIndex < updatedBatches.length) {
+                // Use the selected batch index from dropdown
+                targetBatchIndex = selectedBatchIndex;
+                console.log('[FORM_SUBMIT] Using dropdown index:', targetBatchIndex);
+            } else {
+                // Fall back to finding by batch name
+                const editingBatchName = data.batch || null;
+                targetBatchIndex = updatedBatches.findIndex(b => b.batch === editingBatchName);
+                console.log('[FORM_SUBMIT] Fallback: searching by batch name:', editingBatchName, 'found at index:', targetBatchIndex);
+            }
+            
+            console.log('[FORM_SUBMIT] Target batch index:', targetBatchIndex);
+            
+            if (targetBatchIndex !== -1) {
+                // Update the specific batch with form values
+                console.log('[FORM_SUBMIT] Updating batch at index', targetBatchIndex);
+                updatedBatches[targetBatchIndex].qty = parseFloat(data.qty) || updatedBatches[targetBatchIndex].qty;
+                updatedBatches[targetBatchIndex].rate = parseFloat(data.rate) || updatedBatches[targetBatchIndex].rate;
+                updatedBatches[targetBatchIndex].expiry = data.expiryDate || updatedBatches[targetBatchIndex].expiry;
+                updatedBatches[targetBatchIndex].mrp = data.mrp ? parseFloat(data.mrp) : updatedBatches[targetBatchIndex].mrp;
+                console.log('[FORM_SUBMIT] Updated batch:', updatedBatches[targetBatchIndex]);
+            } else if (data.batch) {
+                // If batch name doesn't exist, add it as new batch
+                console.log('[FORM_SUBMIT] Adding new batch:', data.batch);
+                updatedBatches.push({
+                    batch: data.batch,
+                    qty: parseFloat(data.qty) || 0,
+                    rate: parseFloat(data.rate) || 0,
+                    expiry: data.expiryDate || null,
+                    mrp: data.mrp ? parseFloat(data.mrp) : null
+                });
+            } else {
+                // No batch name specified, update first batch
+                console.log('[FORM_SUBMIT] No batch specified, updating first batch');
+                updatedBatches[0].qty = parseFloat(data.qty) || updatedBatches[0].qty;
+                updatedBatches[0].rate = parseFloat(data.rate) || updatedBatches[0].rate;
+                updatedBatches[0].expiry = data.expiryDate || updatedBatches[0].expiry;
+                updatedBatches[0].mrp = data.mrp ? parseFloat(data.mrp) : updatedBatches[0].mrp;
+            }
+            
+            console.log('[FORM_SUBMIT] Final updated batches:', updatedBatches);
+            data.batches = JSON.stringify(updatedBatches);
+        } else if (data.batch || data.expiryDate || data.mrp) {
+            // Only create new batch if no existing batches
             const batchObj = {
                 batch: data.batch || null,
                 qty: parseFloat(data.qty) || 0,
@@ -288,10 +348,12 @@ export function openEditStockModal(stock, state, onStockSaved) {
             };
             
             data.batches = JSON.stringify([batchObj]);
-            delete data.batch;
-            delete data.expiryDate;
-            delete data.mrp;
         }
+        
+        delete data.batch;
+        delete data.expiryDate;
+        delete data.mrp;
+        delete data.selectedBatchIndex;
 
         try {
             closeModal();
@@ -361,10 +423,25 @@ function showBatchSelectionForEdit(stock) {
     label.className = 'block text-xs font-bold text-gray-600 mb-1 uppercase';
     label.textContent = 'Select Batch to Edit';
     
+    // CRITICAL FIX: Preserve the hidden selectedBatchIndex field when clearing
+    const hiddenField = batchContainer.querySelector('input[name="selectedBatchIndex"]');
+    
     // Clear and rebuild the batch field container
     batchContainer.innerHTML = '';
     batchContainer.appendChild(label);
     batchContainer.appendChild(select);
+    
+    // Re-add the hidden field if it existed
+    if (hiddenField) {
+        batchContainer.appendChild(hiddenField);
+    } else {
+        // Create it if it doesn't exist
+        const newHiddenField = document.createElement('input');
+        newHiddenField.type = 'hidden';
+        newHiddenField.name = 'selectedBatchIndex';
+        newHiddenField.value = '';
+        batchContainer.appendChild(newHiddenField);
+    }
     
     // Add event listener to handle batch selection
     select.addEventListener('change', function() {
@@ -375,9 +452,19 @@ function showBatchSelectionForEdit(stock) {
             // Update form fields with selected batch data
             const form = select.closest('form');
             if (form) {
+                // CRITICAL: Update the hidden selectedBatchIndex field
+                const batchIndexInput = form.querySelector('input[name="selectedBatchIndex"]');
+                if (batchIndexInput) {
+                    batchIndexInput.value = batchIndex;
+                    console.log('[BATCH_SELECT] Set selectedBatchIndex to:', batchIndex);
+                }
+                
+                // CRITICAL: Set the batch name field to the selected batch's name
+                // This is used to identify which batch to update in the submission handler
                 const batchInput = form.querySelector('input[name="batch"]');
                 if (batchInput) {
-                    batchInput.value = selectedBatch.batch || '';
+                    batchInput.value = selectedBatch.batch !== null ? selectedBatch.batch : '';
+                    console.log('[BATCH_SELECT] Set batch name to:', batchInput.value);
                 }
                 
                 const mrpInput = form.querySelector('input[name="mrp"]');
@@ -398,11 +485,6 @@ function showBatchSelectionForEdit(stock) {
                 const rateInput = form.querySelector('input[name="rate"]');
                 if (rateInput) {
                     rateInput.value = selectedBatch.rate || '';
-                }
-                
-                const batchIndexInput = form.querySelector('input[name="selectedBatchIndex"]');
-                if (batchIndexInput) {
-                    batchIndexInput.value = batchIndex;
                 }
             }
             
