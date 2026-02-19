@@ -39,6 +39,11 @@ const loadSales = async () => {
   return renderSales;
 };
 
+const loadStocks = async () => {
+  const { renderStocks } = await import('./pages/stocks.js');
+  return renderStocks;
+};
+
 // Loading UI functions
 const showLoading = () => {
   let loadingEl = document.getElementById('page-loading');
@@ -122,6 +127,12 @@ router
     showLoading();
     const renderSales = await loadSales();
     renderSales(router);
+    hideLoading();
+  })
+  .on('/inventory/stocks', async () => {
+    showLoading();
+    const renderStocks = await loadStocks();
+    renderStocks(router);
     hideLoading();
   })
   .notFound(() => {
