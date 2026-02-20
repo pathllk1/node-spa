@@ -173,9 +173,11 @@ export const login = async (req, res) => {
         // You can also just manually add it to the object below to save a DB query:
         user.last_login = new Date().toISOString();
 
-
+      const accessLifeMs = 15 * 60 * 1000;
     // Generate token pair
     const { accessToken, refreshToken } = generateTokenPair(user);
+
+    const expiryTimestamp = Date.now() + accessLifeMs;
 
     // Set cookies
     res.cookie('accessToken', accessToken, {
@@ -191,6 +193,13 @@ export const login = async (req, res) => {
       sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
+
+    res.cookie('tokenExpiry', expiryTimestamp.toString(), { 
+    httpOnly: false, 
+    sameSite: 'strict', 
+    secure: true,
+    maxAge: accessLifeMs // Clears itself when the access token expires
+  });
 
     // Return user data (without password)
     const { password: _, ...userWithoutPassword } = user;

@@ -1753,3 +1753,115 @@ export const lookupGST = async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch GST details' });
     }
 };
+import ExcelJS from 'exceljs';
+
+export const exportStockMovementsToExcel = async (req, res) => {
+    try {
+        if (!req.user || !req.user.firm_id) {
+            return res.status(403).json({ error: 'User is not associated with any firm' });
+        }
+
+        const { type, searchTerm } = req.query;
+        
+        let query = `
+            SELECT sr.*, s.item as stock_item, b.bdate as bill_date, p.firm as party_name
+            FROM stock_reg sr
+            LEFT JOIN stocks s ON s.id = sr.stock_id
+            LEFT JOIN bills b ON b.id = sr.bill_id
+            LEFT JOIN parties p ON p.id = b.party_id
+            WHERE sr.firm_id = ?
+        `;
+        
+        const params = [req.user.firm_id];
+
+        if (type) {
+            query += ` AND sr.type = ?`;
+            params.push(type);
+        }
+
+        if (searchTerm) {
+            query += ` AND (sr.item LIKE ? OR sr.bno LIKE ?)`;
+            params.push(`%${searchTerm}%`, `%${searchTerm}%`);
+        }
+
+        query += ` ORDER BY sr.created_at DESC`;
+        const rows = db.prepare(query).all(...params);
+
+        // Create Excel workbook and worksheet
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Your Application';
+        workbook.lastModifiedBy = 'Your Application';
+        workbook.created = new Date();
+        workbook.modified = new Date();
+
+        const worksheet = workbook.addWorksheet('Stock Movements');
+
+        // Define columns
+        worksheet.columns = [
+            { header: 'Date', key: 'date', width: 12 },
+            { header: 'Type', key: 'type', width: 10 },
+            { header: 'Bill No', key: 'billNo', width: 15 },
+            { header: 'Item', key: 'item', width: 30 },
+            { header: 'Batch', key: 'batch', width: 15 },
+            { header: 'Quantity', key: 'quantity', width: 12 },
+            { header: 'UOM', key: 'uom', width: 10 },
+            { header: 'Rate', key: 'rate', width: 12 },
+            { header: 'Total', key: 'total', width: 12 },
+            { header: 'Party', key: 'party', width: 25 }
+        ];
+
+        // Format date column
+        worksheet.getColumn('date').numFmt = 'dd-mm-yyyy';
+
+        // Format numeric columns
+        worksheet.getColumn('quantity').numFmt = '0.00';
+        worksheet.getColumn('rate').numFmt = '0.00';
+        worksheet.getColumn('total').numFmt = '0.00';
+
+        // Add data rows
+        rows.forEach(row => {
+            worksheet.addRow({
+                date: row.bdate || '',
+                type: row.type || '',
+                billNo: row.bno || '',
+                item: row.item || '',
+                batch: row.batch || '',
+                quantity: row.qty || 0,
+                uom: row.uom || '',
+                rate: row.rate || 0,
+                total: row.total || 0,
+                party: row.party_name || ''
+            });
+        });
+
+        // Add header styling
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: '4472C4' }
+        };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // Freeze header row
+        worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=stock-movements-${new Date().toISOString().split('T')[0]}.xlsx`);
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
+        // Write to response
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (err) {
+        console.error('Excel export error:', err);
+        if (!res.headersSent) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.end();
+        }
+    }
+};

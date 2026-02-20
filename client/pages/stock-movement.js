@@ -54,7 +54,7 @@ export async function renderStockMovement(router) {
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
-            Export CSV
+            Export Excel
           </button>
         </div>
       </div>
@@ -128,9 +128,9 @@ export async function renderStockMovement(router) {
 
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+          <thead class="bg-gradient-to-r from-red-500 via-blue-500 to-yellow-500 text-white">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="bdate">
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600" data-sort="bdate">
                 <div class="flex items-center">
                   Date
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -138,7 +138,7 @@ export async function renderStockMovement(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="type">
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600" data-sort="type">
                 <div class="flex items-center">
                   Type
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -146,7 +146,7 @@ export async function renderStockMovement(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="bno">
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600" data-sort="bno">
                 <div class="flex items-center">
                   Bill No
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -154,7 +154,7 @@ export async function renderStockMovement(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="item">
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600" data-sort="item">
                 <div class="flex items-center">
                   Item
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -162,8 +162,8 @@ export async function renderStockMovement(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="qty">
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Batch</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600" data-sort="qty">
                 <div class="flex items-center justify-end">
                   Quantity
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -171,8 +171,8 @@ export async function renderStockMovement(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UOM</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="rate">
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">UOM</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600" data-sort="rate">
                 <div class="flex items-center justify-end">
                   Rate
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -180,7 +180,7 @@ export async function renderStockMovement(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="total">
+              <th class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600" data-sort="total">
                 <div class="flex items-center justify-end">
                   Total
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -188,7 +188,7 @@ export async function renderStockMovement(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Party</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Party</th>
             </tr>
           </thead>
           <tbody id="movements-table-body" class="bg-white divide-y divide-gray-200">
@@ -539,7 +539,7 @@ function initializeMovementsPage(router) {
       const isOutward = ['SALE', 'TRANSFER', 'ADJUSTMENT'].includes(type.toUpperCase());
 
       return `
-        <tr class="hover:bg-gray-50">
+        <tr class="bg-gradient-to-r from-white to-gray-50 hover:from-lime-100 hover:to-lime-200">
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(movement.bdate)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
             <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -635,38 +635,41 @@ function initializeMovementsPage(router) {
     }
   }
 
-  // Export to CSV
-  function exportToCSV() {
-    if (filteredMovements.length === 0) {
-      alert('No movements to export');
-      return;
+  // Export to Excel
+  async function exportToExcel() {
+    try {
+      const params = new URLSearchParams();
+      
+      if (typeFilter.value) params.append('type', typeFilter.value);
+      if (searchInput.value) params.append('searchTerm', searchInput.value);
+      if (dateFromFilter.value) params.append('dateFrom', dateFromFilter.value);
+      if (dateToFilter.value) params.append('dateTo', dateToFilter.value);
+      
+      const url = `/api/inventory/sales/stock-movements/export?${params.toString()}`;
+      
+      const response = await fetch(url, {
+        credentials: 'same-origin'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `stock-movements-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Error exporting to Excel: ' + err.message);
     }
-
-    const csvContent = [
-      ['Date', 'Type', 'Bill No', 'Item', 'Batch', 'Quantity', 'UOM', 'Rate', 'Total', 'Party'],
-      ...filteredMovements.map(movement => [
-        formatDate(movement.bdate),
-        movement.type || '',
-        movement.bno || '',
-        movement.item || '',
-        movement.batch || '',
-        (movement.qty || 0).toFixed(2),
-        movement.uom || '',
-        (movement.rate || 0).toFixed(2),
-        (movement.total || 0).toFixed(2),
-        movement.party_name || ''
-      ])
-    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `stock-movements-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   }
 
   // Utility functions
@@ -686,7 +689,7 @@ function initializeMovementsPage(router) {
   dateFromFilter.addEventListener('change', filterMovements);
   dateToFilter.addEventListener('change', filterMovements);
   refreshBtn.addEventListener('click', loadMovements);
-  exportBtn.addEventListener('click', exportToCSV);
+  exportBtn.addEventListener('click', exportToExcel);
 
   // Sorting event listeners
   document.querySelectorAll('th[data-sort]').forEach(header => {

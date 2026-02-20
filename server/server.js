@@ -88,8 +88,4 @@ process.on('uncaughtException', (error) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  console.log('\nDemo Users:');
-  console.log('1. Username: admin, Password: admin123');
-  console.log('2. Username: user, Password: user123');
-  console.log('3. Username: demo, Password: demo123');
 });

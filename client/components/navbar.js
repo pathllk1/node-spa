@@ -26,6 +26,7 @@ export function renderNavbar(router) {
           ${user.username.charAt(0).toUpperCase()}
         </div>
         <span class="text-gray-700 font-medium">${user.username}</span>
+        <span id="nav-timer-display" class="text-sm text-white ml-2">Loading...</span>
       </div>
     </li>
   ` : `
@@ -84,5 +85,43 @@ export function renderNavbar(router) {
           "text-white font-semibold border-b-2 border-white pb-1";
       }
     });
+
+    // Start the token expiry timer if authenticated
+    if (isAuthenticated) {
+      startTokenTimer();
+    }
   }
+}
+
+// Helper function to get a specific cookie
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+}
+
+// Start the token expiry timer
+function startTokenTimer() {
+  setInterval(() => {
+    const expiryStr = getCookie('tokenExpiry');
+    const timerDisplay = document.getElementById('nav-timer-display');
+
+    if (!timerDisplay) return;
+
+    if (expiryStr) {
+      const expiresAt = parseInt(expiryStr, 10);
+      const timeRemaining = expiresAt - Date.now();
+
+      if (timeRemaining > 0) {
+        const minutes = Math.floor(timeRemaining / 60000);
+        const seconds = Math.floor((timeRemaining % 60000) / 1000);
+        timerDisplay.innerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      } else {
+        timerDisplay.innerText = "0:00 (Refreshing soon...)";
+      }
+    } else {
+      timerDisplay.innerText = "Logged Out";
+    }
+  }, 1000);
 }

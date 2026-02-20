@@ -31,6 +31,7 @@ router.delete('/bills/:id', inventoryController.cancelBill);
 // --- STOCK MOVEMENTS API ---
 router.get('/stock-batches', inventoryController.getStockBatches);
 router.get('/stock-movements', inventoryController.getStockMovements);
+router.get('/stock-movements/export', inventoryController.exportStockMovementsToExcel);
 router.get('/stock-movements/:stockId', inventoryController.getStockMovementsByStock);
 router.post('/stock-movements', inventoryController.createStockMovement);
 
