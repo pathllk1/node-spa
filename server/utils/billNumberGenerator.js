@@ -74,43 +74,49 @@ async function getNextBillNumber(firmId, billType = 'SALES', financialYear = nul
     }
 
     // Use transaction to ensure atomicity
-    const result = db.transaction(() => {
-      // Get or create sequence record
-      let seqRecord = db.prepare(`
-        SELECT id, last_sequence 
-        FROM bill_sequences 
-        WHERE firm_id = ? AND financial_year = ? AND (voucher_type IS NULL OR voucher_type = '')
-      `).get(firmId, fy);
-
-      if (!seqRecord) {
-        // Create new sequence record
-        db.prepare(`
-          INSERT INTO bill_sequences (firm_id, financial_year, last_sequence, voucher_type)
-          VALUES (?, ?, 0, NULL)
-        `).run(firmId, fy);
-
-        seqRecord = db.prepare(`
+    let result;
+    try {
+      result = db.transaction(() => {
+        // Get or create sequence record
+        let seqRecord = db.prepare(`
           SELECT id, last_sequence 
           FROM bill_sequences 
           WHERE firm_id = ? AND financial_year = ? AND (voucher_type IS NULL OR voucher_type = '')
         `).get(firmId, fy);
-      }
 
-      // Increment sequence
-      const nextSequence = seqRecord.last_sequence + 1;
+        if (!seqRecord) {
+          // Create new sequence record
+          db.prepare(`
+            INSERT INTO bill_sequences (firm_id, financial_year, last_sequence, voucher_type)
+            VALUES (?, ?, 0, NULL)
+          `).run(firmId, fy);
 
-      // Update sequence
-      db.prepare(`
-        UPDATE bill_sequences 
-        SET last_sequence = ?, updated_at = datetime('now')
-        WHERE id = ?
-      `).run(nextSequence, seqRecord.id);
+          seqRecord = db.prepare(`
+            SELECT id, last_sequence 
+            FROM bill_sequences 
+            WHERE firm_id = ? AND financial_year = ? AND (voucher_type IS NULL OR voucher_type = '')
+          `).get(firmId, fy);
+        }
 
-      // Generate bill number
-      const billNo = `${prefix}F${firmId}-${String(nextSequence).padStart(4, '0')}/${fy}`;
+        // Increment sequence
+        const nextSequence = seqRecord.last_sequence + 1;
 
-      return billNo;
-    })();
+        // Update sequence
+        db.prepare(`
+          UPDATE bill_sequences 
+          SET last_sequence = ?, updated_at = datetime('now')
+          WHERE id = ?
+        `).run(nextSequence, seqRecord.id);
+
+        // Generate bill number
+        const billNo = `${prefix}F${firmId}-${String(nextSequence).padStart(4, '0')}/${fy}`;
+
+        return billNo;
+      })();
+    } catch (txnError) {
+      console.error('[BILL_NUMBER_GENERATOR] Transaction error:', txnError.message);
+      throw new Error(`Database transaction failed: ${txnError.message}`);
+    }
 
     return result;
   } catch (error) {
@@ -152,48 +158,54 @@ async function getNextVoucherNumber(firmId, voucherType, financialYear = null) {
     }
 
     // Use transaction to ensure atomicity
-    const result = db.transaction(() => {
-      // Get or create sequence record for this voucher type
-      let seqRecord = db.prepare(`
-        SELECT id, last_sequence 
-        FROM bill_sequences 
-        WHERE firm_id = ? AND financial_year = ? AND voucher_type = ?
-      `).get(firmId, fy, voucherType);
-
-      if (!seqRecord) {
-        // Create new sequence record
-        db.prepare(`
-          INSERT INTO bill_sequences (firm_id, financial_year, last_sequence, voucher_type)
-          VALUES (?, ?, 0, ?)
-        `).run(firmId, fy, voucherType);
-
-        seqRecord = db.prepare(`
+    let result;
+    try {
+      result = db.transaction(() => {
+        // Get or create sequence record for this voucher type
+        let seqRecord = db.prepare(`
           SELECT id, last_sequence 
           FROM bill_sequences 
           WHERE firm_id = ? AND financial_year = ? AND voucher_type = ?
         `).get(firmId, fy, voucherType);
-      }
 
-      // Increment sequence
-      const nextSequence = seqRecord.last_sequence + 1;
+        if (!seqRecord) {
+          // Create new sequence record
+          db.prepare(`
+            INSERT INTO bill_sequences (firm_id, financial_year, last_sequence, voucher_type)
+            VALUES (?, ?, 0, ?)
+          `).run(firmId, fy, voucherType);
 
-      // Validate sequence limit (max 9999 per type per year)
-      if (nextSequence > 9999) {
-        throw new Error(`Voucher sequence limit exceeded for Firm ${firmId} in FY ${fy}. Max 9999 vouchers per type per year allowed.`);
-      }
+          seqRecord = db.prepare(`
+            SELECT id, last_sequence 
+            FROM bill_sequences 
+            WHERE firm_id = ? AND financial_year = ? AND voucher_type = ?
+          `).get(firmId, fy, voucherType);
+        }
 
-      // Update sequence
-      db.prepare(`
-        UPDATE bill_sequences 
-        SET last_sequence = ?, updated_at = datetime('now')
-        WHERE id = ?
-      `).run(nextSequence, seqRecord.id);
+        // Increment sequence
+        const nextSequence = seqRecord.last_sequence + 1;
 
-      // Generate voucher number
-      const voucherNo = `${prefix}F${firmId}-${String(nextSequence).padStart(4, '0')}/${fy}`;
+        // Validate sequence limit (max 9999 per type per year)
+        if (nextSequence > 9999) {
+          throw new Error(`Voucher sequence limit exceeded for Firm ${firmId} in FY ${fy}. Max 9999 vouchers per type per year allowed.`);
+        }
 
-      return voucherNo;
-    })();
+        // Update sequence
+        db.prepare(`
+          UPDATE bill_sequences 
+          SET last_sequence = ?, updated_at = datetime('now')
+          WHERE id = ?
+        `).run(nextSequence, seqRecord.id);
+
+        // Generate voucher number
+        const voucherNo = `${prefix}F${firmId}-${String(nextSequence).padStart(4, '0')}/${fy}`;
+
+        return voucherNo;
+      })();
+    } catch (txnError) {
+      console.error('[VOUCHER_NUMBER_GENERATOR] Transaction error:', txnError.message);
+      throw new Error(`Database transaction failed: ${txnError.message}`);
+    }
 
     return result;
   } catch (error) {

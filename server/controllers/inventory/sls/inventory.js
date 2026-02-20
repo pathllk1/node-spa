@@ -907,7 +907,16 @@ export const createBill = async (req, res) => {
         res.json({ success: true, id: billId, billNo: meta.billNo, message: 'Bill created successfully' });
     } catch (err) {
         console.error('Error creating bill:', err);
-        res.status(400).json({ error: err.message });
+        console.error('Error stack:', err.stack);
+        
+        // Ensure we always send a response to prevent connection reset
+        if (!res.headersSent) {
+            res.status(500).json({ 
+                success: false,
+                error: err.message || 'Failed to create bill',
+                details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+            });
+        }
     }
 };
 

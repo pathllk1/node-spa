@@ -14,8 +14,33 @@ const __dirname = path.dirname(__filename);
 // database file at: server/data.sqlite
 const dbPath = path.join(__dirname, '..', 'data.sqlite');
 
-// 2. The constructor remains the same for local files
-export const db = new Database(process.env.TURSO_DATABASE_URL, {authToken: process.env.TURSO_AUTH_TOKEN});
+// Initialize database with retry logic
+let db;
+let connectionAttempts = 0;
+const maxRetries = 3;
+
+function initializeDatabase() {
+  try {
+    db = new Database(process.env.TURSO_DATABASE_URL, {authToken: process.env.TURSO_AUTH_TOKEN});
+    console.log('✅ Database connection established');
+    connectionAttempts = 0;
+    return db;
+  } catch (error) {
+    connectionAttempts++;
+    console.error(`❌ Database connection failed (attempt ${connectionAttempts}/${maxRetries}):`, error.message);
+    
+    if (connectionAttempts < maxRetries) {
+      console.log(`⏳ Retrying in 2 seconds...`);
+      setTimeout(initializeDatabase, 2000);
+    } else {
+      console.error('❌ Max connection retries exceeded');
+      throw error;
+    }
+  }
+}
+
+// Initialize on module load
+db = initializeDatabase();
 
 
 
@@ -1261,3 +1286,6 @@ try {
 } catch (err) {
   console.log('⚠️  Super admin seeding failed:', err.message);
 }
+
+// Export database instance
+export { db };

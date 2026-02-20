@@ -61,11 +61,29 @@ app.get('*', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    success: false, 
-    message: 'Something went wrong!' 
-  });
+  console.error('[ERROR_HANDLER] Error occurred:', err.message);
+  console.error('[ERROR_HANDLER] Stack:', err.stack);
+  
+  // Ensure we always send a response
+  if (!res.headersSent) {
+    res.status(err.status || 500).json({ 
+      success: false, 
+      message: err.message || 'Something went wrong!',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[UNHANDLED_REJECTION] Promise:', promise);
+  console.error('[UNHANDLED_REJECTION] Reason:', reason);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('[UNCAUGHT_EXCEPTION] Error:', error);
+  console.error('[UNCAUGHT_EXCEPTION] Stack:', error.stack);
 });
 
 app.listen(PORT, () => {
