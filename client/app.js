@@ -44,6 +44,26 @@ const loadStocks = async () => {
   return renderStocks;
 };
 
+const loadInventoryDashboard = async () => {
+  const { renderInventoryDashboard } = await import('./pages/inventory-dashboard.js');
+  return renderInventoryDashboard;
+};
+
+const loadInventoryCategories = async () => {
+  const { renderInventoryCategories } = await import('./pages/inventory-categories.js');
+  return renderInventoryCategories;
+};
+
+const loadInventorySuppliers = async () => {
+  const { renderInventorySuppliers } = await import('./pages/inventory-suppliers.js');
+  return renderInventorySuppliers;
+};
+
+const loadInventoryReports = async () => {
+  const { renderInventoryReports } = await import('./pages/inventory-reports.js');
+  return renderInventoryReports;
+};
+
 // Loading UI functions
 const showLoading = () => {
   let loadingEl = document.getElementById('page-loading');
@@ -133,6 +153,30 @@ router
     showLoading();
     const renderStocks = await loadStocks();
     renderStocks(router);
+    hideLoading();
+  })
+  .on('/inventory/dashboard', async () => {
+    showLoading();
+    const renderInventoryDashboard = await loadInventoryDashboard();
+    renderInventoryDashboard(router);
+    hideLoading();
+  })
+  .on('/inventory/categories', async () => {
+    showLoading();
+    const renderInventoryCategories = await loadInventoryCategories();
+    renderInventoryCategories(router);
+    hideLoading();
+  })
+  .on('/inventory/suppliers', async () => {
+    showLoading();
+    const renderInventorySuppliers = await loadInventorySuppliers();
+    renderInventorySuppliers(router);
+    hideLoading();
+  })
+  .on('/inventory/reports', async () => {
+    showLoading();
+    const renderInventoryReports = await loadInventoryReports();
+    renderInventoryReports(router);
     hideLoading();
   })
   .notFound(() => {

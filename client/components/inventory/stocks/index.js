@@ -9,6 +9,20 @@ import { showToast } from '../sls/toast.js';
 
 export function initStocksSystem() {
     console.log('Stocks: Initializing Stock Management System...');
+
+    // Load XLSX library if not already loaded
+    if (typeof XLSX === 'undefined') {
+        const script = document.createElement('script');
+        script.src = '/public/cdns/xlsx.full.min.js';
+        script.onload = () => {
+            console.log('XLSX library loaded successfully');
+        };
+        script.onerror = () => {
+            console.error('Failed to load XLSX library');
+        };
+        document.head.appendChild(script);
+    }
+
     const container = document.getElementById('stocks-system');
     if (!container) return;
 
@@ -83,6 +97,9 @@ export function initStocksSystem() {
                         </button>
                         <button id="add-stock-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                             <i class="fas fa-plus mr-2"></i>Add Stock
+                        </button>
+                        <button id="export-excel-btn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-file-excel mr-2"></i>Export to Excel
                         </button>
                     </div>
                 </div>
@@ -172,6 +189,17 @@ export function initStocksSystem() {
         // Add stock button
         document.getElementById('add-stock-btn')?.addEventListener('click', () => {
             openStockModal();
+        });
+
+        // Toggle view button
+        document.getElementById('toggle-view-btn')?.addEventListener('click', () => {
+            state.currentView = state.currentView === 'table' ? 'cards' : 'table';
+            updateDisplay();
+        });
+
+        // Export to Excel button
+        document.getElementById('export-excel-btn')?.addEventListener('click', () => {
+            exportToExcel();
         });
 
         // Search input
@@ -415,8 +443,53 @@ export function initStocksSystem() {
         });
     }
 
-    // Expose functions to global scope
-    window.stocksSystem = window.stocksSystem || {};
+    function exportToExcel() {
+        if (typeof XLSX === 'undefined') {
+            showToast('XLSX library not loaded yet. Please try again.', 'error');
+            return;
+        }
+
+        const stocks = getFilteredAndSortedStocks();
+        if (stocks.length === 0) {
+            showToast('No data to export', 'warning');
+            return;
+        }
+
+        // Prepare data for export
+        const data = stocks.map(stock => ({
+            'Item': stock.item || '',
+            'Batch': stock.batch || '',
+            'HSN': stock.hsn || '',
+            'OEM': stock.oem || '',
+            'Quantity': stock.qty || 0,
+            'UOM': stock.uom || 'PCS',
+            'Rate': stock.rate || 0,
+            'Total Value': stock.total || 0,
+            'GST %': stock.grate || 0,
+            'MRP': stock.mrp || ''
+        }));
+
+        // Create worksheet
+        const ws = XLSX.utils.json_to_sheet(data);
+
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Stocks');
+
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `stocks_export_${timestamp}.xlsx`;
+
+        // Download the file
+        XLSX.writeFile(wb, filename);
+        showToast('Excel file exported successfully', 'success');
+    }
+
+    // Expose functions to global scope - initialize once
+    if (!window.stocksSystem) {
+        window.stocksSystem = {};
+    }
+    
     window.stocksSystem.openStockModal = (stock) => {
         renderStockModal(stock, state, async (stockData) => {
             try {
@@ -439,11 +512,5 @@ export function initStocksSystem() {
     window.stocksSystem.refresh = () => {
         loadStocksData();
     };
-
-    // Expose functions for external access
-    window.stocksSystem = {
-        refresh: loadStocksData,
-        openStockModal,
-        state
-    };
+    window.stocksSystem.state = state;
 }

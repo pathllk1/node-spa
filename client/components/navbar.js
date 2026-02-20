@@ -59,8 +59,6 @@ export function renderNavbar(router) {
   if (navbarContainer) {
     navbarContainer.innerHTML = navbarHTML;
 
-    router.updatePageLinks();
-
     if (isAuthenticated) {
       const logoutBtn = document.getElementById('logout-btn');
       if (logoutBtn) {

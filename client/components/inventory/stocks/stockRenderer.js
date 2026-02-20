@@ -73,8 +73,8 @@ function attachTableEventListeners(state) {
             const action = button.dataset.action;
             const stockId = parseInt(button.dataset.stockId);
             
-            // Find the stock data from the original stocks array
-            const stockData = state.stocks.find(s => s.id === stockId);
+            // Find the stock data from the current state's stocks array
+            const stockData = window.stocksSystem.state.stocks.find(s => s.id === stockId);
 
             switch (action) {
                 case 'edit':
@@ -289,13 +289,18 @@ function attachCardEventListeners(state) {
             const action = button.dataset.action;
             const stockId = parseInt(button.dataset.stockId);
             
-            // Find the stock data from the original stocks array
-            const stockData = state.stocks.find(s => s.id === stockId);
+            // Find the stock data from the current state's stocks array
+            const stockData = window.stocksSystem.state.stocks.find(s => s.id === stockId);
 
             switch (action) {
                 case 'edit':
                     if (window.stocksSystem && window.stocksSystem.openStockModal) {
                         window.stocksSystem.openStockModal(stockData);
+                    }
+                    break;
+                case 'view':
+                    if (window.stocksSystem && window.stocksSystem.viewStockDetails) {
+                        window.stocksSystem.viewStockDetails(stockId);
                     }
                     break;
                 case 'delete':
@@ -371,6 +376,10 @@ function renderStockCard(stock, state) {
             ` : ''}
             
             <div class="mt-4 flex gap-2">
+                <button data-action="view" data-stock-id="${stock.id}" 
+                    class="flex-1 px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700">
+                    <i class="fas fa-eye mr-1"></i>View
+                </button>
                 <button data-action="edit" data-stock-id="${stock.id}" 
                     class="flex-1 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">
                     <i class="fas fa-edit mr-1"></i>Edit
@@ -397,9 +406,9 @@ export function renderStockModal(stock, state, onSave) {
     const isEdit = !!stock;
     const modalHtml = `
         <div id="stock-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl lg:max-w-5xl xl:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
                 <!-- Header -->
-                <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                     <div>
                         <h3 class="text-xl font-bold text-gray-900">
                             ${isEdit ? 'Edit Stock Item' : 'Add New Stock Item'}
@@ -414,7 +423,7 @@ export function renderStockModal(stock, state, onSave) {
                 </div>
                 
                 <!-- Form Content -->
-                <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div class="p-6 overflow-y-auto flex-1">
                     <form id="stock-form" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- Item Description -->
@@ -528,6 +537,46 @@ export function renderStockModal(stock, state, onSave) {
                                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                             </div>
                         </div>
+
+                        <!-- Batch Management Section -->
+                        <div class="mt-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-gray-900">Batch Management</h4>
+                                <button type="button" id="add-batch-btn" 
+                                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+                                    <i class="fas fa-plus"></i>
+                                    Add Batch
+                                </button>
+                            </div>
+                            
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200" id="batches-table">
+                                        <thead class="bg-gray-100">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch No</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate (₹)</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MRP (₹)</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total (₹)</th>
+                                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200" id="batches-tbody">
+                                            <!-- Batch rows will be added here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- Empty state -->
+                                <div id="batches-empty-state" class="text-center py-8 text-gray-500">
+                                    <i class="fas fa-boxes text-4xl mb-2 text-gray-300"></i>
+                                    <p>No batches added yet</p>
+                                    <p class="text-sm">Click "Add Batch" to start managing batches</p>
+                                </div>
+                            </div>
+                        </div>
                     </form>
                 </div>
                 
@@ -548,6 +597,134 @@ export function renderStockModal(stock, state, onSave) {
 
     // Add modal to DOM
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Initialize batches array
+    let batches = [];
+    
+    // If editing, load existing batches
+    if (stock && stock.batches) {
+        if (typeof stock.batches === 'string') {
+            try {
+                batches = JSON.parse(stock.batches);
+            } catch (e) {
+                batches = [];
+            }
+        } else if (Array.isArray(stock.batches)) {
+            batches = [...stock.batches];
+        }
+    }
+
+    // Function to render a batch row
+    function renderBatchRow(batch, index) {
+        const total = (batch.qty || 0) * (batch.rate || 0);
+        return `
+            <tr class="batch-row hover:bg-gray-50" data-index="${index}">
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <input type="text" value="${batch.batch || ''}" 
+                        class="batch-input w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="Batch No" data-field="batch">
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <input type="number" step="0.01" value="${batch.qty || ''}" 
+                        class="batch-input w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="Qty" data-field="qty">
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <input type="number" step="0.01" value="${batch.rate || ''}" 
+                        class="batch-input w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="Rate" data-field="rate">
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <input type="number" step="0.01" value="${batch.mrp || ''}" 
+                        class="batch-input w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="MRP" data-field="mrp">
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <input type="date" value="${batch.expiry ? new Date(batch.expiry).toISOString().split('T')[0] : ''}" 
+                        class="batch-input w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        data-field="expiry">
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                    ₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-center">
+                    <button type="button" class="delete-batch-btn text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors" 
+                        data-index="${index}" title="Delete batch">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }
+
+    // Function to update batches display
+    function updateBatchesDisplay() {
+        const tbody = document.getElementById('batches-tbody');
+        const emptyState = document.getElementById('batches-empty-state');
+        
+        if (batches.length === 0) {
+            tbody.innerHTML = '';
+            emptyState.classList.remove('hidden');
+        } else {
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = batches.map((batch, index) => renderBatchRow(batch, index)).join('');
+            
+            // Attach input event listeners for real-time total calculation
+            document.querySelectorAll('.batch-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const row = e.target.closest('.batch-row');
+                    const index = parseInt(row.dataset.index);
+                    const field = e.target.dataset.field;
+                    
+                    // Update batch data
+                    if (field === 'qty' || field === 'rate') {
+                        batches[index][field] = parseFloat(e.target.value) || 0;
+                    } else {
+                        batches[index][field] = e.target.value;
+                    }
+                    
+                    // Recalculate total
+                    const qty = parseFloat(batches[index].qty) || 0;
+                    const rate = parseFloat(batches[index].rate) || 0;
+                    const total = qty * rate;
+                    
+                    // Update total display
+                    const totalCell = row.querySelector('td:nth-child(6)');
+                    totalCell.textContent = `₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+                });
+            });
+            
+            // Attach delete button listeners
+            document.querySelectorAll('.delete-batch-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.closest('button').dataset.index);
+                    
+                    // Add confirmation dialog
+                    if (confirm('Are you sure you want to remove this batch?')) {
+                        batches.splice(index, 1);
+                        updateBatchesDisplay();
+                    }
+                });
+            });
+        }
+    }
+
+    // Initialize batches display
+    updateBatchesDisplay();
+
+    // Add batch button event listener
+    document.getElementById('add-batch-btn')?.addEventListener('click', () => {
+        batches.push({
+            batch: '',
+            qty: 0,
+            rate: 0,
+            mrp: null,
+            expiry: null
+        });
+        updateBatchesDisplay();
+    });
 
     // Attach event listeners to modal buttons
     document.getElementById('stock-modal-close')?.addEventListener('click', () => {
@@ -572,7 +749,7 @@ export function renderStockModal(stock, state, onSave) {
         const formData = new FormData(form);
         const stockData = {
             item: formData.get('item'),
-            batch: formData.get('batch'),
+            batch: formData.get('batch'), // Keep for backward compatibility
             pno: formData.get('pno'),
             oem: formData.get('oem'),
             hsn: formData.get('hsn'),
@@ -581,7 +758,8 @@ export function renderStockModal(stock, state, onSave) {
             rate: parseFloat(formData.get('rate')),
             grate: parseFloat(formData.get('grate')),
             mrp: formData.get('mrp') ? parseFloat(formData.get('mrp')) : null,
-            total: parseFloat(formData.get('qty')) * parseFloat(formData.get('rate'))
+            total: parseFloat(formData.get('qty')) * parseFloat(formData.get('rate')),
+            batches: batches.length > 0 ? batches : null
         };
 
         await onSave(stockData);
@@ -615,22 +793,39 @@ window.stocksSystem.viewStockDetails = (stockId) => {
     const stock = window.stocksSystem?.state?.stocks?.find(s => s.id === stockId);
     if (!stock) return;
     
+    // Handle batches - could be object or string
+    let batches = [];
+    if (stock.batches) {
+        if (typeof stock.batches === 'string') {
+            try {
+                batches = JSON.parse(stock.batches);
+            } catch (e) {
+                batches = [];
+            }
+        } else if (Array.isArray(stock.batches)) {
+            batches = stock.batches;
+        }
+    }
+    
     // Create a simple details modal
     const detailsModal = `
         <div id="stock-details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                 <div class="flex items-center justify-between p-6 border-b border-gray-200">
                     <h3 class="text-xl font-bold text-gray-900">Stock Details</h3>
-                    <button onclick="this.closest('#stock-details-modal').remove()" class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg">
-                        <i class="fas fa-times text-xl"></i>
+                    <button id="details-close-btn" class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
                     </button>
                 </div>
-                <div class="p-6">
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
+                <div class="p-6 overflow-y-auto flex-1">
+                    <div class="space-y-6">
+                        <!-- Basic Stock Information -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <span class="text-sm font-semibold text-gray-500">Item:</span>
-                                <p class="text-gray-900">${stock.item}</p>
+                                <p class="text-gray-900 font-medium">${stock.item}</p>
                             </div>
                             <div>
                                 <span class="text-sm font-semibold text-gray-500">Batch:</span>
@@ -642,7 +837,7 @@ window.stocksSystem.viewStockDetails = (stockId) => {
                             </div>
                             <div>
                                 <span class="text-sm font-semibold text-gray-500">Quantity:</span>
-                                <p class="text-gray-900">${stock.qty} ${stock.uom || 'PCS'}</p>
+                                <p class="text-gray-900 font-medium">${stock.qty} ${stock.uom || 'PCS'}</p>
                             </div>
                             <div>
                                 <span class="text-sm font-semibold text-gray-500">Rate:</span>
@@ -665,10 +860,51 @@ window.stocksSystem.viewStockDetails = (stockId) => {
                             <p class="text-gray-900">₹${stock.mrp?.toFixed(2) || '0.00'}</p>
                         </div>
                         ` : ''}
+                        ${stock.grate ? `
+                        <div>
+                            <span class="text-sm font-semibold text-gray-500">GST Rate:</span>
+                            <p class="text-gray-900">${stock.grate}%</p>
+                        </div>
+                        ` : ''}
+                        
+                        <!-- Batch Information -->
+                        ${batches.length > 0 ? `
+                        <div class="mt-8">
+                            <h4 class="text-lg font-semibold text-gray-900 mb-4">Batch Details (${batches.length} batch${batches.length > 1 ? 'es' : ''})</h4>
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-100">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch No</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate (₹)</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MRP (₹)</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total (₹)</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            ${batches.map(batch => `
+                                                <tr class="hover:bg-gray-50">
+                                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${batch.batch || '-'}</td>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${batch.qty || 0} ${stock.uom || 'PCS'}</td>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">₹${(batch.rate || 0).toFixed(2)}</td>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${batch.mrp ? '₹' + parseFloat(batch.mrp).toFixed(2) : '-'}</td>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">₹${((batch.qty || 0) * (batch.rate || 0)).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${batch.expiry ? new Date(batch.expiry).toLocaleDateString('en-IN') : '-'}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
-                <div class="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
-                    <button onclick="this.closest('#stock-details-modal').remove()" class="px-6 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                <div class="flex justify-end p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+                    <button id="details-close-action" class="px-6 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
                         Close
                     </button>
                 </div>
@@ -676,6 +912,25 @@ window.stocksSystem.viewStockDetails = (stockId) => {
         </div>
     `;
     document.body.insertAdjacentHTML('beforeend', detailsModal);
+    
+    // Attach event listeners
+    const modal = document.getElementById('stock-details-modal');
+    const closeBtn = document.getElementById('details-close-btn');
+    const closeAction = document.getElementById('details-close-action');
+    
+    const removeModal = () => {
+        if (modal) modal.remove();
+    };
+    
+    closeBtn?.addEventListener('click', removeModal);
+    closeAction?.addEventListener('click', removeModal);
+    
+    // Close on backdrop click
+    modal?.addEventListener('click', (e) => {
+        if (e.target.id === 'stock-details-modal') {
+            removeModal();
+        }
+    });
 };
 
 window.stocksSystem.openStockModal = (stock, onSave) => {

@@ -12,9 +12,8 @@ const __dirname = path.dirname(__filename);
 
 // Function to resolve font paths properly on different platforms
 const getFontPath = (fileName) => {
-    // Use forward slashes for compatibility across platforms
-    const relativePath = `../../../public/fonts/${fileName}`;
-    return path.resolve(__dirname, relativePath);
+    // Use absolute path from project root to client/public/fonts
+    return path.join(process.cwd(), 'client', 'public', 'fonts', fileName);
 };
 
 // Verify font files exist before initializing printer
@@ -232,22 +231,23 @@ const buildHsnSummary = (bill, items, otherCharges, gstEnabled) => {
 export const generateInvoicePDF = async (req, res) => {
     try {
         const billId = req.params.id;
-        console.log('PDF Request - billId:', billId);
+        console.log('PDF Request - billId:', billId, 'Type:', typeof billId);
         if (!billId) return res.status(400).json({ error: 'Bill ID is required' });
 
         // Get firm_id from authenticated user
         const firmId = req.user?.firm_id;
-
+        console.log('PDF Request - firmId:', firmId, 'Type:', typeof firmId);
 
 
         console.log('PDF Request - firmId:', firmId);
         if (!firmId) return res.status(401).json({ error: 'Unauthorized - No firm associated' });
 
         const bill = Bill.getById.get(billId, firmId);
-        console.log('PDF Request - bill found:', !!bill);
+        console.log('PDF Request - bill found:', !!bill, 'Bill data:', bill);
         if (!bill) return res.status(404).json({ error: 'Bill not found' });
 
         const items = StockReg.getByBillId.all(billId, firmId);
+        console.log('PDF Request - items found:', items.length, 'Items:', items);
 
         let otherCharges = [];
         if (bill.oth_chg_json) {
@@ -277,9 +277,15 @@ export const generateInvoicePDF = async (req, res) => {
 
         const seller = { name: bill.firm || 'Company Name', address: firmAddress, gstin: firmGstin || '' };
 
+        console.log('PDF Request - seller info:', seller);
+        console.log('PDF Request - bill type:', getBillType(bill));
+        console.log('PDF Request - gstEnabled:', gstEnabled);
+
         const billType = getBillType(bill);
         const partyLabels = getPartyLabels(bill);
         const hsnSummary = buildHsnSummary(bill, items, otherCharges, gstEnabled);
+
+        console.log('PDF Request - about to create PDF docDefinition');
 
         const formattedBuyerAddress = bill.addr && bill.pin ? `${bill.addr}, PIN: ${bill.pin}` : (bill.addr || `PIN: ${bill.pin}`);
         const formattedConsigneeAddress = (bill.consignee_address || bill.addr) && (bill.consignee_pin || bill.pin) ?

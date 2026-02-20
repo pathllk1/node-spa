@@ -24,6 +24,9 @@ export function renderLayout(content, router) {
 
   // Render footer
   renderFooter();
+  
+  // Update page links ONCE after all components are rendered
+  router.updatePageLinks();
 }
 
 function renderFooter() {

@@ -61,20 +61,11 @@ export function renderSidebar(router) {
         </li>
 
         <li>
-          <a href="/inventory/sls" data-navigo title="Sales Invoice" class="sidebar-item flex items-center py-3 px-3 cursor-pointer hover:bg-purple-500 rounded transition" data-tooltip="Sales Invoice">
+          <a href="/inventory/dashboard" data-navigo title="Inventory Dashboard" class="sidebar-item flex items-center py-3 px-3 cursor-pointer hover:bg-purple-500 rounded transition" data-tooltip="Inventory Dashboard">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 flex-shrink-0">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 0V.75m0 4.875h3.75a3.375 3.375 0 0 1 3.375 3.375v1.5a1.125 1.125 0 0 1-1.125 1.125h-1.5A3.375 3.375 0 0 0 8.25 12.75v2.625m0 0V16.5m0 3.375v2.625a3.375 3.375 0 0 1-3.375 3.375H5.25a3.375 3.375 0 0 1-3.375-3.375V12.75a3.375 3.375 0 0 1 3.375-3.375h1.5A1.125 1.125 0 0 1 7.875 8.25v1.5a3.375 3.375 0 0 1-3.375 3.375H2.625" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
             </svg>
-            <span class="ml-3 sidebar-text hidden whitespace-nowrap">Sales</span>
-          </a>
-        </li>
-
-        <li>
-          <a href="/inventory/stocks" data-navigo title="Stock Management" class="sidebar-item flex items-center py-3 px-3 cursor-pointer hover:bg-purple-500 rounded transition" data-tooltip="Stock Management">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 flex-shrink-0">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
-            </svg>
-            <span class="ml-3 sidebar-text hidden whitespace-nowrap">Stocks</span>
+            <span class="ml-3 sidebar-text hidden whitespace-nowrap">Inventory</span>
           </a>
         </li>
         ` : ''}
@@ -185,7 +176,4 @@ function initSidebar(currentUser, router) {
     // Initialize sidebar in collapsed state
     updateSidebar(true);
   }
-
-  // Update page links for Navigo router
-  router.updatePageLinks();
 }
