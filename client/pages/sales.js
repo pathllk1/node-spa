@@ -18,7 +18,7 @@ export function renderSales(router) {
     // Import and initialize the sales system
     import('../components/inventory/sls/index.js').then(module => {
       if (module.initSalesSystem) {
-        module.initSalesSystem();
+        module.initSalesSystem(router);
       }
     });
   }, 100);

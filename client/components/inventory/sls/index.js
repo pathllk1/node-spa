@@ -18,7 +18,7 @@ import { openCreatePartyModal } from './partyCreate.js';
 import { showToast } from './toast.js';
 import { exportInvoiceToPDF } from './invoiceExport.js';
 
-export function initSalesSystem() {
+export function initSalesSystem(router) {
     console.log('SLS: Initializing Professional Sales System...');
     const container = document.getElementById('sales-system');
     if (!container) return;
@@ -549,7 +549,7 @@ export function initSalesSystem() {
                     if (isEditMode) {
                         // For edit mode, redirect back to sales report after short delay
                         setTimeout(() => {
-                            window.router.navigate('inventory/sls/rpt');
+                            router.navigate('/inventory/reports');
                         }, 1500);
                     } else {
                         // For create mode, export PDF and reset form

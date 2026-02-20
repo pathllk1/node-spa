@@ -40,14 +40,14 @@ export async function renderInventoryReports(router) {
           <input type="date" id="filter-date-to" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
         </div>
         <div class="flex gap-2">
-          <button id="refresh-bills" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+          <button id="refresh-bills" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
               <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
             Refresh
           </button>
-          <button id="export-bills" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+          <button id="export-bills" class="px-2 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
             Export CSV
@@ -355,6 +355,12 @@ export async function renderInventoryReports(router) {
 
         <!-- Footer Actions -->
         <div class="flex justify-end space-x-3 pt-4 border-t">
+          <button id="edit-bill" class="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+            </svg>
+            Edit Bill
+          </button>
           <button id="print-bill" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.06-.48.12-.72.18m6.72-1.829c.24.06.48.12.72.18m0 0c.96.24 1.92.48 2.88.72m-3.6-.9c.96-.24 1.92-.48 2.88-.72m-2.88.72V9.36c0-.48-.24-.96-.72-1.2-.48-.24-1.08-.24-1.56 0-.48.24-.72.72-.72 1.2v4.32c0 .48.24.96.72 1.2.48.24 1.08.24 1.56 0 .24-.06.48-.12.72-.18Z" />
@@ -379,11 +385,11 @@ export async function renderInventoryReports(router) {
   renderLayout(content, router);
 
   // Initialize the bills functionality
-  initializeBillsPage();
+  initializeBillsPage(router);
 }
 
 // Bills page functionality
-function initializeBillsPage() {
+function initializeBillsPage(router) {
   let allBills = [];
   let filteredBills = [];
   let sortedBills = [];
@@ -398,6 +404,7 @@ function initializeBillsPage() {
   const closeModalBottomBtn = document.getElementById('close-modal-bottom');
   const printBillBtn = document.getElementById('print-bill');
   const downloadPdfBtn = document.getElementById('download-pdf');
+  const editBillBtn = document.getElementById('edit-bill');
 
   // Modal content elements
   const modalBillNo = document.getElementById('modal-bill-no');
@@ -1054,6 +1061,15 @@ function initializeBillsPage() {
       downloadPdf(billId);
     } else {
       alert('No bill selected for PDF download.');
+    }
+  });
+  editBillBtn.addEventListener('click', () => {
+    const billId = modal.getAttribute('data-current-bill-id');
+    if (billId) {
+      sessionStorage.setItem('editBillId', billId);
+      router.navigate('/inventory/sls');
+    } else {
+      alert('No bill selected for editing.');
     }
   });
 

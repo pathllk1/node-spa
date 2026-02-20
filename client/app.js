@@ -64,6 +64,11 @@ const loadInventoryReports = async () => {
   return renderInventoryReports;
 };
 
+const loadStockMovement = async () => {
+  const { renderStockMovement } = await import('./pages/stock-movement.js');
+  return renderStockMovement;
+};
+
 // Loading UI functions
 const showLoading = () => {
   let loadingEl = document.getElementById('page-loading');
@@ -177,6 +182,12 @@ router
     showLoading();
     const renderInventoryReports = await loadInventoryReports();
     renderInventoryReports(router);
+    hideLoading();
+  })
+  .on('/inventory/stock-movement', async () => {
+    showLoading();
+    const renderStockMovement = await loadStockMovement();
+    renderStockMovement(router);
     hideLoading();
   })
   .notFound(() => {

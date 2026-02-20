@@ -136,6 +136,27 @@ export async function renderInventoryDashboard(router) {
           </div>
         </div>
 
+        <div class="group relative p-8 rounded-3xl bg-white/70 backdrop-blur-xl
+                    border border-white/40 shadow-xl
+                    transition duration-500 hover:scale-[1.03] hover:shadow-2xl">
+          <div class="absolute inset-0 rounded-3xl bg-gradient-to-br
+                      from-green-400/0 to-emerald-500/0
+                      group-hover:from-green-400/10 group-hover:to-emerald-500/10
+                      transition duration-500"></div>
+          <div class="relative z-10">
+            <div class="w-14 h-14 flex items-center justify-center rounded-2xl
+                        bg-gradient-to-br from-green-500 to-emerald-600
+                        text-white shadow-lg mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-7 h-7">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 6v2.25m0 0v2.25m0-2.25h2.25m-2.25 0h-2.25m6.75-3v6.75m-6.75 0v6.75m0-6.75l2.25-2.25m-2.25 2.25l-2.25-2.25m6.75-3l2.25 2.25m-2.25-2.25l-2.25 2.25" />
+              </svg>
+            </div>
+            <h2 class="text-xl font-semibold text-gray-900 mb-2">Stock Movement</h2>
+            <p class="text-gray-500 mb-6">Track and analyze all stock movements and inventory transactions.</p>
+            <a href="/inventory/stock-movement" data-navigo class="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-green-600 text-white font-medium shadow-md hover:bg-green-700 transition duration-300">View Movements</a>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
