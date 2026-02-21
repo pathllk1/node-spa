@@ -1,7 +1,7 @@
 {
   "version": 2,
   "buildCommand": "npm install",
-  "outputDirectory": null,
+  "outputDirectory": "public",
   "env": {
     "NODE_ENV": "production"
   },
@@ -14,17 +14,6 @@
     {
       "source": "/(.*)",
       "destination": "/api"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
     }
   ]
 }
