@@ -4,6 +4,10 @@
   "description": "Node.js SPA with dual token authentication",
   "main": "server/server.js",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "start": "node server/server.js",
     "dev": "nodemon server/server.js",
@@ -28,7 +32,7 @@
     ],
     "delay": 500
   },
-  "keywords": ["spa", "auth", "jwt"],
+  "keywords": ["spa", "auth", "jwt", "business-management"],
   "author": "",
   "license": "ISC",
   "dependencies": {

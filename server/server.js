@@ -25,13 +25,13 @@ import settingsRoutes from './routes/settings.routes.js';
 import inventorySalesRoutes from './routes/inventory/sls.js';
 import ledgerRoutes from './routes/ledger.routes.js';
 
-
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+const isVercel = process.env.VERCEL === '1';
 
 // Middleware
 app.use(express.json());
@@ -42,7 +42,10 @@ app.use(cookieParser());
 app.use(securityMiddleware);
 
 // Serve static files from client directory
-app.use(express.static(join(__dirname, '../client')));
+app.use(express.static(join(__dirname, '../client'), {
+  maxAge: isProduction ? '1d' : 0,
+  etag: false
+}));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -53,6 +56,15 @@ app.use('/api/wages',  wagesRoutes);
 app.use('/api/settings',  settingsRoutes);
 app.use('/api/inventory/sales', inventorySalesRoutes);
 app.use('/api/ledger', ledgerRoutes);
+
+// Health check endpoint for Vercel
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: isProduction ? 'production' : 'development'
+  });
+});
 
 // Serve index.html for all non-API routes (SPA)
 app.get('*', (req, res) => {
@@ -71,7 +83,7 @@ app.use((err, req, res, next) => {
     res.status(err.status || 500).json({ 
       success: false, 
       message: err.message || 'Something went wrong!',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      error: isProduction ? undefined : err.message
     });
   }
 });
@@ -88,6 +100,11 @@ process.on('uncaughtException', (error) => {
   console.error('[UNCAUGHT_EXCEPTION] Stack:', error.stack);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// Only listen if not running on Vercel (Vercel handles the server)
+if (!isVercel) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
