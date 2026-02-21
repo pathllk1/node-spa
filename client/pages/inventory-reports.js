@@ -124,9 +124,9 @@ export async function renderInventoryReports(router) {
 
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+          <thead class="bg-gradient-to-r from-emerald-600 via-cyan-600 to-violet-600 text-white">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="bno">
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-white/20" data-sort="bno">
                 <div class="flex items-center">
                   Bill No
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -134,7 +134,7 @@ export async function renderInventoryReports(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="bdate">
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-white/20" data-sort="bdate">
                 <div class="flex items-center">
                   Date
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -142,7 +142,7 @@ export async function renderInventoryReports(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="firm">
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-white/20" data-sort="firm">
                 <div class="flex items-center">
                   Party
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -150,7 +150,7 @@ export async function renderInventoryReports(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="btype">
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-white/20" data-sort="btype">
                 <div class="flex items-center">
                   Type
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -158,7 +158,7 @@ export async function renderInventoryReports(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="gtot">
+              <th class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-white/20" data-sort="gtot">
                 <div class="flex items-center justify-end">
                   Taxable Amount
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -166,7 +166,7 @@ export async function renderInventoryReports(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="tax">
+              <th class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-white/20" data-sort="tax">
                 <div class="flex items-center justify-end">
                   Tax Amount
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -174,7 +174,7 @@ export async function renderInventoryReports(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">
                 <div class="flex items-center justify-end">
                   Total Amount
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 sort-icon">
@@ -182,8 +182,8 @@ export async function renderInventoryReports(router) {
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody id="bills-table-body" class="bg-white divide-y divide-gray-200">
@@ -1034,7 +1034,7 @@ function initializeBillsPage(router) {
       const statusClass = status === 'CANCELLED' ? 'text-red-600 bg-red-100' : 'text-green-600 bg-green-100';
 
       return `
-        <tr class="hover:bg-gray-50" data-bill-id="${bill.id}">
+        <tr class="hover:bg-lime-100" data-bill-id="${bill.id}">
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${bill.bno || ''}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(bill.bdate)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${bill.firm || ''}</td>
@@ -1048,12 +1048,21 @@ function initializeBillsPage(router) {
             </span>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            <button class="bill-view-btn inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500" data-bill-id="${bill.id}">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2">
+            <button class="bill-view-btn group relative inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 rounded-md shadow-sm hover:shadow-md hover:shadow-blue-500/25 transform hover:scale-105 transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-blue-500/30 active:scale-95 overflow-hidden" data-bill-id="${bill.id}">
+              <!-- Animated background gradient on hover -->
+              <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-md"></div>
+              
+              <!-- Icon with animation -->
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 mr-1.5 relative z-10 transform group-hover:rotate-12 transition-transform duration-300 ease-out drop-shadow-sm">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
               </svg>
-              View
+              
+              <!-- Text with glow effect -->
+              <span class="relative z-10 tracking-wide drop-shadow-sm group-hover:drop-shadow-md transition-all duration-300">View</span>
+              
+              <!-- Subtle shine effect -->
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700 ease-out rounded-md"></div>
             </button>
           </td>
         </tr>
