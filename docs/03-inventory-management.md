@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Inventory Management System is a comprehensive business solution that handles stock tracking, sales transactions, party management, and financial reporting. It features batch-level inventory management, GST-compliant billing, and multi-firm support with complete audit trails.
+The Inventory Management System is a comprehensive business solution that handles stock tracking, sales transactions, party management, and financial reporting. It features batch-level inventory management, GST-compliant billing, and multi-firm support with complete audit trails. **Includes advanced bill cancellation functionality** for complete transaction reversal with stock restoration and financial adjustments.
 
 ## Architecture
 
@@ -343,7 +343,8 @@ POST   /api/inventory/sales/bills             # Create sales bill
 GET    /api/inventory/sales/bills/:id         # Get bill details
 GET    /api/inventory/sales/bills             # Get all bills
 PUT    /api/inventory/sales/bills/:id         # Update bill
-DELETE /api/inventory/sales/bills/:id         # Cancel bill
+PUT    /api/inventory/sales/bills/:id/cancel  # Cancel bill with stock restoration
+DELETE /api/inventory/sales/bills/:id         # Delete bill (admin only)
 GET    /api/inventory/sales/bills/:id/pdf    # Generate PDF
 ```
 

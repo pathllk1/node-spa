@@ -11,7 +11,8 @@ import {
   bulkImportMasterRolls,
   exportMasterRolls,
   bulkCreateMasterRoll,
-  bulkDeleteMasterRolls
+  bulkDeleteMasterRolls,
+  lookupIFSC
 } from '../controllers/masterRoll.controller.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
@@ -31,6 +32,7 @@ router.delete('/bulk-delete', bulkDeleteMasterRolls);         // Bulk delete (ma
 router.get('/stats', getMasterRollStats);                     // Get statistics
 router.get('/search', searchMasterRolls);                     // Search
 router.get('/export', exportMasterRolls);                     // Export
+router.get('/lookup-ifsc/:ifsc', lookupIFSC);                 // IFSC lookup using Razorpay API
 
 // CRUD Operations
 router.post('/', createMasterRoll);                           // Create (all authenticated users)

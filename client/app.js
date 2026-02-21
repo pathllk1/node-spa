@@ -24,6 +24,8 @@ const loadVouchers = () => import('./pages/ledger/vouchers.js').then(m => m.rend
 const loadTrialBalance = () => import('./pages/ledger/trial-balance.js').then(m => m.renderTrialBalance);
 const loadGeneralLedger = () => import('./pages/ledger/general-ledger.js').then(m => m.renderGeneralLedger);
 const loadAccountDetails = () => import('./pages/ledger/account-details.js').then(m => m.renderAccountDetails);
+const loadNewJournalEntry = () => import('./pages/ledger/new-journal-entry.js').then(m => m.renderNewJournalEntry);
+const loadNewVoucher = () => import('./pages/ledger/new-voucher.js').then(m => m.renderNewVoucher);
 
 // ─────────────────────────────────────────────
 //  Loading spinner
@@ -129,7 +131,9 @@ router
 
   // Ledger
   .on('/ledger/journal-entries',    navigate(loadJournalEntries))
+  .on('/ledger/journal-entries/new', navigate(loadNewJournalEntry))
   .on('/ledger/vouchers',           navigate(loadVouchers))
+  .on('/ledger/vouchers/new',       navigate(loadNewVoucher))
   .on('/ledger/trial-balance',      navigate(loadTrialBalance))
   .on('/ledger/general-ledger',     navigate(loadGeneralLedger))
   .on('/ledger/account/:account_head', navigate(loadAccountDetails))

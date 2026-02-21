@@ -14,15 +14,15 @@ export const getAllStocks = (req, res) => {
         if (!req.user || !req.user.firm_id) {
             return res.status(403).json({ success: false, error: 'User is not associated with any firm' });
         }
-        
+
         const stocks = Stock.getByFirm.all(req.user.firm_id);
-        
+
         // Parse batches JSON for each stock
         const stocksWithBatches = stocks.map(stock => ({
             ...stock,
             batches: stock.batches ? JSON.parse(stock.batches) : []
         }));
-        
+
         res.json({ success: true, data: stocksWithBatches });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -67,16 +67,16 @@ export const getPartyItemHistory = (req, res) => {
               AND sr.type = 'SALE'
             ORDER BY COALESCE(sr.bdate, b.bdate, sr.created_at) DESC
         `;
-        
+
         const params = [partyId, stockId];
-        
+
         if (limit !== null) {
             query += ' LIMIT ?';
             params.push(limit);
         }
 
         const rows = db.prepare(query).all(...params);
-        
+
         res.json({ success: true, data: { partyId, stockId, rows } });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -87,7 +87,7 @@ export const createStock = (req, res) => {
     try {
         console.log('[CREATE_STOCK] User:', req.user);
         console.log('[CREATE_STOCK] User firm_id:', req.user?.firm_id);
-        
+
         let { item, pno, batch, oem, hsn, qty, uom, rate, grate, mrp, expiryDate, batches } = req.body;
 
         if ((!batch && !qty && !rate && !mrp && !expiryDate) && batches) {
@@ -121,16 +121,16 @@ export const createStock = (req, res) => {
         if (!actorUsername) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
-        
+
         // Check if user has firm access
         if (!req.user || !req.user.firm_id) {
             console.error('[CREATE_STOCK] User not associated with firm:', req.user);
             return res.status(403).json({ error: 'User is not associated with any firm' });
         }
-        
+
         // Check if item already exists in the same firm
         const existingStock = Stock.getByItem.get(req.user.firm_id, item);
-        
+
         if (existingStock) {
             // Item exists in this firm, update batches JSON
             let existingBatches = existingStock.batches ? JSON.parse(existingStock.batches) : [];
@@ -168,7 +168,7 @@ export const createStock = (req, res) => {
             // Calculate new total quantity
             const newTotalQty = existingBatches.reduce((sum, b) => sum + b.qty, 0);
             const newTotal = newTotalQty * parseFloat(rate);
-            
+
             // Update the stock record
             Stock.update.run(
                 item,
@@ -186,7 +186,7 @@ export const createStock = (req, res) => {
                 existingStock.id,
                 req.user.firm_id
             );
-            
+
             res.json({ success: true, id: existingStock.id, message: 'Stock batch updated successfully' });
         } else {
             // Item doesn't exist in this firm, create new record with batch
@@ -199,27 +199,27 @@ export const createStock = (req, res) => {
                     expiry: expiryDate || null,
                     mrp: mrp ? parseFloat(mrp) : null
                 }];
-            
+
             const total = parseFloat(qty) * parseFloat(rate);
 
-            const firmId = Number(req.user.firm_id); 
+            const firmId = Number(req.user.firm_id);
 
-        // 1. Create a clean object mapping specifically to your @parameters in db.js
-        const stockData = {
-            firm_id: firmId,
-            item: item,
-            pno: pno || null,
-            oem: oem || null,
-            hsn: hsn,
-            qty: parseFloat(qty) || 0,
-            uom: uom || 'PCS',
-            rate: parseFloat(rate) || 0,
-            grate: parseFloat(grate) || 0,
-            total: (parseFloat(qty) || 0) * (parseFloat(rate) || 0),
-            mrp: mrp ? parseFloat(mrp) : null,
-            batches: JSON.stringify(batchesToStore), // Ensure this is stringified
-            user: actorUsername
-        };
+            // 1. Create a clean object mapping specifically to your @parameters in db.js
+            const stockData = {
+                firm_id: firmId,
+                item: item,
+                pno: pno || null,
+                oem: oem || null,
+                hsn: hsn,
+                qty: parseFloat(qty) || 0,
+                uom: uom || 'PCS',
+                rate: parseFloat(rate) || 0,
+                grate: parseFloat(grate) || 0,
+                total: (parseFloat(qty) || 0) * (parseFloat(rate) || 0),
+                mrp: mrp ? parseFloat(mrp) : null,
+                batches: JSON.stringify(batchesToStore), // Ensure this is stringified
+                user: actorUsername
+            };
 
             const stockParams = [
                 req.user.firm_id,           // firm_id
@@ -259,18 +259,18 @@ export const updateStock = (req, res) => {
         if (!actorUsername) {
             return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
-        
+
         // Check if user has firm access
         if (!req.user || !req.user.firm_id) {
             return res.status(403).json({ success: false, error: 'User is not associated with any firm' });
         }
-        
+
         // Get the current stock record
         const currentStock = Stock.getById.get(id, req.user.firm_id);
         if (!currentStock) {
             return res.status(404).json({ success: false, error: 'Stock not found or does not belong to your firm' });
         }
-        
+
         // Parse existing batches
         let batches = currentStock.batches ? JSON.parse(currentStock.batches) : [];
 
@@ -334,28 +334,28 @@ export const updateStock = (req, res) => {
                 });
             }
         }
-        
+
         // CRITICAL FIX: Sync root-level fields with batch data for consistency
         // When batches exist, derive root fields from first batch to maintain consistency
         let rootRate = parseFloat(rate || currentStock.rate || 0);
         let rootQty = 0;
         let rootMrp = mrp ? parseFloat(mrp) : currentStock.mrp;
-        
+
         // Calculate new total quantity from all batches
         const newTotalQty = batches.reduce((sum, b) => sum + (parseFloat(b.qty) || 0), 0);
-        
+
         // If batches exist, use first batch's rate as root rate for consistency
         if (batches.length > 0 && batches[0].rate !== undefined) {
             rootRate = parseFloat(batches[0].rate);
         }
-        
+
         // If batches exist, use first batch's MRP as root MRP for consistency
         if (batches.length > 0 && batches[0].mrp !== undefined && batches[0].mrp !== null) {
             rootMrp = parseFloat(batches[0].mrp);
         }
-        
+
         const newTotal = newTotalQty * rootRate;
-        
+
         console.log(`[UPDATE_STOCK] Updating stock ${id}:`, {
             item,
             qty: newTotalQty,
@@ -364,7 +364,7 @@ export const updateStock = (req, res) => {
             batchCount: batches.length,
             batches: batches
         });
-        
+
         // For Turso compatibility: don't check result.changes - just execute and assume success if no error
         const updateResult = Stock.update.run(
             item,
@@ -408,22 +408,22 @@ export const updateStock = (req, res) => {
 export const deleteStock = (req, res) => {
     try {
         const { id } = req.params;
-        
+
         // Check if user has firm access
         if (!req.user || !req.user.firm_id) {
             return res.status(403).json({ error: 'User is not associated with any firm' });
         }
-        
+
         // First, check if the stock exists and belongs to the user's firm
         const existingStock = Stock.getById.get(id, req.user.firm_id);
-        
+
         if (!existingStock) {
             return res.status(404).json({ error: 'Stock not found or does not belong to your firm' });
         }
-        
+
         // Perform the deletion
         const result = Stock.delete.run(id, req.user.firm_id);
-        
+
         // For Turso compatibility, we rely on the existence check above
         // rather than result.changes which may not be reliable in Turso
         res.json({ success: true, message: 'Stock deleted successfully' });
@@ -440,7 +440,7 @@ export const getAllParties = (req, res) => {
         if (!req.user || !req.user.firm_id) {
             return res.status(403).json({ success: false, error: 'User is not associated with any firm' });
         }
-        
+
         const parties = Party.getByFirm.all(req.user.firm_id);
         res.json({ success: true, data: parties });
     } catch (err) {
@@ -456,12 +456,12 @@ export const createParty = (req, res) => {
         if (!actorUsername) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
-        
+
         // Check if user has firm access
         if (!req.user || !req.user.firm_id) {
             return res.status(403).json({ error: 'User is not associated with any firm' });
         }
-        
+
         const result = Party.create.run(
             req.user.firm_id,
             firm,
@@ -478,8 +478,8 @@ export const createParty = (req, res) => {
 
         // Fetch and return the created party with all fields
         const newParty = Party.getById.get(result.lastInsertRowid, req.user.firm_id);
-        
-        res.json({ 
+
+        res.json({
             success: true,
             id: newParty.id,
             firm: newParty.firm,
@@ -490,7 +490,7 @@ export const createParty = (req, res) => {
             addr: newParty.addr,
             pin: newParty.pin,
             pan: newParty.pan,
-            message: 'Party created successfully' 
+            message: 'Party created successfully'
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -502,7 +502,7 @@ export const createParty = (req, res) => {
 
 export const createBill = async (req, res) => {
     // Expects: { meta: {}, party: {}, cart: [], otherCharges: [], consignee: {}, user: '' }
-    const { meta, party, cart, otherCharges, consignee } = req.body; 
+    const { meta, party, cart, otherCharges, consignee } = req.body;
 
     const actorUsername = getActorUsername(req);
     if (!actorUsername) {
@@ -517,7 +517,7 @@ export const createBill = async (req, res) => {
     if (!cart || cart.length === 0) {
         return res.status(400).json({ error: "Cart cannot be empty" });
     }
-    
+
     // Generate bill number server-side only when bill is actually saved
     let billNo;
     try {
@@ -527,7 +527,7 @@ export const createBill = async (req, res) => {
         console.error(`[CREATE_BILL] Failed to generate bill number:`, error.message);
         return res.status(500).json({ error: `Failed to generate bill number: ${error.message}` });
     }
-    
+
     // Set the generated bill number
     meta.billNo = billNo;
 
@@ -535,7 +535,7 @@ export const createBill = async (req, res) => {
     let gstEnabled = true;
     try {
         const firmGstSetting = FirmSettings.getByFirmAndKey.get(req.user.firm_id, 'gst_enabled');
-        
+
         if (firmGstSetting) {
             // Use firm-specific setting
             gstEnabled = firmGstSetting.setting_value === 'true';
@@ -555,7 +555,7 @@ export const createBill = async (req, res) => {
     let totalTax = 0; // Tax on items only
 
     cart.forEach(item => {
-        const lineVal = item.qty * item.rate * (1 - (item.disc || 0)/100);
+        const lineVal = item.qty * item.rate * (1 - (item.disc || 0) / 100);
         if (gstEnabled) {
             const lineTax = lineVal * (item.grate / 100);
             totalTax += lineTax;
@@ -566,12 +566,12 @@ export const createBill = async (req, res) => {
     // Calculate other charges total and their GST
     let otherChargesTotal = 0;
     let otherChargesGstTotal = 0;
-    
+
     if (otherCharges && otherCharges.length > 0) {
         otherCharges.forEach(charge => {
             const chargeAmount = parseFloat(charge.amount) || 0;
             otherChargesTotal += chargeAmount;
-            
+
             if (gstEnabled) {
                 const chargeGstRate = parseFloat(charge.gstRate) || 0;
                 const chargeGstAmount = (chargeAmount * chargeGstRate) / 100;
@@ -579,21 +579,21 @@ export const createBill = async (req, res) => {
             }
         });
     }
-    
+
     // According to Indian GST Standards (when GST is enabled):
     // gtot = taxable value of items + other charges (total taxable amount)
     gtot = gtot + otherChargesTotal;
-    
+
     // Calculate tax amounts for CGST/SGST or IGST based on supply type (only when GST is enabled)
     let cgst = 0, sgst = 0, igst = 0;
-    
+
     if (gstEnabled && meta.billType === 'intra-state') {
         cgst = (totalTax / 2) + (otherChargesGstTotal / 2); // CGST on items + other charges
         sgst = (totalTax / 2) + (otherChargesGstTotal / 2); // SGST on items + other charges
     } else if (gstEnabled) {
         igst = totalTax + otherChargesGstTotal; // IGST on items + other charges
     }
-    
+
     // For reverse charge, tax is calculated but not added to ntot (grand total)
     // The tax liability shifts to the recipient
     // When GST is disabled, tax values are 0, so ntot = gtot only
@@ -645,27 +645,27 @@ export const createBill = async (req, res) => {
 
         // Process each item in the cart
         for (const item of cart) {
-            const lineTotal = item.qty * item.rate * (1 - (item.disc || 0)/100);
+            const lineTotal = item.qty * item.rate * (1 - (item.disc || 0) / 100);
 
             // Get the stock record to update the specific batch
             const stockRecord = Stock.getById.get(item.stockId, req.user.firm_id);
             if (!stockRecord) {
                 throw new Error(`Stock record not found for ID: ${item.stockId} or does not belong to your firm`);
             }
-            
+
             // Verify firm_id matches (multi-firm safety check)
             if (stockRecord.firm_id !== req.user.firm_id) {
                 throw new Error(`Stock does not belong to your firm`);
             }
-            
+
             // Parse existing batches
             let batches = stockRecord.batches ? JSON.parse(stockRecord.batches) : [];
-            
+
             // Find the specific batch to deduct from
             // If item.batchIndex is provided, use it (preferred for accuracy)
             // Otherwise, match by batch value
             let batchIndex = -1;
-            
+
             if (item.batchIndex !== undefined && item.batchIndex !== null) {
                 // Use the batch index if provided (most accurate)
                 batchIndex = parseInt(item.batchIndex);
@@ -683,25 +683,25 @@ export const createBill = async (req, res) => {
                     batchIndex = batches.findIndex(b => b.batch === item.batch);
                 }
             }
-            
+
             if (batchIndex === -1) {
                 const batchDisplay = item.batch || '(No Batch)';
                 throw new Error(`Batch "${batchDisplay}" not found for item ${item.item}`);
             }
-            
+
             // Verify sufficient quantity in the batch
             const requestedQty = parseFloat(item.qty);
             if (batches[batchIndex].qty < requestedQty) {
                 const batchDisplay = item.batch || '(No Batch)';
                 throw new Error(`Insufficient quantity in batch "${batchDisplay}". Available: ${batches[batchIndex].qty}, Requested: ${requestedQty}`);
             }
-            
+
             // Update the specific batch quantity
             batches[batchIndex].qty -= requestedQty;
-            
+
             // Calculate new total quantity
             const newTotalQty = batches.reduce((sum, b) => sum + b.qty, 0);
-            
+
             // Update the stock record with new batches and total quantity
             Stock.update.run(
                 stockRecord.item,
@@ -836,6 +836,7 @@ export const createBill = async (req, res) => {
             );
         }
 
+
         // 3. Round Off Post
         if (Math.abs(parseFloat(rof)) > 0) {
             const rofVal = parseFloat(rof);
@@ -846,9 +847,9 @@ export const createBill = async (req, res) => {
                 ledgerBase.voucher_no,
                 'Round Off',
                 'EXPENSE',
-                rofVal > 0 ? rofVal : 0,
-                rofVal < 0 ? Math.abs(rofVal) : 0,
-                `Round Off on Sales Bill No: ${meta.billNo}`,
+                rofVal < 0 ? Math.abs(rofVal) : 0, // <-- FIXED: Negative value goes to Debit
+                rofVal > 0 ? rofVal : 0,           // <-- FIXED: Positive value goes to Credit
+                `Round Off on Sales Bill No: ${meta.billNo}`, // Note: use existingBill.bno for updateBill
                 ledgerBase.bill_id,
                 null,
                 null,
@@ -914,10 +915,10 @@ export const createBill = async (req, res) => {
     } catch (err) {
         console.error('Error creating bill:', err);
         console.error('Error stack:', err.stack);
-        
+
         // Ensure we always send a response to prevent connection reset
         if (!res.headersSent) {
-            res.status(500).json({ 
+            res.status(500).json({
                 success: false,
                 error: err.message || 'Failed to create bill',
                 details: process.env.NODE_ENV === 'development' ? err.stack : undefined
@@ -930,7 +931,7 @@ export const createBill = async (req, res) => {
 export const getBillById = (req, res) => {
     try {
         const { id } = req.params;
-        
+
         if (!req.user || !req.user.firm_id) {
             return res.status(403).json({ error: 'User is not associated with any firm' });
         }
@@ -946,11 +947,13 @@ export const getBillById = (req, res) => {
         // Parse other charges JSON
         const otherCharges = bill.oth_chg_json ? JSON.parse(bill.oth_chg_json) : [];
 
-        res.json({ success: true, data: {
-            ...bill,
-            items,
-            otherCharges
-        } });
+        res.json({
+            success: true, data: {
+                ...bill,
+                items,
+                otherCharges
+            }
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1013,7 +1016,7 @@ export const updateBill = async (req, res) => {
             const stockRecord = Stock.getById.get(existingItem.stock_id, req.user.firm_id);
             if (stockRecord) {
                 let batches = stockRecord.batches ? JSON.parse(stockRecord.batches) : [];
-                
+
                 // Find and update the batch - use same logic as createBill
                 let batchIndex = -1;
                 if (!existingItem.batch || existingItem.batch === '') {
@@ -1022,7 +1025,7 @@ export const updateBill = async (req, res) => {
                 } else {
                     batchIndex = batches.findIndex(b => b.batch === existingItem.batch);
                 }
-                
+
                 if (batchIndex !== -1) {
                     batches[batchIndex].qty += existingItem.qty;
                 } else {
@@ -1035,9 +1038,9 @@ export const updateBill = async (req, res) => {
                         mrp: null
                     });
                 }
-                
+
                 const newTotalQty = batches.reduce((sum, b) => sum + b.qty, 0);
-                
+
                 Stock.update.run(
                     stockRecord.item,
                     stockRecord.pno,
@@ -1068,7 +1071,7 @@ export const updateBill = async (req, res) => {
 
         let gtot = 0, totalTax = 0;
         cart.forEach(item => {
-            const lineVal = item.qty * item.rate * (1 - (item.disc || 0)/100);
+            const lineVal = item.qty * item.rate * (1 - (item.disc || 0) / 100);
             if (gstEnabled) {
                 const lineTax = lineVal * (item.grate / 100);
                 totalTax += lineTax;
@@ -1145,7 +1148,7 @@ export const updateBill = async (req, res) => {
 
         // Process new items
         for (const item of cart) {
-            const lineTotal = item.qty * item.rate * (1 - (item.disc || 0)/100);
+            const lineTotal = item.qty * item.rate * (1 - (item.disc || 0) / 100);
 
             const stockRecord = Stock.getById.get(item.stockId, req.user.firm_id);
             if (!stockRecord) {
@@ -1159,7 +1162,7 @@ export const updateBill = async (req, res) => {
 
             let batches = stockRecord.batches ? JSON.parse(stockRecord.batches) : [];
             let batchIndex = -1;
-            
+
             // Use same batch matching logic as createBill
             if (item.batchIndex !== undefined && item.batchIndex !== null) {
                 // Use the batch index if provided (most accurate)
@@ -1331,6 +1334,7 @@ export const updateBill = async (req, res) => {
         // Round Off Post
         // ✅ FIXED: This block was completely missing in updateBill — round off
         //    disappeared from the ledger whenever a bill was edited.
+        // 3. Round Off Post
         if (Math.abs(parseFloat(rof)) > 0) {
             const rofVal = parseFloat(rof);
             Ledger.create.run(
@@ -1340,9 +1344,9 @@ export const updateBill = async (req, res) => {
                 ledgerBase.voucher_no,
                 'Round Off',
                 'EXPENSE',
-                rofVal > 0 ? rofVal : 0,
-                rofVal < 0 ? Math.abs(rofVal) : 0,
-                `Round Off on Sales Bill No: ${existingBill.bno}`,
+                rofVal < 0 ? Math.abs(rofVal) : 0, // <-- FIXED: Negative value goes to Debit
+                rofVal > 0 ? rofVal : 0,           // <-- FIXED: Positive value goes to Credit
+                `Round Off on Sales Bill No: ${meta.billNo}`, // Note: use existingBill.bno for updateBill
                 ledgerBase.bill_id,
                 null,
                 null,
@@ -1503,7 +1507,7 @@ export const cancelBill = (req, res) => {
 export const getStockBatches = (req, res) => {
     try {
         const { id } = req.params;
-        
+
         if (!req.user || !req.user.firm_id) {
             return res.status(403).json({ error: 'User is not associated with any firm' });
         }
@@ -1528,7 +1532,7 @@ export const getStockMovements = (req, res) => {
 
         const { type, batchFilter, searchTerm, page = 1, limit = 50, partyId, stockId } = req.query;
         const offset = (parseInt(page) - 1) * parseInt(limit);
-        
+
         let query = `
             SELECT sr.*, s.item as stock_item, b.bdate as bill_date, p.firm as party_name
             FROM stock_reg sr
@@ -1537,7 +1541,7 @@ export const getStockMovements = (req, res) => {
             LEFT JOIN parties p ON p.id = b.party_id
             WHERE sr.firm_id = ?
         `;
-        
+
         const params = [req.user.firm_id];
 
         // Filter by party if provided
@@ -1701,7 +1705,7 @@ export const getOtherChargesTypes = (req, res) => {
 
         // Parse and extract unique charges
         const chargesMap = new Map();
-        
+
         rows.forEach(row => {
             try {
                 const charges = JSON.parse(row.oth_chg_json);
@@ -1752,7 +1756,7 @@ export const getCurrentUserFirmName = (req, res) => {
         }
 
         const firm = db.prepare('SELECT name, address FROM firms WHERE id = ?').get(req.user.firm_id);
-        
+
         if (!firm) {
             return res.status(404).json({ success: false, error: 'Firm not found' });
         }
@@ -1808,7 +1812,7 @@ export const lookupGST = async (req, res) => {
         });
 
         const data = await response.json();
-        
+
         // Pass the data back to your frontend
         res.json(data);
 
@@ -1826,7 +1830,7 @@ export const exportStockMovementsToExcel = async (req, res) => {
         }
 
         const { type, searchTerm } = req.query;
-        
+
         let query = `
             SELECT sr.*, s.item as stock_item, b.bdate as bill_date, p.firm as party_name
             FROM stock_reg sr
@@ -1835,7 +1839,7 @@ export const exportStockMovementsToExcel = async (req, res) => {
             LEFT JOIN parties p ON p.id = b.party_id
             WHERE sr.firm_id = ?
         `;
-        
+
         const params = [req.user.firm_id];
 
         if (type) {

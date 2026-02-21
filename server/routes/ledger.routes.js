@@ -31,6 +31,7 @@ router.post('/vouchers', authMiddleware, voucherController.createVoucher);
 router.get('/vouchers', authMiddleware, voucherController.getVouchers);
 router.get('/vouchers/:id', authMiddleware, voucherController.getVoucherById);
 router.get('/vouchers/party/:partyId', authMiddleware, voucherController.getVouchersByParty);
+router.put('/vouchers/:id', authMiddleware, voucherController.updateVoucher);
 router.get('/vouchers-summary', authMiddleware, voucherController.getVoucherSummary);
 
 export default router;

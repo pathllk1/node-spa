@@ -26,6 +26,7 @@ router.get('/bills/:id/pdf', generateInvoicePDF);
 router.get('/bills/:id', inventoryController.getBillById);
 router.get('/bills', inventoryController.getAllBills);
 router.put('/bills/:id', inventoryController.updateBill);
+router.put('/bills/:id/cancel', inventoryController.cancelBill);
 router.delete('/bills/:id', inventoryController.cancelBill);
 
 // --- STOCK MOVEMENTS API ---

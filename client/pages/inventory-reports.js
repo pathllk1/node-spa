@@ -353,6 +353,51 @@ export async function renderInventoryReports(router) {
           </div>
         </div>
 
+        <!-- Cancel Bill Section (Hidden by default) -->
+        <div id="cancel-bill-section" class="mb-8 hidden">
+          <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="text-lg font-medium text-red-900">Cancel Bill</h4>
+              <button id="cancel-section-toggle" class="text-red-600 hover:text-red-800">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            </div>
+
+            <div id="cancel-form-content" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-red-700 mb-2">Cancellation Reason *</label>
+                <select id="cancel-reason" class="w-full px-3 py-2 border border-red-300 rounded-md focus:ring-red-500 focus:border-red-500" required>
+                  <option value="">Select a reason...</option>
+                  <option value="CUSTOMER_REQUEST">Customer Request</option>
+                  <option value="DATA_ENTRY_ERROR">Data Entry Error</option>
+                  <option value="DUPLICATE_BILL">Duplicate Bill</option>
+                  <option value="BILLING_ERROR">Billing Error</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-red-700 mb-2">Remarks/Notes</label>
+                <textarea id="cancel-remarks" rows="3" class="w-full px-3 py-2 border border-red-300 rounded-md focus:ring-red-500 focus:border-red-500" placeholder="Additional notes about the cancellation..."></textarea>
+              </div>
+
+              <div class="flex items-center space-x-4 pt-4">
+                <button id="confirm-cancel" class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Confirm Cancellation
+                </button>
+                <button id="cancel-cancel" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Footer Actions -->
         <div class="flex justify-end space-x-3 pt-4 border-t">
           <button id="edit-bill" class="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
@@ -360,6 +405,12 @@ export async function renderInventoryReports(router) {
               <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
             </svg>
             Edit Bill
+          </button>
+          <button id="cancel-bill" class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cancel Bill
           </button>
           <button id="print-bill" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2">
@@ -424,6 +475,16 @@ function initializeBillsPage(router) {
   const modalIgst = document.getElementById('modal-igst');
   const otherChargesSection = document.getElementById('other-charges-section');
   const otherChargesList = document.getElementById('other-charges-list');
+
+  // Cancel bill modal elements
+  const cancelBillBtn = document.getElementById('cancel-bill');
+  const cancelBillSection = document.getElementById('cancel-bill-section');
+  const cancelSectionToggle = document.getElementById('cancel-section-toggle');
+  const cancelFormContent = document.getElementById('cancel-form-content');
+  const cancelReasonSelect = document.getElementById('cancel-reason');
+  const cancelRemarksTextarea = document.getElementById('cancel-remarks');
+  const confirmCancelBtn = document.getElementById('confirm-cancel');
+  const cancelCancelBtn = document.getElementById('cancel-cancel');
 
   // DOM elements
   const searchInput = document.getElementById('search-bills');
@@ -767,6 +828,20 @@ function initializeBillsPage(router) {
       modal.classList.remove('hidden');
       modal.setAttribute('data-current-bill-id', billId);
 
+      // Handle cancel button visibility based on bill status
+      if (bill.status === 'CANCELLED') {
+        cancelBillBtn.disabled = true;
+        cancelBillBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        cancelBillBtn.textContent = 'Bill Already Cancelled';
+      } else {
+        cancelBillBtn.disabled = false;
+        cancelBillBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        cancelBillBtn.textContent = 'Cancel Bill';
+      }
+
+      // Reset cancel form when opening modal
+      resetCancelForm();
+
     } catch (error) {
       console.error('Error loading bill details:', error);
       alert('Failed to load bill details. Please try again.');
@@ -776,6 +851,8 @@ function initializeBillsPage(router) {
   // Close modal
   function closeModal() {
     modal.classList.add('hidden');
+    // Reset cancel form when closing modal
+    resetCancelForm();
   }
 
   // Print bill (placeholder)
@@ -822,6 +899,111 @@ function initializeBillsPage(router) {
       console.error('PDF download error:', error);
       alert('Failed to download PDF. Please try again.');
     }
+  }
+
+  // Cancel bill functionality
+  async function cancelBill(billId) {
+    const reason = cancelReasonSelect.value;
+    const remarks = cancelRemarksTextarea.value.trim();
+
+    if (!reason) {
+      alert('Please select a cancellation reason.');
+      cancelReasonSelect.focus();
+      return;
+    }
+
+    if (!confirm('Are you sure you want to cancel this bill? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      confirmCancelBtn.disabled = true;
+      confirmCancelBtn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Cancelling...
+      `;
+
+      const response = await fetch(`/api/inventory/sales/bills/${billId}/cancel`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          reason: reason,
+          remarks: remarks
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cancel bill');
+      }
+
+      const result = await response.json();
+
+      // Update modal status
+      modalBillStatus.textContent = 'CANCELLED';
+      modalBillStatus.className = 'mt-1 text-sm text-red-600 font-semibold';
+
+      // Disable cancel button
+      cancelBillBtn.disabled = true;
+      cancelBillBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      cancelBillBtn.textContent = 'Bill Cancelled';
+
+      // Hide cancel section
+      cancelBillSection.classList.add('hidden');
+
+      // Show success message
+      alert('Bill cancelled successfully.');
+
+      // Refresh the bills list
+      await loadBills();
+
+    } catch (error) {
+      console.error('Error cancelling bill:', error);
+      alert('Failed to cancel bill: ' + error.message);
+    } finally {
+      confirmCancelBtn.disabled = false;
+      confirmCancelBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        Confirm Cancellation
+      `;
+    }
+  }
+
+  // Toggle cancel form visibility
+  function toggleCancelSection() {
+    const isHidden = cancelFormContent.classList.contains('hidden');
+
+    if (isHidden) {
+      cancelFormContent.classList.remove('hidden');
+      cancelSectionToggle.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+        </svg>
+      `;
+    } else {
+      cancelFormContent.classList.add('hidden');
+      cancelSectionToggle.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      `;
+    }
+  }
+
+  // Reset cancel form
+  function resetCancelForm() {
+    cancelReasonSelect.value = '';
+    cancelRemarksTextarea.value = '';
+    cancelFormContent.classList.add('hidden');
+    cancelBillSection.classList.add('hidden');
   }
 
   // Render bills table
@@ -1071,6 +1253,29 @@ function initializeBillsPage(router) {
     } else {
       alert('No bill selected for editing.');
     }
+  });
+
+  // Cancel bill event listeners
+  cancelBillBtn.addEventListener('click', () => {
+    const billId = modal.getAttribute('data-current-bill-id');
+    if (billId) {
+      cancelBillSection.classList.remove('hidden');
+      cancelReasonSelect.focus();
+    }
+  });
+
+  cancelSectionToggle.addEventListener('click', toggleCancelSection);
+
+  confirmCancelBtn.addEventListener('click', () => {
+    const billId = modal.getAttribute('data-current-bill-id');
+    if (billId) {
+      cancelBill(billId);
+    }
+  });
+
+  cancelCancelBtn.addEventListener('click', () => {
+    cancelBillSection.classList.add('hidden');
+    resetCancelForm();
   });
 
   // Initial load

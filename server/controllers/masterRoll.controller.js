@@ -845,3 +845,83 @@ export const bulkDeleteMasterRolls = (req, res) => {
     });
   }
 };
+
+/* --------------------------------------------------
+   IFSC LOOKUP - USING RAZORPAY PUBLIC API
+-------------------------------------------------- */
+
+export const lookupIFSC = async (req, res) => {
+  try {
+    const { ifsc } = req.params;
+
+    // Validate IFSC format (must be exactly 11 characters)
+    if (!ifsc || typeof ifsc !== 'string' || ifsc.length !== 11) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid IFSC code. Must be exactly 11 characters.'
+      });
+    }
+
+    // Normalize to uppercase as Razorpay API expects uppercase
+    const normalizedIFSC = ifsc.toUpperCase();
+
+    // Call Razorpay IFSC API
+    const response = await fetch(`https://ifsc.razorpay.com/${normalizedIFSC}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'MasterRoll-System/1.0'
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return res.status(404).json({
+          success: false,
+          error: `IFSC "${normalizedIFSC}" not found. Please check the code.`
+        });
+      }
+
+      // For other HTTP errors (500, 502, etc.)
+      return res.status(response.status).json({
+        success: false,
+        error: `IFSC lookup failed (HTTP ${response.status}). Please try again later.`
+      });
+    }
+
+    const data = await response.json();
+
+    // Validate that we got the expected fields from Razorpay
+    if (!data.BANK) {
+      return res.status(502).json({
+        success: false,
+        error: 'Invalid response from IFSC service. Bank information not available.'
+      });
+    }
+
+    // Return successful lookup data
+    res.json({
+      success: true,
+      data: {
+        ifsc: normalizedIFSC,
+        bank: data.BANK,
+        branch: data.BRANCH,
+        address: data.ADDRESS,
+        city: data.CITY,
+        state: data.STATE,
+        district: data.DISTRICT,
+        bankcode: data.BANKCODE,
+        micr: data.MICR
+      }
+    });
+
+  } catch (error) {
+    console.error('[IFSC LOOKUP] Error:', error);
+
+    // Network errors, timeouts, etc.
+    res.status(500).json({
+      success: false,
+      error: 'Unable to reach IFSC lookup service. Please check your internet connection and try again.'
+    });
+  }
+};

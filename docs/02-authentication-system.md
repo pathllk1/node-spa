@@ -2,7 +2,7 @@
 
 ## Overview
 
-The authentication system implements a robust dual JWT token architecture with automatic refresh capabilities, designed for business management applications with multi-firm support and role-based access control.
+The authentication system implements a robust dual JWT token architecture with automatic refresh capabilities, designed for business management applications with multi-firm support and role-based access control. **Enhanced with comprehensive security features, automatic token management, and enterprise-grade session handling.**
 
 ## Architecture
 
@@ -10,14 +10,16 @@ The authentication system implements a robust dual JWT token architecture with a
 - **Access Token**: Short-lived (15 minutes) for API authorization
 - **Refresh Token**: Long-lived (30 days) for token renewal
 - **Automatic Refresh**: Seamless token renewal without user interaction
+- **Secure Storage**: HTTP-only cookies with cryptographic security
 
 ### Security Features
 - HTTP-only cookies with SameSite protection
 - Secure cookie configuration for production
 - Content Security Policy (CSP) headers
 - XSS protection middleware
-- Password hashing with bcrypt
-- Multi-firm user isolation
+- Password hashing with bcrypt (12 salt rounds)
+- Multi-firm user isolation with strict data separation
+- Comprehensive audit logging for all authentication events
 
 ## Core Components
 

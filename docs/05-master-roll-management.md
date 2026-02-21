@@ -13,6 +13,7 @@ The Master Roll Management System provides comprehensive employee data managemen
 - **Bulk Operations**: Import, export, and bulk modifications
 - **Search & Filtering**: Advanced search capabilities
 - **Role-Based Access**: Different permissions for users, managers, and admins
+- **IFSC Lookup Integration**: Real-time bank and branch validation using Razorpay API
 
 ### Database Schema
 
@@ -109,6 +110,7 @@ POST   /api/master-rolls/bulk-import       # Bulk import
 POST   /api/master-rolls/bulk-create       # Bulk create
 DELETE /api/master-rolls/bulk-delete       # Bulk delete
 GET    /api/master-rolls/export            # Export data
+GET    /api/master-rolls/lookup-ifsc/:ifsc # IFSC bank lookup
 ```
 
 ## Firm-Level Data Isolation
@@ -368,6 +370,13 @@ const searchStmt = db.prepare(`
 ### Inventory System Integration
 - Employee information for stock assignments
 - Project tracking for resource allocation
+
+### IFSC Lookup Integration
+- **Real-time Validation**: Bank and branch details validated against Razorpay API
+- **Auto-population**: Bank and branch fields automatically filled when IFSC entered
+- **Visual Feedback**: Loading states and success/error indicators
+- **Fallback Support**: Manual entry possible if API unavailable
+- **Debounced Requests**: Performance optimized with 500ms debounce
 
 ### Reporting Integration
 - Employee statistics for business analytics

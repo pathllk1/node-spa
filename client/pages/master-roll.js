@@ -517,6 +517,9 @@ class MasterRollManager {
     // Form
     form.addEventListener("submit", (e) => this.handleFormSubmit(e));
 
+    // IFSC Lookup - automatically fetch bank and branch details
+    this.setupIFSCLookup();
+
     // Search
     searchInput.addEventListener("input", () => {
       this.applyAdvancedFilters();
@@ -575,6 +578,154 @@ class MasterRollManager {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
     };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  IFSC AUTO-LOOKUP
+  //  Wires an input listener to the IFSC field in the modal form.
+  //  When the user types a complete 11-character IFSC code, it calls the server
+  //  API and automatically populates the Bank and Branch fields.
+  //
+  //  Features:
+  //  • Debounced lookup (500ms after user stops typing)
+  //  • Only triggers when exactly 11 characters are entered
+  //  • Visual feedback with loading state
+  //  • Error handling with user-friendly messages
+  //  • Preserves manually entered bank/branch if API fails
+  // ═══════════════════════════════════════════════════════════════════════════
+  setupIFSCLookup() {
+    const ifscInput = this.elements.form.querySelector('[name="ifsc"]');
+    const bankInput = this.elements.form.querySelector('[name="bank"]');
+    const branchInput = this.elements.form.querySelector('[name="branch"]');
+
+    // Safety guard: if any of the required fields are missing, bail out
+    if (!ifscInput || !bankInput || !branchInput) {
+      console.warn('[IFSC] Could not find ifsc/bank/branch inputs — lookup disabled.');
+      return;
+    }
+
+    let debounceTimer = null;
+    let lastLookedUpIFSC = '';
+
+    // Helper: visual state management for the IFSC input
+    const setIFSCState = (state) => {
+      // Remove all state classes first
+      ifscInput.classList.remove(
+        'border-gray-300', 'border-green-500', 'border-red-400',
+        'ring-2', 'ring-green-200', 'ring-red-200'
+      );
+
+      // Remove any existing status badge
+      const existingBadge = ifscInput.parentElement.querySelector('.ifsc-status');
+      if (existingBadge) existingBadge.remove();
+
+      if (state === 'loading') {
+        ifscInput.disabled = true;
+        const badge = document.createElement('span');
+        badge.className = 'ifsc-status absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400';
+        badge.textContent = '⏳';
+        ifscInput.parentElement.style.position = 'relative';
+        ifscInput.parentElement.appendChild(badge);
+      } else if (state === 'success') {
+        ifscInput.disabled = false;
+        ifscInput.classList.add('border-green-500', 'ring-2', 'ring-green-200');
+        const badge = document.createElement('span');
+        badge.className = 'ifsc-status absolute right-2 top-1/2 -translate-y-1/2 text-xs text-green-600';
+        badge.textContent = '✓';
+        ifscInput.parentElement.style.position = 'relative';
+        ifscInput.parentElement.appendChild(badge);
+      } else if (state === 'error') {
+        ifscInput.disabled = false;
+        ifscInput.classList.add('border-red-400', 'ring-2', 'ring-red-200');
+        const badge = document.createElement('span');
+        badge.className = 'ifsc-status absolute right-2 top-1/2 -translate-y-1/2 text-xs text-red-500';
+        badge.textContent = '✗';
+        ifscInput.parentElement.style.position = 'relative';
+        ifscInput.parentElement.appendChild(badge);
+      } else {
+        // 'idle' — back to default styling
+        ifscInput.disabled = false;
+        ifscInput.classList.add('border-gray-300');
+      }
+    };
+
+    // Main lookup function
+    const lookupIFSC = async (ifscCode) => {
+      const normalizedIFSC = ifscCode.toUpperCase();
+
+      // Skip if same IFSC was already looked up successfully
+      if (normalizedIFSC === lastLookedUpIFSC) return;
+
+      setIFSCState('loading');
+
+      try {
+        const response = await fetch(`/api/master-rolls/lookup-ifsc/${normalizedIFSC}`, {
+          method: 'GET',
+          headers: this.getAuthHeaders()
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+
+          if (response.status === 404) {
+            this.showToast(`IFSC "${normalizedIFSC}" not found. Please check the code.`, 'error');
+          } else {
+            this.showToast(`IFSC lookup failed: ${errorData.error || 'Unknown error'}`, 'error');
+          }
+
+          setIFSCState('error');
+          lastLookedUpIFSC = ''; // allow retry after correction
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          // Only populate if the API returned values (never overwrite with empty strings)
+          if (data.data.bank) bankInput.value = data.data.bank;
+          if (data.data.branch) branchInput.value = data.data.branch;
+
+          lastLookedUpIFSC = normalizedIFSC;
+          setIFSCState('success');
+          this.showToast(`✓ Bank details filled for IFSC ${normalizedIFSC}`, 'success');
+        } else {
+          throw new Error(data.error || 'Invalid response from server');
+        }
+
+      } catch (error) {
+        console.error('[IFSC lookup] Error:', error);
+        this.showToast('Could not reach IFSC lookup service. Please enter Bank/Branch manually.', 'error');
+        setIFSCState('error');
+        lastLookedUpIFSC = '';
+      }
+    };
+
+    // Input listener with debounce
+    ifscInput.addEventListener('input', () => {
+      // Reset visual state and last lookup guard when user starts editing
+      setIFSCState('idle');
+      lastLookedUpIFSC = '';
+
+      // Clear any pending debounce timer
+      clearTimeout(debounceTimer);
+
+      const value = ifscInput.value.trim();
+
+      // Only fire when we have exactly 11 characters (complete IFSC)
+      if (value.length !== 11) return;
+
+      // Debounce: wait 500ms after user stops typing before calling API
+      debounceTimer = setTimeout(() => {
+        lookupIFSC(value);
+      }, 500);
+    });
+
+    // Reset state when modal is closed/reset
+    this.elements.form.addEventListener('reset', () => {
+      clearTimeout(debounceTimer);
+      lastLookedUpIFSC = '';
+      setIFSCState('idle');
+    });
   }
 
   showToast(message, type = "success") {

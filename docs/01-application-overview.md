@@ -27,33 +27,54 @@ This is a comprehensive business management Single Page Application (SPA) built 
 - HTTP-only cookies with SameSite protection
 - Role-based access control
 - Password hashing with bcrypt
+- Multi-firm user isolation
 
 ### 2. Inventory Management System
 - Dashboard with overview metrics
 - Product categories management
 - Supplier management
 - Stock tracking and movement
-- Sales tracking
+- Sales tracking with **bill cancellation functionality**
 - Comprehensive reporting system
 - Stock movement tracking
+- GST-compliant billing with automatic calculations
 
-### 3. Wages Management
+### 3. Master Roll Management
+- Employee master data management
+- Personnel records with **IFSC bank lookup integration**
+- Organizational hierarchy
+- Complete employee profile management (Aadhar, PAN, banking details)
+- **Real-time IFSC validation** with Razorpay API integration
+- Bulk import/export operations
+
+### 4. Wages Management
 - Employee wages dashboard
 - Salary calculations
 - Payment tracking
 - Wage reports and analytics
 
-### 4. Master Roll Management
-- Employee master data management
-- Personnel records
-- Organizational hierarchy
+### 5. Financial Accounting System
+- **Double-Entry Bookkeeping**: Complete ledger management with automated transaction posting
+- **Payment & Receipt Vouchers**: Manual accounting entries for cash/bank transactions
+- **Journal Entries**: Multi-line general journal entries for complex accounting adjustments
+- **Financial Reporting**: Account ledger, general ledger, trial balance, and PDF reports
+- **GST Integration**: Tax-compliant transaction processing and reporting
+- **Multi-firm Accounting**: Complete financial isolation between business entities
 
-### 5. Reporting System
+### 6. Advanced Data Features
+- **IFSC Lookup System**: Real-time bank and branch validation using Razorpay API
+- **Bill Cancellation**: Complete bill reversal with stock restoration and financial adjustments
+- **PDF Report Generation**: Professional financial document creation with custom formatting
+- **Multi-firm Data Isolation**: Complete security separation between firms
+- **Complete Audit Trails**: Full transaction history and user attribution
+- **Bulk Operations**: Import, export, and batch processing capabilities
+
+### 7. Reporting System
 - Inventory reports
-- Sales reports
+- Sales reports with cancellation tracking
 - Financial reports
 - Custom date-range filtering
-- Export capabilities
+- Export capabilities (Excel, CSV, PDF)
 
 ## Technical Stack
 
