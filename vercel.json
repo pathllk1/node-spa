@@ -1,6 +1,7 @@
 {
   "version": 2,
   "buildCommand": "npm install",
+  "outputDirectory": ".",
   "env": {
     "NODE_ENV": "production"
   },
@@ -25,7 +26,7 @@
       ]
     },
     {
-      "source": "/public/(.*)",
+      "source": "/client/public/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
