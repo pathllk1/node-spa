@@ -8,7 +8,7 @@ export function renderSidebar(router) {
   if (!sidebarContainer) return;
 
   const sidebarHTML = `
-    <div class="fixed top-16 left-0 bottom-12 w-16 bg-gradient-to-b from-purple-700 via-purple-600 to-indigo-700 text-white z-10 flex flex-col justify-between overflow-hidden transition-all duration-300" id="sidebar-menu" data-collapsed="true">
+    <div class="fixed top-16 left-0 bottom-12 w-16 bg-gradient-to-b from-purple-700 via-purple-600 to-indigo-700 text-white z-10 flex flex-col justify-between transition-all duration-300" id="sidebar-menu" data-collapsed="true">
       <!-- Sidebar menu items -->
       <ul class="flex flex-col mt-4 space-y-1 relative pb-20 px-0">
         <li>
@@ -72,7 +72,7 @@ export function renderSidebar(router) {
         <li>
           <a href="/accounts-dashboard" data-navigo title="Accounts Dashboard" class="sidebar-item flex items-center py-3 px-3 cursor-pointer hover:bg-purple-500 rounded transition" data-tooltip="Accounts Dashboard">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 flex-shrink-0">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0l6.519-4.88c1.142-.842 1.712-2.236 1.712-3.7V6.75c0-1.464-.57-2.858-1.712-3.7l-6.519-4.88c-1.171-.879-3.071-.879-4.242 0l-6.519 4.88C2.57 3.892 2 5.286 2 6.75v6.75c0 1.464.57 2.858 1.712 3.7l6.519 4.88c1.171.879 3.071.879 4.242 0l.879-.659" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
             </svg>
             <span class="ml-3 sidebar-text hidden whitespace-nowrap">Accounts</span>
           </a>

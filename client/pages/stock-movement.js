@@ -6,7 +6,7 @@ export async function renderStockMovement(router) {
   if (!canAccess) return;
 
   const content = `
-  <div class="max-w-7xl mx-auto px-4 py-16 space-y-8">
+  <div class="px-4 py-16 space-y-8">
 
     <!-- Header -->
     <div class="text-center space-y-4">

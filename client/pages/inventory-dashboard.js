@@ -13,7 +13,7 @@ export async function renderInventoryDashboard(router) {
 
     <div class="relative p-8">
 
-      <div class="max-w-7xl mx-auto mb-12">
+      <div class="mb-12">
         <nav class="text-sm text-gray-400 mb-3">
           <span class="hover:text-gray-600 cursor-pointer transition">Dashboard</span>
           <span class="mx-2">/</span>
@@ -28,7 +28,7 @@ export async function renderInventoryDashboard(router) {
         </p>
       </div>
 
-      <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
 
         <div class="group relative p-8 rounded-3xl bg-white/70 backdrop-blur-xl
                     border border-white/40 shadow-xl
