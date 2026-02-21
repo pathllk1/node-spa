@@ -6,15 +6,29 @@
   "type": "module",
   "scripts": {
     "start": "node server/server.js",
-    "dev": "nodemon -L server/server.js",
+    "dev": "nodemon server/server.js",
     "build:css": "npx @tailwindcss/cli -i ./src/input.css -o ./public/output.css --minify",
     "watch:css": "npx @tailwindcss/cli -i ./src/input.css -o ./client/public/css/output.css --watch"
   },
-  "keywords": [
-    "spa",
-    "auth",
-    "jwt"
-  ],
+  "nodemonConfig": {
+    "legacyWatch": true,
+    "watch": [
+      "server/server.js",
+      "server/controllers",
+      "server/middleware",
+      "server/routes",
+      "server/utils"
+    ],
+    "ext": "js,json",
+    "ignore": [
+      "client/",
+      "public/",
+      "src/",
+      "node_modules/"
+    ],
+    "delay": 500
+  },
+  "keywords": ["spa", "auth", "jwt"],
   "author": "",
   "license": "ISC",
   "dependencies": {
