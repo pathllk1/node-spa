@@ -1,92 +1,48 @@
-// Lazy loading functions for pages
-const loadHome = async () => {
-  const { renderHome } = await import('./pages/home.js');
-  return renderHome;
-};
+// ─────────────────────────────────────────────
+//  Lazy page loaders
+//  Each function dynamically imports the module
+//  only when the route is first visited.
+// ─────────────────────────────────────────────
 
-const loadAbout = async () => {
-  const { renderAbout } = await import('./pages/about.js');
-  return renderAbout;
-};
+const loadHome = () => import('./pages/home.js').then(m => m.renderHome);
+const loadAbout = () => import('./pages/about.js').then(m => m.renderAbout);
+const loadLogin = () => import('./pages/login.js').then(m => m.renderLogin);
+const loadDashboard = () => import('./pages/dashboard.js').then(m => m.renderDashboard);
+const loadProfile = () => import('./pages/profile.js').then(m => m.renderProfile);
+const loadMasterRoll = () => import('./pages/master-roll.js').then(m => m.renderMasterRoll);
+const loadWagesDashboard = () => import('./pages/WagesDashboard.js').then(m => m.renderWagesDashboard);
+const loadSales = () => import('./pages/sales.js').then(m => m.renderSales);
+const loadStocks = () => import('./pages/stocks.js').then(m => m.renderStocks);
+const loadInventoryDashboard = () => import('./pages/inventory-dashboard.js').then(m => m.renderInventoryDashboard);
+const loadInventoryCategories = () => import('./pages/inventory-categories.js').then(m => m.renderInventoryCategories);
+const loadInventorySuppliers = () => import('./pages/inventory-suppliers.js').then(m => m.renderInventorySuppliers);
+const loadInventoryReports = () => import('./pages/inventory-reports.js').then(m => m.renderInventoryReports);
+const loadStockMovement = () => import('./pages/stock-movement.js').then(m => m.renderStockMovement);
+const loadAccountsDashboard = () => import('./pages/accounts-dashboard.js').then(m => m.renderAccountsDashboard);
+const loadJournalEntries = () => import('./pages/ledger/journal-entries.js').then(m => m.renderJournalEntries);
+const loadVouchers = () => import('./pages/ledger/vouchers.js').then(m => m.renderVouchers);
+const loadTrialBalance = () => import('./pages/ledger/trial-balance.js').then(m => m.renderTrialBalance);
+const loadGeneralLedger = () => import('./pages/ledger/general-ledger.js').then(m => m.renderGeneralLedger);
+const loadAccountDetails = () => import('./pages/ledger/account-details.js').then(m => m.renderAccountDetails);
 
-const loadLogin = async () => {
-  const { renderLogin } = await import('./pages/login.js');
-  return renderLogin;
-};
+// ─────────────────────────────────────────────
+//  Loading spinner
+// ─────────────────────────────────────────────
 
-const loadDashboard = async () => {
-  const { renderDashboard } = await import('./pages/dashboard.js');
-  return renderDashboard;
-};
-
-const loadProfile = async () => {
-  const { renderProfile } = await import('./pages/profile.js');
-  return renderProfile;
-};
-
-const loadMasterRoll = async () => {
-  const { renderMasterRoll } = await import('./pages/master-roll.js');
-  return renderMasterRoll;
-};
-
-const loadWagesDashboard = async () => {
-  const { renderWagesDashboard } = await import('./pages/WagesDashboard.js');
-  return renderWagesDashboard;
-};
-
-const loadSales = async () => {
-  const { renderSales } = await import('./pages/sales.js');
-  return renderSales;
-};
-
-const loadStocks = async () => {
-  const { renderStocks } = await import('./pages/stocks.js');
-  return renderStocks;
-};
-
-const loadInventoryDashboard = async () => {
-  const { renderInventoryDashboard } = await import('./pages/inventory-dashboard.js');
-  return renderInventoryDashboard;
-};
-
-const loadInventoryCategories = async () => {
-  const { renderInventoryCategories } = await import('./pages/inventory-categories.js');
-  return renderInventoryCategories;
-};
-
-const loadInventorySuppliers = async () => {
-  const { renderInventorySuppliers } = await import('./pages/inventory-suppliers.js');
-  return renderInventorySuppliers;
-};
-
-const loadInventoryReports = async () => {
-  const { renderInventoryReports } = await import('./pages/inventory-reports.js');
-  return renderInventoryReports;
-};
-
-const loadStockMovement = async () => {
-  const { renderStockMovement } = await import('./pages/stock-movement.js');
-  return renderStockMovement;
-};
-
-// Loading UI functions
 const showLoading = () => {
   let loadingEl = document.getElementById('page-loading');
   if (!loadingEl) {
     loadingEl = document.createElement('div');
     loadingEl.id = 'page-loading';
     loadingEl.innerHTML = `
-      <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999;">
-        <div style="text-align: center;">
-          <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>
-          <p style="color: #666; font-family: Arial, sans-serif;">Loading...</p>
+      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div style="text-align:center;">
+          <div style="border:4px solid #f3f3f3;border-top:4px solid #3498db;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 10px;"></div>
+          <p style="color:#666;font-family:Arial,sans-serif;">Loading...</p>
         </div>
       </div>
       <style>
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
       </style>
     `;
     document.body.appendChild(loadingEl);
@@ -96,112 +52,106 @@ const showLoading = () => {
 
 const hideLoading = () => {
   const loadingEl = document.getElementById('page-loading');
-  if (loadingEl) {
-    loadingEl.style.display = 'none';
+  if (loadingEl) loadingEl.style.display = 'none';
+};
+
+// ─────────────────────────────────────────────
+//  Navigation helper
+//
+//  Wraps every route handler with:
+//    1. showLoading() before the import
+//    2. try/catch  — shows an error message if
+//       the import or render function throws
+//    3. finally    — hideLoading() is ALWAYS
+//       called, even on error, so the spinner
+//       never gets stuck on screen
+//
+//  Usage:  .on('/path', navigate(loadFn))
+//          .on('/path/:id', navigate(loadFn))   ← match.data is forwarded automatically
+// ─────────────────────────────────────────────
+
+const navigate = (loadFn) => async (match) => {
+  showLoading();
+  try {
+    const renderFn = await loadFn();
+    // Pass router + route params (if any) to the page render function
+    await renderFn(router, match?.data);
+  } catch (err) {
+    console.error('[Router] Failed to load page:', err);
+    const app = document.getElementById('app');
+    if (app) {
+      app.innerHTML = `
+        <div style="max-width:480px;margin:4rem auto;padding:2rem;text-align:center;font-family:Arial,sans-serif;">
+          <h2 style="color:#dc2626;margin-bottom:0.5rem;">Failed to load page</h2>
+          <p style="color:#6b7280;margin-bottom:1.5rem;">${err.message || 'An unexpected error occurred.'}</p>
+          <a href="/" data-navigo
+             style="display:inline-block;padding:0.6rem 1.4rem;background:#3b82f6;color:#fff;border-radius:6px;text-decoration:none;">
+            Go Home
+          </a>
+        </div>
+      `;
+      router.updatePageLinks();
+    }
+  } finally {
+    hideLoading();
   }
 };
 
-// Initialize Navigo router
+// ─────────────────────────────────────────────
+//  Router
+// ─────────────────────────────────────────────
+
 const router = new Navigo('/', { hash: false });
 
-// Define routes
 router
-  .on('/', async () => {
-    showLoading();
-    const renderHome = await loadHome();
-    renderHome(router);
-    hideLoading();
-  })
-  .on('/about', async () => {
-    showLoading();
-    const renderAbout = await loadAbout();
-    renderAbout(router);
-    hideLoading();
-  })
-  .on('/login', async () => {
-    showLoading();
-    const renderLogin = await loadLogin();
-    renderLogin(router);
-    hideLoading();
-  })
-  .on('/dashboard', async () => {
-    showLoading();
-    const renderDashboard = await loadDashboard();
-    renderDashboard(router);
-    hideLoading();
-  })
-  .on('/profile', async () => {
-    showLoading();
-    const renderProfile = await loadProfile();
-    renderProfile(router);
-    hideLoading();
-  })
-  .on('/master-roll', async () => {
-    showLoading();
-    const renderMasterRoll = await loadMasterRoll();
-    renderMasterRoll(router);
-    hideLoading();
-  })
-  .on('/wages-dashboard', async () => {
-    showLoading();
-    const renderWagesDashboard = await loadWagesDashboard();
-    renderWagesDashboard(router);
-    hideLoading();
-  })
-  .on('/inventory/sls', async () => {
-    showLoading();
-    const renderSales = await loadSales();
-    renderSales(router);
-    hideLoading();
-  })
-  .on('/inventory/stocks', async () => {
-    showLoading();
-    const renderStocks = await loadStocks();
-    renderStocks(router);
-    hideLoading();
-  })
-  .on('/inventory/dashboard', async () => {
-    showLoading();
-    const renderInventoryDashboard = await loadInventoryDashboard();
-    renderInventoryDashboard(router);
-    hideLoading();
-  })
-  .on('/inventory/categories', async () => {
-    showLoading();
-    const renderInventoryCategories = await loadInventoryCategories();
-    renderInventoryCategories(router);
-    hideLoading();
-  })
-  .on('/inventory/suppliers', async () => {
-    showLoading();
-    const renderInventorySuppliers = await loadInventorySuppliers();
-    renderInventorySuppliers(router);
-    hideLoading();
-  })
-  .on('/inventory/reports', async () => {
-    showLoading();
-    const renderInventoryReports = await loadInventoryReports();
-    renderInventoryReports(router);
-    hideLoading();
-  })
-  .on('/inventory/stock-movement', async () => {
-    showLoading();
-    const renderStockMovement = await loadStockMovement();
-    renderStockMovement(router);
-    hideLoading();
-  })
+  // General
+  .on('/',                          navigate(loadHome))
+  .on('/about',                     navigate(loadAbout))
+  .on('/login',                     navigate(loadLogin))
+  .on('/dashboard',                 navigate(loadDashboard))
+  .on('/profile',                   navigate(loadProfile))
+
+  // HR
+  .on('/master-roll',               navigate(loadMasterRoll))
+  .on('/wages-dashboard',           navigate(loadWagesDashboard))
+
+  // Inventory
+  .on('/inventory/sls',             navigate(loadSales))
+  .on('/inventory/stocks',          navigate(loadStocks))
+  .on('/inventory/dashboard',       navigate(loadInventoryDashboard))
+  .on('/inventory/categories',      navigate(loadInventoryCategories))
+  .on('/inventory/suppliers',       navigate(loadInventorySuppliers))
+  .on('/inventory/reports',         navigate(loadInventoryReports))
+  .on('/inventory/stock-movement',  navigate(loadStockMovement))
+
+  // Accounts
+  .on('/accounts-dashboard',        navigate(loadAccountsDashboard))
+
+  // Ledger
+  .on('/ledger/journal-entries',    navigate(loadJournalEntries))
+  .on('/ledger/vouchers',           navigate(loadVouchers))
+  .on('/ledger/trial-balance',      navigate(loadTrialBalance))
+  .on('/ledger/general-ledger',     navigate(loadGeneralLedger))
+  .on('/ledger/account/:account_head', navigate(loadAccountDetails))
+
+  // 404
   .notFound(() => {
-    document.getElementById('app').innerHTML = `
-      <div class="container">
-        <div class="page">
-          <h1>404 - Page Not Found</h1>
-          <p>The page you're looking for doesn't exist.</p>
-          <a href="/" class="btn btn-primary" data-navigo>Go Home</a>
+    const app = document.getElementById('app');
+    if (app) {
+      app.innerHTML = `
+        <div style="max-width:480px;margin:4rem auto;padding:2rem;text-align:center;font-family:Arial,sans-serif;">
+          <h1 style="color:#111827;">404 — Page Not Found</h1>
+          <p style="color:#6b7280;margin-bottom:1.5rem;">The page you're looking for doesn't exist.</p>
+          <a href="/" data-navigo
+             style="display:inline-block;padding:0.6rem 1.4rem;background:#3b82f6;color:#fff;border-radius:6px;text-decoration:none;">
+            Go Home
+          </a>
         </div>
-      </div>
-    `;
-    router.updatePageLinks();
+      `;
+      router.updatePageLinks();
+    }
+    hideLoading();
   });
 
-// Resolve the initial route
+// Resolve the initial route on page load
 router.resolve();

@@ -18,6 +18,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@libsql/client": "^0.17.0",
     "@tailwindcss/cli": "^4.1.18",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.6",

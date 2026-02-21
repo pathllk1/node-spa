@@ -23,6 +23,7 @@ import masterRollRoutes from './routes/masterRoll.routes.js';
 import wagesRoutes from './routes/wages.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import inventorySalesRoutes from './routes/inventory/sls.js';
+import ledgerRoutes from './routes/ledger.routes.js';
 
 
 
@@ -51,6 +52,7 @@ app.use('/api/master-rolls', masterRollRoutes);
 app.use('/api/wages',  wagesRoutes);
 app.use('/api/settings',  settingsRoutes);
 app.use('/api/inventory/sales', inventorySalesRoutes);
+app.use('/api/ledger', ledgerRoutes);
 
 // Serve index.html for all non-API routes (SPA)
 app.get('*', (req, res) => {

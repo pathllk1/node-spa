@@ -68,6 +68,15 @@ export function renderSidebar(router) {
             <span class="ml-3 sidebar-text hidden whitespace-nowrap">Inventory</span>
           </a>
         </li>
+
+        <li>
+          <a href="/accounts-dashboard" data-navigo title="Accounts Dashboard" class="sidebar-item flex items-center py-3 px-3 cursor-pointer hover:bg-purple-500 rounded transition" data-tooltip="Accounts Dashboard">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 flex-shrink-0">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0l6.519-4.88c1.142-.842 1.712-2.236 1.712-3.7V6.75c0-1.464-.57-2.858-1.712-3.7l-6.519-4.88c-1.171-.879-3.071-.879-4.242 0l-6.519 4.88C2.57 3.892 2 5.286 2 6.75v6.75c0 1.464.57 2.858 1.712 3.7l6.519 4.88c1.171.879 3.071.879 4.242 0l.879-.659" />
+            </svg>
+            <span class="ml-3 sidebar-text hidden whitespace-nowrap">Accounts</span>
+          </a>
+        </li>
         ` : ''}
 
         <li>

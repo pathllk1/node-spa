@@ -884,8 +884,14 @@ export const createBill = async (req, res) => {
             });
         }
 
-        // 5. Sales Account Post (To balance the ledger)
-        const taxableItemsTotal = cart.reduce((sum, item) => sum + (item.qty * item.rate * (1 - (item.disc || 0)/100)), 0);
+        // 5. Sales Account Post (items taxable value ONLY)
+        //    IMPORTANT: Other charges are already posted individually in step 4 above.
+        //    Do NOT add otherChargesTotal here — it would double-credit other charges
+        //    and cause Credits > Debits on the Trial Balance.
+        const taxableItemsTotal = cart.reduce(
+            (sum, item) => sum + (item.qty * item.rate * (1 - (item.disc || 0) / 100)),
+            0
+        );
         Ledger.create.run(
             ledgerBase.firm_id,
             ledgerBase.voucher_id,
@@ -894,7 +900,7 @@ export const createBill = async (req, res) => {
             'Sales',
             'INCOME',
             0,
-            taxableItemsTotal + otherChargesTotal,
+            taxableItemsTotal,          // ✅ FIXED: was (taxableItemsTotal + otherChargesTotal)
             `Sales Bill No: ${meta.billNo}`,
             ledgerBase.bill_id,
             null,
@@ -1322,8 +1328,66 @@ export const updateBill = async (req, res) => {
             );
         }
 
-        // Sales Account Post
-        const taxableItemsTotal = cart.reduce((sum, item) => sum + (item.qty * item.rate * (1 - (item.disc || 0)/100)), 0);
+        // Round Off Post
+        // ✅ FIXED: This block was completely missing in updateBill — round off
+        //    disappeared from the ledger whenever a bill was edited.
+        if (Math.abs(parseFloat(rof)) > 0) {
+            const rofVal = parseFloat(rof);
+            Ledger.create.run(
+                ledgerBase.firm_id,
+                ledgerBase.voucher_id,
+                ledgerBase.voucher_type,
+                ledgerBase.voucher_no,
+                'Round Off',
+                'EXPENSE',
+                rofVal > 0 ? rofVal : 0,
+                rofVal < 0 ? Math.abs(rofVal) : 0,
+                `Round Off on Sales Bill No: ${existingBill.bno}`,
+                ledgerBase.bill_id,
+                null,
+                null,
+                null,
+                ledgerBase.transaction_date,
+                ledgerBase.created_by
+            );
+        }
+
+        // Other Charges Posts (individual per charge type)
+        // ✅ FIXED: This entire loop was completely missing in updateBill — freight,
+        //    other charges etc. never appeared as separate ledger accounts after editing.
+        if (otherCharges && otherCharges.length > 0) {
+            otherCharges.forEach(charge => {
+                const chargeAmount = parseFloat(charge.amount) || 0;
+                if (chargeAmount > 0) {
+                    Ledger.create.run(
+                        ledgerBase.firm_id,
+                        ledgerBase.voucher_id,
+                        ledgerBase.voucher_type,
+                        ledgerBase.voucher_no,
+                        charge.type || 'Other Charges',
+                        'INCOME',
+                        0,
+                        chargeAmount,
+                        `${charge.type} on Sales Bill No: ${existingBill.bno}`,
+                        ledgerBase.bill_id,
+                        null,
+                        null,
+                        null,
+                        ledgerBase.transaction_date,
+                        ledgerBase.created_by
+                    );
+                }
+            });
+        }
+
+        // Sales Account Post (items taxable value ONLY)
+        //    IMPORTANT: Other charges are already posted individually above.
+        //    Do NOT add otherChargesTotal here — it would double-credit other charges
+        //    and cause Credits > Debits on the Trial Balance.
+        const taxableItemsTotal = cart.reduce(
+            (sum, item) => sum + (item.qty * item.rate * (1 - (item.disc || 0) / 100)),
+            0
+        );
         Ledger.create.run(
             ledgerBase.firm_id,
             ledgerBase.voucher_id,
@@ -1332,7 +1396,7 @@ export const updateBill = async (req, res) => {
             'Sales',
             'INCOME',
             0,
-            taxableItemsTotal + otherChargesTotal,
+            taxableItemsTotal,          // ✅ FIXED: was (taxableItemsTotal + otherChargesTotal)
             `Sales Bill No: ${existingBill.bno}`,
             ledgerBase.bill_id,
             null,
