@@ -18,7 +18,7 @@ export async function openPartyItemHistoryModal(stock, state, onFetchHistory) {
     // Fetch history data from API
     let historyData = [];
     try {
-        const response = await fetch(`/api/inventory/sales/stock-movements?partyId=${state.selectedParty.id}&stockId=${stock.id}`, {
+        const response = await fetch(`/api/inventory/sales/stocks/${stock.id}?partyId=${state.selectedParty.id}&stockId=${stock.id}&limit=all`, {
             method: 'GET',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' }
@@ -31,8 +31,8 @@ export async function openPartyItemHistoryModal(stock, state, onFetchHistory) {
             const data = await response.json();
             if (data.success) {
                 // Extract rows from the response and format them
-                if (data.data && Array.isArray(data.data)) {
-                    historyData = data.data.map(row => ({
+                if (data.data && data.data.rows && Array.isArray(data.data.rows)) {
+                    historyData = data.data.rows.map(row => ({
                         date: row.bdate ? new Date(row.bdate).toLocaleDateString('en-IN') : '-',
                         batch: row.batch || '-',
                         qty: row.qty || 0,
