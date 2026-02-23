@@ -45,6 +45,7 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "libsql": "^0.5.22",
+    "mongoose": "^8.0.0",
     "pdfmake": "^0.3.3",
     "tailwindcss": "^4.1.18"
   },

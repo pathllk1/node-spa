@@ -1,75 +1,206 @@
-PROJECT STRUCTURE
+PROJECT STRUCTURE - Business Management Application
 ==================
+
+Application Overview:
+This is a comprehensive Node.js Single Page Application for business management, supporting multi-firm operations with modules for user management, employee records, wages, inventory, and accounting.
 
 nodejs-spa-auth/
 │
 ├── 📄 package.json              # Node.js dependencies and scripts
-├── 📄 README.md                 # Complete documentation
-├── 📄 .gitignore               # Git ignore rules
-├── 🔧 setup.sh                 # Linux/Mac setup script
-├── 🔧 setup.bat                # Windows setup script
+├── 📄 .env.example              # Environment variables template
+├── 📄 vercel.json               # Vercel deployment configuration
+├── � setup.sh                  # Linux/Mac setup script
+├── � setup.bat                 # Windows setup script
 │
-├── 📁 server/                   # Backend (Node.js + Express)
+├── 📁 docs/                     # Comprehensive documentation (28 files)
+│
+├── 📁 server/                   # Backend (Express.js + Turso SQLite Cloud)
 │   ├── 📄 server.js            # Main server entry point
 │   │
-│   ├── 📁 controllers/         # Business logic
-│   │   ├── authController.js   # Login, logout, token refresh
-│   │   └── pageController.js   # API endpoints for pages
+│   ├── 📁 controllers/         # Business logic controllers (24 files + subdirectories)
+│   │   ├── authController.js   # Authentication (login, logout, refresh)
+│   │   ├── firmManagementController.js # Firm CRUD operations
+│   │   ├── masterRoll.controller.js # Employee records management
+│   │   ├── wages.controller.js # Salary and wage processing
+│   │   ├── settingsController.js # System settings
+│   │   ├── systemConfigController.js # System configuration
+│   │   └── 📁 inventory/       # Inventory controllers (6 files)
+│   │       └── pdfMakeController.js # PDF generation for inventory
+│   │   └── 📁 ledger/          # Accounting controllers (4 files)
+│   │       ├── journalEntryController.js # Journal entries
+│   │       ├── ledgerController.js # Ledger operations
+│   │       ├── pdfMakeController.js # PDF for ledger
+│   │       └── voucherController.js # Voucher management
+│   │   └── 📁 mongo/           # MongoDB controllers (7 files)
+│   │       ├── authController.js # MongoDB auth controller
+│   │       ├── firmManagementController.js # MongoDB firm management
+│   │       ├── masterRoll.controller.js # MongoDB master roll
+│   │       ├── pageController.js # MongoDB page controller
+│   │       ├── settingsController.js # MongoDB settings
+│   │       ├── systemConfigController.js # MongoDB system config
+│   │       └── wages.controller.js # MongoDB wages controller
 │   │
-│   ├── 📁 routes/              # API routes
-│   │   ├── authRoutes.js       # /api/auth/* routes
-│   │   └── pageRoutes.js       # /api/pages/* routes
+│   ├── 📁 models/              # Mongoose models (16 files)
+│   │   ├── Bill.model.js       # Bill/invoice model
+│   │   ├── BillSequence.model.js # Bill sequence model
+│   │   ├── Firm.model.js       # Firm model
+│   │   ├── FirmSettings.model.js # Firm settings model
+│   │   ├── Ledger.model.js     # Ledger entries model
+│   │   ├── MasterRoll.model.js # Employee records model
+│   │   ├── Party.model.js      # Customer/supplier model
+│   │   ├── RefreshToken.model.js # Refresh token model
+│   │   ├── Settings.model.js   # Global settings model
+│   │   ├── Stock.model.js      # Inventory stock model
+│   │   ├── StockReg.model.js   # Stock movement model
+│   │   ├── User.model.js       # User accounts model
+│   │   ├── UserMasterRoll.model.js # User-employee relation model
+│   │   ├── UserWage.model.js   # User-wage relation model
+│   │   ├── Wage.model.js       # Wage records model
+│   │   └── index.js            # Models index file
 │   │
-│   ├── 📁 middleware/          # Express middleware
+│   ├── 📁 routes/              # API route definitions (10 files)
+│   │   ├── auth.js             # Authentication routes
+│   │   ├── authRoutes.js       # Auth routes (legacy?)
+│   │   ├── admin.js            # Admin routes
+│   │   ├── api.js              # General API routes
+│   │   ├── masterRoll.routes.js # Master roll routes
+│   │   ├── wages.routes.js     # Wages routes
+│   │   ├── settings.routes.js  # Settings routes
+│   │   ├── inventory/          # Inventory routes (1 file)
+│   │   └── ledger.routes.js    # Ledger routes
+│   │
+│   ├── 📁 middleware/          # Express middleware (3 files + mongo subdirectory)
+│   │   ├── auth.js             # Auth middleware
 │   │   ├── authMiddleware.js   # JWT validation & auto-refresh
-│   │   └── securityMiddleware.js # CSP/XSS headers
+│   │   ├── securityMiddleware.js # CSP/XSS headers
+│   │   └── 📁 mongo/           # MongoDB middleware (2 files)
+│   │       ├── authMiddleware.js # MongoDB-compatible auth middleware
+│   │       └── securityMiddleware.js # MongoDB-compatible security middleware
 │   │
-│   ├── 📁 utils/               # Utilities
-│   │   ├── users.json          # Demo users database
-│   │   └── tokenUtils.js       # JWT generation & verification
-│   │
-│   └── 📁 plugins/             # Custom plugins (empty, ready for extensions)
+│   └── 📁 utils/               # Server utilities (10 files + mongo subdirectory)
+│       ├── db.js               # Database connection and schema (1292 lines)
+│       ├── tokenUtils.js       # JWT generation & verification
+│       ├── gstCalculator.js    # GST calculations
+│       ├── pdfGenerator.js     # PDF generation for reports
+│       ├── billNumberGenerator.js # Bill number generation
+│       ├── dateFormatter.js    # Date formatting utilities
+│       ├── ledgerHelper.js     # Ledger operations helper
+│       ├── seed-super-admin.js # Super admin seeding
+│       ├── seed.js             # Database seeding
+│       ├── users.json          # Demo users data
+│       └── 📁 mongo/           # MongoDB utilities (8 files)
+│           ├── mongoose.config.js # MongoDB connection configuration
+│           ├── dateFormatter.js  # MongoDB-compatible date formatting
+│           ├── gstCalculator.js  # MongoDB-compatible GST calculations
+│           ├── ledgerHelper.js   # MongoDB-compatible ledger helper
+│           ├── pdfGenerator.js   # MongoDB-compatible PDF generation
+│           ├── seed-super-admin.js # MongoDB super admin seeding
+│           ├── seed.js           # MongoDB database seeding
+│           └── tokenUtils.js     # MongoDB-compatible token utilities
 │
-└── 📁 client/                  # Frontend (Vanilla JS SPA)
-    ├── 📄 index.html           # Main HTML file (entry point)
-    ├── 📄 app.js               # Router configuration
-    │
-    ├── 📁 public/              # Static assets
-    │   ├── 📁 cdns/
-    │   │   └── navigo.min.js   # Navigo.js router (local)
-    │   └── 📁 css/
-    │       └── style.css        # Application styles
-    │
-    ├── 📁 pages/               # Page components (views)
-    │   ├── home.js             # Public home page
-    │   ├── about.js            # Public about page
-    │   ├── login.js            # Login page
-    │   ├── dashboard.js        # Protected dashboard
-    │   └── profile.js          # Protected profile
-    │
-    ├── 📁 components/          # Reusable UI components
-    │   ├── navbar.js           # Navigation bar
-    │   └── layout.js           # Page layout wrapper
-    │
-    ├── 📁 utils/               # Client utilities
-    │   ├── api.js              # HTTP client wrapper
-    │   └── auth.js             # Authentication manager
-    │
-    └── 📁 middleware/          # Client-side middleware
-        └── authMiddleware.js   # Route guards (requireAuth, guestOnly)
+├── 📁 client/                  # Frontend (Vanilla JS SPA with Navigo.js)
+│   ├── 📄 index.html           # Main HTML entry point
+│   ├── 📄 app.js               # Router configuration (lazy loading)
+│   │
+│   ├── 📁 public/              # Static assets (35 items)
+│   │   ├── 📁 css/             # Stylesheets
+│   │   ├── 📁 js/              # JavaScript libraries
+│   │   └── 📁 images/          # Images
+│   │
+│   ├── 📁 pages/               # Page components (23 files)
+│   │   ├── home.js             # Public home page
+│   │   ├── about.js            # Public about page
+│   │   ├── login.js            # Login page
+│   │   ├── dashboard.js        # Main dashboard
+│   │   ├── profile.js          # User profile
+│   │   ├── authPage.js         # Authentication page
+│   │   ├── master-roll.js      # Employee records page
+│   │   ├── WagesDashboard.js   # Wages management dashboard
+│   │   ├── sales.js            # Sales page
+│   │   ├── stocks.js           # Stocks page
+│   │   ├── inventory-dashboard.js # Inventory dashboard
+│   │   ├── inventory-categories.js # Inventory categories
+│   │   ├── inventory-suppliers.js # Suppliers management
+│   │   ├── inventory-reports.js # Inventory reports
+│   │   ├── stock-movement.js    # Stock movement tracking
+│   │   ├── accounts-dashboard.js # Accounts dashboard
+│   │   └── 📁 ledger/          # Ledger pages (7 files)
+│   │       ├── journal-entries.js
+│   │       ├── vouchers.js
+│   │       ├── trial-balance.js
+│   │       ├── general-ledger.js
+│   │       ├── account-details.js
+│   │       ├── new-journal-entry.js
+│   │       └── new-voucher.js
+│   │
+│   ├── 📁 components/          # Reusable UI components (26 items)
+│   │   ├── layout.js           # Page layout
+│   │   ├── navbar.js           # Navigation bar
+│   │   ├── sidebar.js          # Sidebar navigation
+│   │   ├── voucher-modal.js    # Voucher modal
+│   │   ├── 📁 inventory/       # Inventory components (19 files)
+│   │   └── 📁 wages/           # Wages components (3 files)
+│   │
+│   ├── 📁 utils/               # Client utilities (2 files)
+│   │   ├── api.js              # HTTP client wrapper
+│   │   └── auth.js             # Authentication manager
+│   │
+│   └── 📁 middleware/          # Client-side middleware (1 file)
+│       └── authMiddleware.js   # Route guards
+│
+├── 📁 api/                     # Serverless API for Vercel (1 file)
+│   └── index.js                # Vercel serverless entry point
+│
+├── 📁 src/                     # Source files (1 item)
+│   └── input.css               # Tailwind CSS input
+│
+├── 📁 public/                  # Public static files (empty)
+│
+└── 📁 TST/                      # Test directory (empty)
+
+
+DATABASE SCHEMA OVERVIEW
+========================
+
+Tables:
+- firms: Multi-firm support with business details
+- users: User accounts with roles (user, manager, admin, super_admin)
+- refresh_tokens: JWT refresh token storage
+- master_rolls: Employee records with personal and work details
+- wages: Salary and wage processing records
+- user_master_rolls: User-employee assignment (many-to-many)
+- user_wages: User-wage assignment (many-to-many)
+- stocks: Inventory items with batch support
+- parties: Customers and suppliers
+- bills: Sales/purchase invoices
+- stock_reg: Stock movement transactions
+- ledger: General ledger entries
+- bill_sequences: Bill number generation sequences
+- settings: Global application settings
+- firm_settings: Firm-specific settings
 
 
 KEY FEATURES
 ============
 
-✅ Dual Token Authentication (Access: 15min, Refresh: 30 days)
+✅ Multi-Firm Business Management System
+✅ Dual Token JWT Authentication (Access: 15min, Refresh: 30 days)
 ✅ Automatic Token Refresh (every 10 minutes)
 ✅ HTTP-only Cookies with SameSite protection
 ✅ Content Security Policy (CSP) headers
 ✅ XSS Protection
-✅ SPA with Navigo.js routing
+✅ Turso (SQLite Cloud) Database
+✅ PDF Report Generation
+✅ Excel Export Functionality
+✅ GST Calculations
+✅ Employee Master Rolls & Wage Management
+✅ Inventory Management (Stocks, Parties, Bills, Movements)
+✅ Accounting Ledger (Journal Entries, Vouchers, Trial Balance)
+✅ Responsive Vanilla JS SPA with Navigo.js routing
+✅ Lazy-loaded pages for performance
 ✅ Protected and public routes
 ✅ Clean ES6 module architecture
+✅ Vercel Serverless Deployment Ready
 
 
 QUICK START
