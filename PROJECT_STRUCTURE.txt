@@ -2,43 +2,74 @@ PROJECT STRUCTURE - Business Management Application
 ==================
 
 Application Overview:
-This is a comprehensive Node.js Single Page Application for business management, supporting multi-firm operations with modules for user management, employee records, wages, inventory, and accounting.
+This is a comprehensive Node.js Single Page Application for business management, supporting multi-firm operations with modules for user management, employee records, wages, inventory, and accounting. Database: MongoDB with Prisma ORM.
 
 nodejs-spa-auth/
 │
 ├── 📄 package.json              # Node.js dependencies and scripts
+├── 📄 package-lock.json         # npm dependencies lock file
+├── 📄 .env                      # Environment variables (actual)
 ├── 📄 .env.example              # Environment variables template
 ├── 📄 vercel.json               # Vercel deployment configuration
-├── � setup.sh                  # Linux/Mac setup script
-├── � setup.bat                 # Windows setup script
+├── 📄 PROJECT_STRUCTURE.txt     # This file - project documentation
+├── 📄 .gitignore                # Git ignore file
+├── 🔨 setup.sh                  # Linux/Mac setup script
+├── 🔨 setup.bat                 # Windows setup script
 │
-├── 📁 docs/                     # Comprehensive documentation (28 files)
+├── 📁 .git/                     # Git repository
+├── 📁 .vercel/                  # Vercel configuration
+├── 📁 .vscode/                  # VS Code settings
+├── 📁 node_modules/             # npm dependencies
 │
-├── 📁 server/                   # Backend (Express.js + Turso SQLite Cloud)
+├── 📁 docs/                     # Comprehensive documentation (29 files)
+│
+├── 📁 prisma/                   # Prisma ORM configuration
+│   └── 📄 schema.prisma         # Database schema definition (MongoDB)
+│
+├── 📁 server/                   # Backend (Express.js + MongoDB + Prisma ORM)
 │   ├── 📄 server.js            # Main server entry point
 │   │
-│   ├── 📁 controllers/         # Business logic controllers (24 files + subdirectories)
+│   ├── 📁 controllers/         # Business logic controllers (7 files + 3 subdirectories)
 │   │   ├── authController.js   # Authentication (login, logout, refresh)
 │   │   ├── firmManagementController.js # Firm CRUD operations
 │   │   ├── masterRoll.controller.js # Employee records management
 │   │   ├── wages.controller.js # Salary and wage processing
 │   │   ├── settingsController.js # System settings
 │   │   ├── systemConfigController.js # System configuration
-│   │   └── 📁 inventory/       # Inventory controllers (6 files)
-│   │       └── pdfMakeController.js # PDF generation for inventory
-│   │   └── 📁 ledger/          # Accounting controllers (4 files)
+│   │   └── 📁 inventory/       # Inventory controllers (category-wise)
+│   │       ├── 📄 pdfMakeController.js # PDF generation for inventory
+│   │       ├── 📁 cnt/         # Inventory count controllers
+│   │       │   └── inventory.js
+│   │       ├── 📁 dln/         # Inventory delivery note controllers
+│   │       │   └── inventory.js
+│   │       ├── 📁 dnt/         # Inventory debit note controllers
+│   │       │   └── inventory.js
+│   │       ├── 📁 prs/         # Inventory purchase controllers
+│   │       │   └── inventory.js
+│   │       └── 📁 sls/         # Inventory sales controllers
+│   │           └── inventory.js
+│   │   └── 📁 ledger/          # Accounting controllers (5 files)
 │   │       ├── journalEntryController.js # Journal entries
 │   │       ├── ledgerController.js # Ledger operations
+│   │       ├── voucherController.js # Voucher management
 │   │       ├── pdfMakeController.js # PDF for ledger
-│   │       └── voucherController.js # Voucher management
-│   │   └── 📁 mongo/           # MongoDB controllers (7 files)
+│   │       └── ledger.csv      # Ledger data export
+│   │   └── 📁 mongo/           # MongoDB controllers (8 files + 2 subdirectories)
 │   │       ├── authController.js # MongoDB auth controller
 │   │       ├── firmManagementController.js # MongoDB firm management
 │   │       ├── masterRoll.controller.js # MongoDB master roll
 │   │       ├── pageController.js # MongoDB page controller
 │   │       ├── settingsController.js # MongoDB settings
 │   │       ├── systemConfigController.js # MongoDB system config
-│   │       └── wages.controller.js # MongoDB wages controller
+│   │       ├── wages.controller.js # MongoDB wages controller
+│   │       ├── 📁 inventory/       # MongoDB inventory controllers
+│   │       │   └── 📁 sls/         # MongoDB sales controllers
+│   │       │       └── inventory.js
+│   │       └── 📁 ledger/          # MongoDB ledger controllers (4 files)
+│   │           ├── journalEntryController.js # MongoDB journal entries
+│   │           ├── ledgerController.js # MongoDB ledger operations
+│   │           ├── pdfMakeController.js # MongoDB PDF for ledger
+│   │           └── voucherController.js # MongoDB voucher management
 │   │
 │   ├── 📁 models/              # Mongoose models (16 files)
 │   │   ├── Bill.model.js       # Bill/invoice model
@@ -58,16 +89,18 @@ nodejs-spa-auth/
 │   │   ├── Wage.model.js       # Wage records model
 │   │   └── index.js            # Models index file
 │   │
-│   ├── 📁 routes/              # API route definitions (10 files)
-│   │   ├── auth.js             # Authentication routes
-│   │   ├── authRoutes.js       # Auth routes (legacy?)
+│   ├── 📁 routes/              # API route definitions (9 files + 1 subdirectory)
 │   │   ├── admin.js            # Admin routes
 │   │   ├── api.js              # General API routes
+│   │   ├── auth.js             # Authentication routes
+│   │   ├── authRoutes.js       # Auth routes (legacy?)
+│   │   ├── ledger.routes.js    # Ledger routes
 │   │   ├── masterRoll.routes.js # Master roll routes
-│   │   ├── wages.routes.js     # Wages routes
+│   │   ├── pageRoutes.js       # Page routes
 │   │   ├── settings.routes.js  # Settings routes
-│   │   ├── inventory/          # Inventory routes (1 file)
-│   │   └── ledger.routes.js    # Ledger routes
+│   │   ├── wages.routes.js     # Wages routes
+│   │   └── 📁 inventory/       # Inventory routes
+│   │       └── sls.js          # Sales routes
 │   │
 │   ├── 📁 middleware/          # Express middleware (3 files + mongo subdirectory)
 │   │   ├── auth.js             # Auth middleware
@@ -77,16 +110,19 @@ nodejs-spa-auth/
 │   │       ├── authMiddleware.js # MongoDB-compatible auth middleware
 │   │       └── securityMiddleware.js # MongoDB-compatible security middleware
 │   │
-│   └── 📁 utils/               # Server utilities (10 files + mongo subdirectory)
-│       ├── db.js               # Database connection and schema (1292 lines)
-│       ├── tokenUtils.js       # JWT generation & verification
-│       ├── gstCalculator.js    # GST calculations
-│       ├── pdfGenerator.js     # PDF generation for reports
+│   └── 📁 utils/               # Server utilities (12 files + 2 subdirectories)
 │       ├── billNumberGenerator.js # Bill number generation
 │       ├── dateFormatter.js    # Date formatting utilities
+│       ├── db.js               # Database connection and schema
+│       ├── generated/          # Generated files directory (empty)
+│       ├── gstCalculator.js    # GST calculations
 │       ├── ledgerHelper.js     # Ledger operations helper
+│       ├── pdfGenerator.js     # PDF generation for reports
+│       ├── prisma.js           # Prisma client singleton instance
+│       ├── seed-prisma.js      # Prisma database seeding script
 │       ├── seed-super-admin.js # Super admin seeding
 │       ├── seed.js             # Database seeding
+│       ├── tokenUtils.js       # JWT generation & verification
 │       ├── users.json          # Demo users data
 │       └── 📁 mongo/           # MongoDB utilities (8 files)
 │           ├── mongoose.config.js # MongoDB connection configuration
@@ -102,12 +138,12 @@ nodejs-spa-auth/
 │   ├── 📄 index.html           # Main HTML entry point
 │   ├── 📄 app.js               # Router configuration (lazy loading)
 │   │
-│   ├── 📁 public/              # Static assets (35 items)
+│   ├── 📁 public/              # Static assets (3 subdirectories)
+│   │   ├── 📁 cdns/            # CDN libraries
 │   │   ├── 📁 css/             # Stylesheets
-│   │   ├── 📁 js/              # JavaScript libraries
-│   │   └── 📁 images/          # Images
+│   │   └── 📁 fonts/           # Font files
 │   │
-│   ├── 📁 pages/               # Page components (23 files)
+│   ├── 📁 pages/               # Page components (16 files + 1 subdirectory)
 │   │   ├── home.js             # Public home page
 │   │   ├── about.js            # Public about page
 │   │   ├── login.js            # Login page
@@ -133,12 +169,33 @@ nodejs-spa-auth/
 │   │       ├── new-journal-entry.js
 │   │       └── new-voucher.js
 │   │
-│   ├── 📁 components/          # Reusable UI components (26 items)
+│   ├── 📁 components/          # Reusable UI components (4 files + 2 subdirectories)
 │   │   ├── layout.js           # Page layout
 │   │   ├── navbar.js           # Navigation bar
 │   │   ├── sidebar.js          # Sidebar navigation
 │   │   ├── voucher-modal.js    # Voucher modal
-│   │   ├── 📁 inventory/       # Inventory components (19 files)
+│   │   ├── 📁 inventory/       # Inventory components
+│   │   │   ├── 📁 sls/         # Sales components (16 files)
+│   │   │   │   ├── batchModal.js
+│   │   │   │   ├── cartManager.js
+│   │   │   │   ├── chargesModal.js
+│   │   │   │   ├── historyModal.js
+│   │   │   │   ├── index.js
+│   │   │   │   ├── invoiceExport.js
+│   │   │   │   ├── layoutRenderer.js
+│   │   │   │   ├── otherChargesManager.js
+│   │   │   │   ├── partyCreate.js
+│   │   │   │   ├── partyManager.js
+│   │   │   │   ├── partyModal.js
+│   │   │   │   ├── stateManager.js
+│   │   │   │   ├── stockCrud.js
+│   │   │   │   ├── stockModal.js
+│   │   │   │   ├── toast.js
+│   │   │   │   └── utils.js
+│   │   │   └── 📁 stocks/      # Stock components (3 files)
+│   │   │       ├── index.js
+│   │   │       ├── stockApi.js
+│   │   │       └── stockRenderer.js
 │   │   └── 📁 wages/           # Wages components (3 files)
 │   │
 │   ├── 📁 utils/               # Client utilities (2 files)
@@ -189,7 +246,7 @@ KEY FEATURES
 ✅ HTTP-only Cookies with SameSite protection
 ✅ Content Security Policy (CSP) headers
 ✅ XSS Protection
-✅ Turso (SQLite Cloud) Database
+✅ MongoDB with Prisma ORM
 ✅ PDF Report Generation
 ✅ Excel Export Functionality
 ✅ GST Calculations
