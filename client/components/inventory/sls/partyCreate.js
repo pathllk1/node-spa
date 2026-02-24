@@ -5,6 +5,7 @@
 
 import { fetchPartyByGST } from './partyManager.js';
 import { showToast } from './toast.js';
+import { fetchWithCSRF } from '../../../utils/api.js';
 
 export function openCreatePartyModal(state, onPartySaved) {
     const subModal = document.getElementById('sub-modal-backdrop');
@@ -113,10 +114,8 @@ export function openCreatePartyModal(state, onPartySaved) {
         data.pan = data.pan || null;
 
         try {
-            const response = await fetch('/api/inventory/sales/parties', {
+            const response = await fetchWithCSRF('/api/inventory/sales/parties', {
                 method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
 

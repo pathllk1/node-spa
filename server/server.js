@@ -16,6 +16,7 @@ import 'dotenv/config.js'; // Load environment variables from .env file
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { securityMiddleware } from './middleware/securityMiddleware.js';
+import { csrfGenerateToken, csrfValidateToken } from './middleware/csrfMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import pageRoutes from './routes/pageRoutes.js';
 import adminRoutes from './routes/admin.js';
@@ -40,6 +41,10 @@ app.use(cookieParser());
 
 // Security middleware - CSP/XSS protection
 app.use(securityMiddleware);
+
+// CSRF middleware - Generate tokens and validate on state-changing requests
+app.use(csrfGenerateToken); // Generate CSRF tokens
+app.use(csrfValidateToken); // Validate CSRF tokens for POST/PUT/DELETE/PATCH
 
 // Serve static files from client directory
 app.use(express.static(join(__dirname, '../client'), {

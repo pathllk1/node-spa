@@ -3,6 +3,8 @@
  * Handles party selection, creation, and GST lookup
  */
 
+import { fetchWithCSRF } from '../../../utils/api.js';
+
 export function formatPowerfulGSTINAddress(partyData) {
     if (!partyData || !partyData.place_of_business_principal) return '';
 
@@ -101,10 +103,8 @@ export async function fetchPartyByGST(buttonElement) {
     fetchButton.disabled = true;
 
     try {
-        const response = await fetch('/api/inventory/sales/gst-lookup', {
+        const response = await fetchWithCSRF('/api/inventory/sales/gst-lookup', {
             method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ gstin })
         });
 

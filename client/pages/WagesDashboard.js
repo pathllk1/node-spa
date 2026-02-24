@@ -3,7 +3,7 @@ import { renderCreateMode } from "../components/wages/renderCreateMode.js";
 import { renderManageMode } from "../components/wages/renderManageMode.js";
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { renderLayout } from '../components/layout.js';
-import { api } from '../utils/api.js';
+import { api, fetchWithCSRF } from '../utils/api.js';
 
 export async function renderWagesDashboard(router) {
   const canAccess = await requireAuth(router);
@@ -525,9 +525,8 @@ function handleCreateFieldChange(empId, field, value) {
     renderLayout(content, window.wagesDashboard.router);
 
     try {
-      const response = await fetch('/api/wages/bulk-delete', {
+      const response = await fetchWithCSRF('/api/wages/bulk-delete', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: Array.from(selectedWageIds) })
       });
 

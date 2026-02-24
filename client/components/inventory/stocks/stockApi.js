@@ -3,16 +3,14 @@
  * Handles all API calls for stock management
  */
 
+import { fetchWithCSRF } from '../../../utils/api.js';
+
 const API_BASE = '/api/inventory/sales';
 
 export async function fetchStocks() {
     try {
-        const response = await fetch(`${API_BASE}/stocks`, {
-            method: 'GET',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        const response = await fetchWithCSRF(`${API_BASE}/stocks`, {
+            method: 'GET'
         });
 
         if (!response.ok) {
@@ -35,12 +33,8 @@ export async function fetchStocks() {
 
 export async function createStock(stockData) {
     try {
-        const response = await fetch(`${API_BASE}/stocks`, {
+        const response = await fetchWithCSRF(`${API_BASE}/stocks`, {
             method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json'
-            },
             body: JSON.stringify(stockData)
         });
 
@@ -58,12 +52,8 @@ export async function createStock(stockData) {
 
 export async function updateStock(stockId, stockData) {
     try {
-        const response = await fetch(`${API_BASE}/stocks/${stockId}`, {
+        const response = await fetchWithCSRF(`${API_BASE}/stocks/${stockId}`, {
             method: 'PUT',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json'
-            },
             body: JSON.stringify(stockData)
         });
 
@@ -80,12 +70,8 @@ export async function updateStock(stockId, stockData) {
 
 export async function deleteStock(stockId) {
     try {
-        const response = await fetch(`${API_BASE}/stocks/${stockId}`, {
-            method: 'DELETE',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        const response = await fetchWithCSRF(`${API_BASE}/stocks/${stockId}`, {
+            method: 'DELETE'
         });
 
         if (!response.ok) {

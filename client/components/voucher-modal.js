@@ -3,6 +3,8 @@
  * Handles the editable voucher modal for viewing/editing voucher details
  */
 
+import { fetchWithCSRF } from '../utils/api.js';
+
 export function openVoucherModal(voucher, callbacks) {
   const { onUpdate } = callbacks;
 
@@ -302,12 +304,8 @@ export function openVoucherModal(voucher, callbacks) {
       saveBtn.textContent = 'Updating...';
 
       // Make the actual API call to update the voucher
-      const response = await fetch(`/api/ledger/vouchers/${voucher.voucher_id}`, {
+      const response = await fetchWithCSRF(`/api/ledger/vouchers/${voucher.voucher_id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
         body: JSON.stringify(voucherData)
       });
 

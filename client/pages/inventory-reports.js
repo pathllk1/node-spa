@@ -1,5 +1,6 @@
 import { renderLayout } from '../components/layout.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
+import { fetchWithCSRF } from '../utils/api.js';
 
 export async function renderInventoryReports(router) {
   const canAccess = await requireAuth(router);
@@ -926,12 +927,8 @@ function initializeBillsPage(router) {
         Cancelling...
       `;
 
-      const response = await fetch(`/api/inventory/sales/bills/${billId}/cancel`, {
+      const response = await fetchWithCSRF(`/api/inventory/sales/bills/${billId}/cancel`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
         body: JSON.stringify({
           reason: reason,
           remarks: remarks

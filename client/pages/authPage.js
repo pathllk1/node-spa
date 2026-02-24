@@ -1,6 +1,7 @@
 import { clearAccessTokenTimer } from "../api.js";
 // Assuming renderLayout is imported from your layout component, as seen in your earlier code
-import { renderLayout } from '../components/layout.js'; 
+import { renderLayout } from '../components/layout.js';
+import { fetchWithCSRF } from '../utils/api.js'; 
 
 export function renderAuthPage(router, onAuthSuccess, user = null) {
   const accessToken = localStorage.getItem("accessToken");
@@ -316,7 +317,7 @@ export function renderAuthPage(router, onAuthSuccess, user = null) {
     if (logoutBtn) {
       logoutBtn.addEventListener("click", async () => {
         try {
-          await fetch("/auth/logout", { method: "POST" });
+          await fetchWithCSRF("/auth/logout", { method: "POST" });
         } catch (err) {
           console.error("Logout error:", err);
         }
@@ -366,9 +367,8 @@ export function renderAuthPage(router, onAuthSuccess, user = null) {
         }
 
         try {
-          const res = await fetch("/auth/auth/login", {
+          const res = await fetchWithCSRF("/auth/auth/login", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ emailOrUsername, password })
           });
           const data = await res.json();

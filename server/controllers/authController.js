@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { generateTokenPair } from '../utils/tokenUtils.js';
+import { generateCSRFToken } from '../utils/csrfUtils.js';
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db, User } from "../utils/db.js";
@@ -201,6 +202,15 @@ export const login = async (req, res) => {
     maxAge: accessLifeMs // Clears itself when the access token expires
   });
 
+    // Generate and set CSRF token for this session
+    const csrfToken = generateCSRFToken();
+    res.cookie('csrfToken', csrfToken, {
+      httpOnly: false, // Allow JavaScript to read this
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+
     // Return user data (without password)
     const { password: _, ...userWithoutPassword } = user;
 
@@ -232,6 +242,7 @@ export const login = async (req, res) => {
 export const logout = (req, res) => {
   res.clearCookie('accessToken');
   res.clearCookie('refreshToken');
+  res.clearCookie('csrfToken'); // Clear CSRF token on logout
   
   res.json({ 
     success: true, 

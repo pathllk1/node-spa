@@ -1,6 +1,6 @@
 import { renderLayout } from '../components/layout.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
-import { api } from '../utils/api.js';
+import { api, fetchWithCSRF } from '../utils/api.js';
 
 export async function renderMasterRoll(router) {
   // Check authentication
@@ -780,12 +780,8 @@ class MasterRollManager {
 
   async createMasterRoll(data) {
     try {
-      const res = await fetch("/api/master-rolls", {
+      const res = await fetchWithCSRF("/api/master-rolls", {
         method: "POST",
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(data),
       });
       
@@ -812,12 +808,8 @@ class MasterRollManager {
 
   async updateMasterRoll(id, data) {
     try {
-      const res = await fetch(`/api/master-rolls/${id}`, {
+      const res = await fetchWithCSRF(`/api/master-rolls/${id}`, {
         method: "PUT",
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(data),
       });
       
@@ -846,12 +838,8 @@ class MasterRollManager {
     if (!confirm("Are you sure you want to delete this record?")) return;
     try {
       const row = this.masterRolls.find(r => r.id == id);
-      const res = await fetch(`/api/master-rolls/${id}`, { 
-        method: "DELETE",
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      const res = await fetchWithCSRF(`/api/master-rolls/${id}`, { 
+        method: "DELETE"
       });
       
       // Check HTTP status first
@@ -881,12 +869,8 @@ class MasterRollManager {
 
     try {
       const ids = Array.from(this.selectedRows);
-      const res = await fetch("/api/master-rolls/bulk-delete", {
+      const res = await fetchWithCSRF("/api/master-rolls/bulk-delete", {
         method: "DELETE",
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({ ids })
       });
       
@@ -1028,12 +1012,8 @@ class MasterRollManager {
     this.elements.importBtn.disabled = true;
 
     try {
-      const res = await fetch("/api/master-rolls/bulk", {
+      const res = await fetchWithCSRF("/api/master-rolls/bulk", {
         method: "POST",
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(jsonData)
       });
 

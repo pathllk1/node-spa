@@ -17,6 +17,7 @@ import { openPartyModal } from './partyModal.js';
 import { openCreatePartyModal } from './partyCreate.js';
 import { showToast } from './toast.js';
 import { exportInvoiceToPDF } from './invoiceExport.js';
+import { fetchWithCSRF } from '../../../utils/api.js';
 
 export function initSalesSystem(router) {
     console.log('SLS: Initializing Professional Sales System...');
@@ -518,10 +519,8 @@ export function initSalesSystem(router) {
                         ? `/api/inventory/sales/bills/${editBillId}`
                         : '/api/inventory/sales/bills';
                     
-                    const response = await fetch(url, {
+                    const response = await fetchWithCSRF(url, {
                         method: method,
-                        credentials: 'same-origin',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(billData)
                     });
                     

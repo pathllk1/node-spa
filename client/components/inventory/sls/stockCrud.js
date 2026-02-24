@@ -4,6 +4,7 @@
  */
 
 import { showToast } from './toast.js';
+import { fetchWithCSRF } from '../../../utils/api.js';
 
 export function openCreateStockModal(state, onStockSaved) {
     const subModal = document.getElementById('sub-modal-backdrop');
@@ -127,10 +128,8 @@ export function openCreateStockModal(state, onStockSaved) {
             closeModal();
             
             // Call API to create stock
-            const response = await fetch('/api/inventory/sales/stocks', {
+            const response = await fetchWithCSRF('/api/inventory/sales/stocks', {
                 method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             
@@ -359,10 +358,8 @@ export function openEditStockModal(stock, state, onStockSaved) {
             closeModal();
             
             // Call API to update stock
-            const response = await fetch(`/api/inventory/sales/stocks/${stock.id}`, {
+            const response = await fetchWithCSRF(`/api/inventory/sales/stocks/${stock.id}`, {
                 method: 'PUT',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             

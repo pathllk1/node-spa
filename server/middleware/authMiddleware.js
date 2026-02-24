@@ -3,6 +3,7 @@ import {
   verifyRefreshToken,
   generateAccessToken
 } from '../utils/tokenUtils.js';
+import { generateCSRFToken } from '../utils/csrfUtils.js';
 
 export const authMiddleware = async (req, res, next) => {
   try {
@@ -59,7 +60,16 @@ export const authMiddleware = async (req, res, next) => {
         res.cookie('tokenExpiry', newExpiryTimestamp.toString(), {
           httpOnly: false, sameSite: 'strict', secure: true, maxAge: accessLifeMs
         });
-
+        // Ensure CSRF token exists (generate if not present)
+        if (!req.cookies.csrfToken) {
+          const csrfToken = generateCSRFToken();
+          res.cookie('csrfToken', csrfToken, {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+          });
+        }
         // Attach user to request
         req.user = refreshDecoded;
         req.tokenRefreshed = true; // Flag for logging/debugging
@@ -69,6 +79,7 @@ export const authMiddleware = async (req, res, next) => {
         // Refresh token also invalid - user must re-login
         res.clearCookie('accessToken');
         res.clearCookie('refreshToken');
+        res.clearCookie('csrfToken'); // Clear CSRF token on logout
 
         return res.status(401).json({
           success: false,

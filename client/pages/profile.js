@@ -1,6 +1,6 @@
 import { renderLayout } from '../components/layout.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
-import { api } from '../utils/api.js';
+import { api, fetchWithCSRF } from '../utils/api.js';
 import { authManager } from '../utils/auth.js';
 
 export async function renderProfile(router) {
@@ -162,10 +162,8 @@ export async function renderProfile(router) {
             </div>
           `;
 
-          const res = await fetch('/api/settings/system-config/gst-status', {
+          const res = await fetchWithCSRF('/api/settings/system-config/gst-status', {
             method: 'PUT',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ enabled: gstToggle.checked })
           });
 
