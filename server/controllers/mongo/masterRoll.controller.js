@@ -1,17 +1,6 @@
-/**
- * Master Roll Controller — Mongoose version
- *
- * Key changes from the SQLite version:
- *  - All db.prepare() + .run/.get/.all replaced with Mongoose model calls
- *  - db.transaction() for bulk ops replaced with Promise.allSettled()
- *  - Firm isolation enforced via { firm_id } filter on every query
- *  - Search uses $or with $regex instead of LIKE patterns
- *  - Stats use MongoDB aggregate instead of a COUNT CASE SQL query
- *  - Activity log built from the document's own timestamps (no audit table)
- *  - Duplicate-aadhar error detected from Mongoose duplicate-key error (code 11000)
- */
 
-import { MasterRoll } from '../models/index.js';
+
+import { MasterRoll } from '../../models/index.js';
 
 /* ── REQUIRED FIELDS ────────────────────────────────────────────────────── */
 

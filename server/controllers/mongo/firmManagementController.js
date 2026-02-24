@@ -1,16 +1,5 @@
-/**
- * Firm Management Controller — Mongoose version
- *
- * Key changes from the SQLite version:
- *  - All db.prepare() calls replaced with Mongoose model queries
- *  - Role guard uses req.user.role directly (JWT payload) instead of re-fetching from DB
- *  - Admin password hashed with bcrypt (original used SHA-256, a security upgrade)
- *  - Deletion guard uses Promise.all for parallel count queries
- *  - COALESCE update pattern replaced with findByIdAndUpdate + $set of only provided fields
- */
-
 import bcrypt from 'bcrypt';
-import { Firm, User, Stock, Bill, Party } from '../models/index.js';
+import { Firm, User, Stock, Bill, Party } from '../../models/index.js';
 
 /* ── ROLE GUARD HELPER ─────────────────────────────────────────────────── */
 

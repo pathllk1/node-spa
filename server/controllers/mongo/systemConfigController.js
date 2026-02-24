@@ -4,7 +4,7 @@
  * Uses Settings + FirmSettings Mongoose models.
  */
 
-import { Settings, FirmSettings } from '../models/index.js';
+import { Settings, FirmSettings } from '../../models/index.js';
 
 /* ── GET ALL ─────────────────────────────────────────────────────────────── */
 

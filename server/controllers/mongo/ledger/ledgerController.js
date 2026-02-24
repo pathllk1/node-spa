@@ -1,17 +1,4 @@
-/**
- * Ledger Controller — Mongoose version
- *
- * Key changes from the SQLite version:
- *  - db.prepare() SQL replaced with Mongoose Ledger model queries
- *  - getLedgerAccounts / getAccountTypeSummaries / getAccountSuggestions use
- *    Ledger.aggregate() — firm_id cast to ObjectId with new mongoose.Types.ObjectId()
- *    because aggregate $match does NOT auto-cast strings
- *  - getAccountDetails uses Ledger.find() — auto-casts firm_id (string → ObjectId)
- *  - renderLedgerPage removed: this was an SSR render() call; it has no place in
- *    a JSON API / SPA backend. If needed, wire the route directly to a static file.
- *  - BigInt conversion helpers removed — MongoDB never returns BigInt
- *  - Re-exports all four PDF functions from the Mongoose pdfMakeController
- */
+
 
 import mongoose from 'mongoose';
 import { Ledger, Firm } from '../../../models/index.js';

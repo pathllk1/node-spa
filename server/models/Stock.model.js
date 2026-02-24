@@ -2,6 +2,15 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
+// Batch sub-schema for stock batches
+const batchSchema = new Schema({
+  batch:   { type: String },
+  qty:     { type: Number, required: true },
+  rate:    { type: Number, required: true },
+  expiry:  { type: Date },
+  mrp:     { type: Number },
+}, { _id: true }); // Allow _id generation for batch documents
+
 const stockSchema = new Schema(
   {
     firm_id: {
@@ -19,7 +28,7 @@ const stockSchema = new Schema(
     grate:   { type: Number, required: true, default: 0 },
     total:   { type: Number, required: true, default: 0 },
     mrp:     { type: Number },
-    batches: { type: String },   // JSON string of batch data
+    batches: [batchSchema],   // Array of batch objects
     user:    { type: String },
   },
   { timestamps: true }

@@ -159,7 +159,9 @@ export function initSalesSystem(router) {
                     <button id="btn-other-charges" class="px-3 py-1.5 text-xs text-blue-600 border border-blue-200 bg-blue-50 rounded hover:bg-blue-100 transition-colors whitespace-nowrap">Other Charges</button>
                     <button id="btn-reset" class="px-3 py-1.5 text-xs text-red-600 border border-red-200 bg-red-50 rounded hover:bg-red-100 transition-colors whitespace-nowrap">Reset</button>
                     <button id="btn-save" class="px-4 py-1.5 bg-slate-800 text-white text-xs rounded hover:bg-slate-900 shadow font-medium flex items-center gap-2 transition-colors whitespace-nowrap">
-                        <span>💾</span> ${isEditMode ? 'Update Bill' : 'Save Invoice'}
+                        <span id="save-icon">💾</span> 
+                        <span id="save-text">${isEditMode ? 'Update Bill' : 'Save Invoice'}</span>
+                        <div id="save-spinner" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2"></div>
                     </button>
                 </div>
             </div>
@@ -329,6 +331,31 @@ export function initSalesSystem(router) {
     }
 
     function attachEventListeners(isEditMode = false, editBillId = null) {
+        // Helper functions for save button spinner
+        function showSaveSpinner() {
+            const saveBtn = document.getElementById('btn-save');
+            const saveIcon = document.getElementById('save-icon');
+            const saveText = document.getElementById('save-text');
+            const saveSpinner = document.getElementById('save-spinner');
+            
+            if (saveBtn) saveBtn.disabled = true;
+            if (saveIcon) saveIcon.classList.add('hidden');
+            if (saveText) saveText.classList.add('hidden');
+            if (saveSpinner) saveSpinner.classList.remove('hidden');
+        }
+        
+        function hideSaveSpinner() {
+            const saveBtn = document.getElementById('btn-save');
+            const saveIcon = document.getElementById('save-icon');
+            const saveText = document.getElementById('save-text');
+            const saveSpinner = document.getElementById('save-spinner');
+            
+            if (saveBtn) saveBtn.disabled = false;
+            if (saveIcon) saveIcon.classList.remove('hidden');
+            if (saveText) saveText.classList.remove('hidden');
+            if (saveSpinner) saveSpinner.classList.add('hidden');
+        }
+
         // Add item button - open stock modal
         const addBtn = document.getElementById('btn-add-item');
         if (addBtn) {
@@ -506,6 +533,9 @@ export function initSalesSystem(router) {
                         }
                     }
 
+                    // Show spinner and disable button
+                    showSaveSpinner();
+
                     const billData = {
                         meta: state.meta,
                         party: state.selectedParty,
@@ -560,12 +590,18 @@ export function initSalesSystem(router) {
                         await fetchData(state);
                         renderMainLayout(isEditMode);
                     }
+
+                    // Hide spinner and re-enable button
+                    hideSaveSpinner();
                 } catch (err) {
                     console.error('Error saving/updating bill:', err);
                     const errorMessage = isEditMode 
                         ? 'Error updating bill: ' + err.message
                         : 'Error saving invoice: ' + err.message;
                     showToast(errorMessage, 'error');
+
+                    // Hide spinner and re-enable button on error
+                    hideSaveSpinner();
                 }
             };
         }

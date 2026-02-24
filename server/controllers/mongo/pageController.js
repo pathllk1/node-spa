@@ -1,7 +1,4 @@
-/**
- * Page Controller — Mongoose version
- * No DB dependency — identical logic to the SQLite version.
- */
+
 
 export const getPublicData = (req, res) => {
   res.json({

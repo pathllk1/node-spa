@@ -1,19 +1,4 @@
-/**
- * Journal Entry Controller — Mongoose version
- *
- * Key changes from the SQLite version:
- *  - db.prepare() SQL replaced with Mongoose Ledger model queries
- *  - getNextVoucherNumber reimplemented using BillSequence model (no billNumberGenerator.js
- *    mongo equivalent exists yet — logic is inlined via findOneAndUpdate + $inc)
- *  - voucher_id stays as a generated integer (timestamp + random) — it groups multiple
- *    ledger lines that belong to the same journal entry, same as the original
- *  - Pagination uses .skip()/.limit() instead of SQL LIMIT/OFFSET
- *  - Grouping/counting uses MongoDB aggregate pipelines
- *  - $match in aggregates uses new mongoose.Types.ObjectId(firm_id) — strings are NOT
- *    auto-cast inside aggregate pipelines (unlike find/findOne)
- *  - BigInt conversion helpers removed — MongoDB never returns BigInt
- *  - firmId validation changed from Number(id) > 0 to mongoose.Types.ObjectId.isValid()
- */
+
 
 import mongoose from 'mongoose';
 import { Ledger, BillSequence } from '../../../models/index.js';

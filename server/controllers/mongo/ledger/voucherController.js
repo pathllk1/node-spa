@@ -1,19 +1,4 @@
-/**
- * Voucher Controller — Mongoose version
- *
- * Key changes from the SQLite version:
- *  - All db.prepare() SQL replaced with Mongoose Ledger/Party model queries
- *  - getNextVoucherNumber reimplemented inline using BillSequence model
- *  - Party validation uses Party.findOne({ _id, firm_id }) — party_id from the
- *    request body must be a valid MongoDB ObjectId string
- *  - bank_accounts table has no Mongoose model — bank account validation is
- *    retained as a stub with a clear TODO comment
- *  - $match in aggregates uses new mongoose.Types.ObjectId() — required for
- *    correct ObjectId comparison inside aggregate pipelines
- *  - voucher_id remains an integer (timestamp + random) to group ledger lines
- *  - BigInt conversion helpers removed — MongoDB never returns BigInt
- *  - party_id stored as ObjectId reference in Ledger documents
- */
+
 
 import mongoose from 'mongoose';
 import { Ledger, Party, BillSequence } from '../../../models/index.js';

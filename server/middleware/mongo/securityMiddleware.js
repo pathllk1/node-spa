@@ -1,9 +1,4 @@
-/**
- * Security Middleware — Mongoose version
- *
- * No DB dependency — identical logic to the SQLite version.
- * Sets HTTP security headers on every response.
- */
+
 
 export const securityMiddleware = (req, res, next) => {
   // ── Content Security Policy ───────────────────────────────────────

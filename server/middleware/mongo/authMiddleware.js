@@ -1,18 +1,9 @@
-/**
- * Auth Middleware — Mongoose version
- *
- * Changes from the SQLite version:
- *  1. tokenUtils imported from the mongo utils subfolder.
- *  2. Refresh token is validated against the DB (hash lookup + expiry check)
- *     before a new access token is issued — the SQLite version only verified
- *     the JWT signature without any DB cross-check.
- *  3. Stale / rotated refresh tokens are deleted from the DB on use (optional
- *     token rotation pattern — remove the deleteOne call if you don't rotate).
- */
+
 
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import { verifyAccessToken, verifyRefreshToken, generateAccessToken } from '../../utils/mongo/tokenUtils.js';
-import { RefreshToken } from '../models/index.js';
+import { RefreshToken } from '../../models/index.js';
 
 const ACCESS_LIFE_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -90,7 +81,7 @@ export const authMiddleware = async (req, res, next) => {
     // ── DB cross-check: token hash must exist and not be expired ──────
     const tokenHash = hashToken(refreshToken);
     const storedToken = await RefreshToken.findOne({
-      user_id:    refreshDecoded.id,
+      user_id:    new mongoose.Types.ObjectId(refreshDecoded.id),
       token_hash: tokenHash,
     }).lean();
 

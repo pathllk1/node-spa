@@ -3,7 +3,7 @@
  * Global settings CRUD using the Settings Mongoose model.
  */
 
-import { Settings } from '../models/index.js';
+import { Settings } from '../../models/index.js';
 
 /* ── CREATE ─────────────────────────────────────────────────────────────── */
 

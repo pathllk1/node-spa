@@ -1,16 +1,4 @@
-/**
- * PDF Make Controller (Ledger) — Mongoose version
- *
- * Key changes from the SQLite version:
- *  - db.prepare() SQL replaced with Mongoose Ledger/Firm model queries
- *  - firm_id lookup uses Firm.findById() (auto-casts string → ObjectId)
- *  - Ledger queries use Ledger.find() with filter object (auto-casts firm_id)
- *  - General Ledger / Trial Balance aggregation uses Ledger.aggregate() with
- *    new mongoose.Types.ObjectId(firm_id) in $match — required for aggregate
- *  - BigInt conversion helpers removed — MongoDB never returns BigInt
- *  - exportAccountTypePdf accepts pre-shaped accounts array from client — no DB query
- *  - All other pdfmake document definitions are identical to the SQLite version
- */
+
 
 import PrinterModule       from 'pdfmake/js/Printer.js';
 import path                from 'path';

@@ -11,7 +11,7 @@
  *  - IDs are MongoDB ObjectIds instead of integers
  */
 
-import { Wage, MasterRoll } from '../models/index.js';
+import { Wage, MasterRoll } from '../../models/index.js';
 
 /* ── HELPER FUNCTIONS ────────────────────────────────────────────────────── */
 

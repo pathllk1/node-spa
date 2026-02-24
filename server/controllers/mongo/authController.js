@@ -1,19 +1,7 @@
-/**
- * Auth Controller — Mongoose version
- *
- * Key changes from the SQLite version:
- *  - All db.prepare() calls replaced with Mongoose model queries
- *  - Refresh token is now hashed (SHA-256) and stored in the RefreshToken collection
- *    (matches the hash check done in middleware/mongo/authMiddleware.js)
- *  - User.updateLastLogin prepared statement replaced with findByIdAndUpdate()
- *  - users.json demo fallback removed (not needed with seeded MongoDB data)
- *  - Firm status check uses populated firm_id instead of a JOIN
- */
-
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { generateTokenPair } from '../../utils/mongo/tokenUtils.js';
-import { User, RefreshToken } from '../models/index.js';
+import { User, RefreshToken } from '../../models/index.js';
 
 const ACCESS_LIFE_MS   = 15 * 60 * 1000;       // 15 minutes
 const REFRESH_LIFE_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -76,7 +64,10 @@ export const login = async (req, res) => {
     await user.save();
 
     // Generate token pair
-    const { accessToken, refreshToken } = generateTokenPair(user);
+    const { accessToken, refreshToken } = generateTokenPair({
+      ...user.toObject(), // Convert to plain object
+      firm_id: firm?._id ?? null, // Use firm ID string, not populated object
+    });
 
     // Persist hashed refresh token
     const expiresAt = new Date(Date.now() + REFRESH_LIFE_MS);

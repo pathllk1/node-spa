@@ -1,31 +1,7 @@
-/**
- * Inventory Controller (Sales / Stocks / Parties / Movements) — Mongoose version
- *
- * Conversion notes:
- *  - All db.prepare() SQL replaced with Mongoose model queries
- *  - IDs from URL params / request body are MongoDB ObjectId strings; validated with
- *    mongoose.Types.ObjectId.isValid() before use
- *  - req.user.firm_id is a string ObjectId from JWT — auto-cast by find/findOne,
- *    must be wrapped with new mongoose.Types.ObjectId() inside aggregate $match
- *  - Stock.batches stored as Array of objects in MongoDB (not JSON string) —
- *    JSON.parse / JSON.stringify removed throughout
- *  - getNextBillNumber inlined using BillSequence.findOneAndUpdate({ $inc })
- *  - previewNextBillNumber peeks at BillSequence without incrementing
- *  - getPartyItemHistory / getStockMovements / exportStockMovementsToExcel use
- *    aggregate $lookup pipelines (replaces SQL JOINs)
- *  - getPartyBalance uses aggregate (replaces raw SQL SUM)
- *  - getOtherChargesTypes uses Bill.find() — other_charges stored as Array in MongoDB
- *  - Bill, Stock, StockReg, Ledger Mongoose creates used throughout
- *  - updateBill / cancelBill restore stock batches then deleteMany StockReg/Ledger
- *  - All ledger postings done via Ledger.insertMany() at end of create/update
- *  - firm_id safety check (stockRecord.firm_id.toString() !== firmId) kept explicit
- *    even though .findOne({ _id, firm_id }) already enforces it
- */
-
 import mongoose        from 'mongoose';
 import ExcelJS         from 'exceljs';
 import { Stock, Party, Bill, StockReg, Ledger, Settings, FirmSettings, Firm, BillSequence }
-  from '../../../models/index.js';
+  from '../../../../models/index.js';
 
 const now              = () => new Date().toISOString();
 const getActorUsername = (req) => req?.user?.username ?? null;
