@@ -197,14 +197,15 @@ let createRenderDebounceTimer = null;
       wage.other_benefit
     );
 
-    // Update all readonly fields
+    // Update all readonly/auto-calculated fields
+    // NOTE: selector must match data-emp-id (not data-employee) used in the template
     const fields = ['gross_salary', 'epf_deduction', 'esic_deduction'];
     fields.forEach(field => {
-      const input = document.querySelector(`input[data-employee="${empId}"][data-field="${field}"]`);
+      const input = document.querySelector(`input[data-emp-id="${empId}"][data-field="${field}"]`);
       if (input) input.value = wage[field] || 0;
     });
 
-    const netInput = document.querySelector(`input[data-employee="${empId}"][data-field="net_salary"]`);
+    const netInput = document.querySelector(`input[data-emp-id="${empId}"][data-field="net_salary"]`);
     if (netInput) netInput.value = netSalary.toFixed(2);
   }
 
@@ -381,7 +382,13 @@ function handleCreateFieldChange(empId, field, value) {
     }
 
     const wageRecords = Array.from(selectedEmployeeIds).map(empId => {
-      const emp = employees.find(e => e.master_roll_id === empId);
+      const emp = employees.find(e => e.master_roll_id.toString() === empId.toString());
+
+      if (!emp) {
+        console.warn(`Employee with ID ${empId} not found in employees list, skipping`);
+        return null;
+      }
+
       const wage = wageData[empId] || {};
       return {
         master_roll_id: empId,
@@ -396,7 +403,13 @@ function handleCreateFieldChange(empId, field, value) {
         cheque_no: commonPaymentData.cheque_no || null,
         paid_from_bank_ac: commonPaymentData.paid_from_bank_ac || null
       };
-    });
+    }).filter(record => record !== null);
+
+    // Server requires non-empty wages array - align with server validation
+    if (wageRecords.length === 0) {
+      showToast('No valid employees selected. Please select employees from the current list.', 'error');
+      return;
+    }
 
     isLoading = true;
     const content = render();
@@ -466,7 +479,7 @@ function handleCreateFieldChange(empId, field, value) {
     const wagesToUpdate = Object.keys(editedWages).map(id => {
       const edited = editedWages[id];
       return {
-        id: parseInt(id),
+        id: id, // MongoDB ObjectId string — do NOT parseInt, it produces NaN
         ...edited,
         wage_days: toInt(edited.wage_days),
         p_day_wage: toNumber(edited.p_day_wage),
@@ -638,18 +651,31 @@ function handleManageFieldChange(wageId, field, value) {
     // Preserve raw input so we don't break cursor position during edits
     editedWages[wageId][field] = value;
 
-    // 1. Auto-recalculate Gross Salary if wage_days changes
+    // 1. Auto-recalculate Gross Salary + EPF/ESIC if wage_days changes
     if (field === 'wage_days') {
       const perDayWage = wage.p_day_wage || 0;
       const wageDaysNumber = toInt(value);
-      editedWages[wageId].gross_salary = parseFloat((perDayWage * wageDaysNumber).toFixed(2));
-      
-      // Direct DOM Update: Gross Salary
+      const newGross = parseFloat((perDayWage * wageDaysNumber).toFixed(2));
+      editedWages[wageId].gross_salary = newGross;
+
+      // Auto-recalculate EPF (12%, max ₹1800) and ESIC (0.75%, round up)
+      const newEpf = Math.min(Math.round(newGross * 0.12), 1800);
+      const newEsic = Math.ceil(newGross * 0.0075);
+      editedWages[wageId].epf_deduction = newEpf;
+      editedWages[wageId].esic_deduction = newEsic;
+
+      // Direct DOM Update: Gross display span
       const grossEl = document.getElementById(`wage-${wageId}-gross-display`);
-      if (grossEl) grossEl.innerText = formatCurrency(editedWages[wageId].gross_salary);
+      if (grossEl) grossEl.innerText = formatCurrency(newGross);
+
+      // Direct DOM Update: EPF and ESIC input values
+      const epfInput = document.getElementById(`wage-${wageId}-epf_deduction`);
+      if (epfInput) epfInput.value = newEpf;
+      const esicInput = document.getElementById(`wage-${wageId}-esic_deduction`);
+      if (esicInput) esicInput.value = newEsic;
     }
 
-    // 2. Recalculate Net Salary (Affected by ANY deduction change)
+    // 2. Recalculate Net Salary (affected by ANY field change)
     const currentData = editedWages[wageId];
     const newNetSalary = calculateNetSalary(
       toNumber(currentData.gross_salary),
@@ -659,11 +685,11 @@ function handleManageFieldChange(wageId, field, value) {
       toNumber(currentData.other_benefit)
     );
 
-    // Direct DOM Update: Net Salary
+    // Direct DOM Update: Net Salary display span
     const netEl = document.getElementById(`wage-${wageId}-net-display`);
     if (netEl) netEl.innerText = formatCurrency(newNetSalary);
 
-   updateSummaryPanel();
+    updateSummaryPanel();
   }
 
   /* --------------------------------------------------
@@ -723,11 +749,12 @@ function handleManageFieldChange(wageId, field, value) {
         })
       : existingWages.filter(wage => rowsToExport.includes(wage.id)).map(wage => {
           const edited = editedWages[wage.id] || wage;
+          const mr = wage.master_roll_id || {}; // populated nested object
           return {
-            'Employee Name': wage.employee_name,
-            'Aadhar': wage.aadhar,
-            'Bank': wage.bank,
-            'Account No': wage.account_no,
+            'Employee Name': mr.employee_name || '-',
+            'Aadhar': mr.aadhar || '-',
+            'Bank': mr.bank || '-',
+            'Account No': mr.account_no || '-',
             'Per Day Wage': edited.p_day_wage,
             'Wage Days': edited.wage_days,
             'Gross Salary': edited.gross_salary,
@@ -757,8 +784,7 @@ function handleManageFieldChange(wageId, field, value) {
     const exportCount = activeTab === 'create' ? selectedEmployeeIds.size || employees.length : selectedWageIds.size || existingWages.length;
     showToast(`Exported ${exportCount} record(s) successfully`, 'success');
   }
-
-  /* --------------------------------------------------
+     /* --------------------------------------------------
      FILTERING AND SORTING
   -------------------------------------------------- */
 
@@ -766,8 +792,16 @@ function handleManageFieldChange(wageId, field, value) {
     if (!column) return data;
     
     return [...data].sort((a, b) => {
-      let aVal = a[column];
-      let bVal = b[column];
+      let aVal, bVal;
+      
+      // Handle nested access for manage mode employee data
+      if (column === 'employee_name' && a.master_roll_id) {
+        aVal = a.master_roll_id.employee_name;
+        bVal = b.master_roll_id.employee_name;
+      } else {
+        aVal = a[column];
+        bVal = b[column];
+      }
       
       // Handle undefined/null
       if (aVal === undefined || aVal === null) aVal = '';
@@ -818,21 +852,21 @@ function handleManageFieldChange(wageId, field, value) {
     return existingWages.filter(wage => {
       // Search filter
       const searchMatch = !manageFilters.searchTerm || 
-        wage.employee_name.toLowerCase().includes(manageFilters.searchTerm.toLowerCase()) ||
-        wage.aadhar.includes(manageFilters.searchTerm) ||
-        wage.account_no.includes(manageFilters.searchTerm);
+        wage.master_roll_id?.employee_name?.toLowerCase().includes(manageFilters.searchTerm.toLowerCase()) ||
+        wage.master_roll_id?.aadhar?.includes(manageFilters.searchTerm) ||
+        wage.master_roll_id?.account_no?.includes(manageFilters.searchTerm);
 
       // Bank filter
       const bankMatch = manageFilters.bankFilter === 'all' || 
-        wage.bank === manageFilters.bankFilter;
+        wage.master_roll_id?.bank === manageFilters.bankFilter;
 
       // Project filter
       const projectMatch = manageFilters.projectFilter === 'all' || 
-        wage.project === manageFilters.projectFilter;
+        wage.master_roll_id?.project === manageFilters.projectFilter;
 
       // Site filter
       const siteMatch = manageFilters.siteFilter === 'all' || 
-        wage.site === manageFilters.siteFilter;
+        wage.master_roll_id?.site === manageFilters.siteFilter;
 
       // Paid filter
       const paidMatch = manageFilters.paidFilter === 'all' ||
@@ -863,8 +897,8 @@ function handleManageFieldChange(wageId, field, value) {
         const field = e.target.dataset.field;
         const value = e.target.value;
         
-        if (wageId) window.wagesDashboard.handleManageEdit(parseInt(wageId), field, value);
-        if (empId) window.wagesDashboard.handleCreateFieldChange(parseInt(empId), field, value);
+        if (wageId) window.wagesDashboard.handleManageEdit(wageId, field, value);
+        if (empId) window.wagesDashboard.handleCreateFieldChange(empId, field, value);
       } else if (action === 'search-filter') {
         const mode = e.target.dataset.mode;
         const field = e.target.dataset.field;
@@ -884,10 +918,10 @@ function handleManageFieldChange(wageId, field, value) {
       const action = e.target.dataset.action;
       if (action === 'toggle-wage') {
         const wageId = e.target.dataset.wageId;
-        window.wagesDashboard.toggleWageSelection(parseInt(wageId), e.target.checked);
+        window.wagesDashboard.toggleWageSelection(wageId, e.target.checked);
       } else if (action === 'toggle-employee') {
         const empId = e.target.dataset.empId;
-        window.wagesDashboard.toggleEmployeeSelection(parseInt(empId), e.target.checked);
+        window.wagesDashboard.toggleEmployeeSelection(empId, e.target.checked);
       } else if (action === 'select-all-wages') {
         window.wagesDashboard.toggleSelectAll(e.target.checked);
       } else if (action === 'select-all-employees') {

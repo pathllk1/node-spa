@@ -1443,7 +1443,7 @@ class MasterRollManager {
       // Row checkbox handlers
       document.querySelectorAll(".row-checkbox").forEach(checkbox => {
         checkbox.addEventListener("change", (e) => {
-          const id = parseInt(checkbox.dataset.id);
+          const id = checkbox.dataset.id;
           if (e.target.checked) {
             this.selectedRows.add(id);
           } else {

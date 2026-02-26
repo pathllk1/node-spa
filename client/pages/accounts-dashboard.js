@@ -80,7 +80,25 @@ export async function renderAccountsDashboard(router) {
           <!-- All Accounts Table -->
           <div class="max-w-7xl mx-auto">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">All Accounts</h2>
-            <div class="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl shadow-xl overflow-hidden">
+
+            <!-- Tab Navigation -->
+            <div class="mb-6">
+              <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                  <button id="tab-account-head" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-blue-500 text-blue-600" data-tab="account-head">
+                    Account Head
+                  </button>
+                  <button id="tab-account-type" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="account-type">
+                    Account Type
+                  </button>
+                </nav>
+              </div>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="tab-content">
+              <!-- Account Head Tab -->
+              <div id="tab-account-head-content" class="tab-content">
               <div class="overflow-x-auto">
                 <table class="w-full">
                   <thead>
@@ -123,6 +141,12 @@ export async function renderAccountsDashboard(router) {
                     `}
                   </tbody>
                 </table>
+              </div>
+              </div>
+
+              <!-- Account Type Tab -->
+              <div id="tab-account-type-content" class="tab-content hidden">
+                ${renderGroupedByAccountType(accounts)}
               </div>
             </div>
           </div>
@@ -221,6 +245,9 @@ export async function renderAccountsDashboard(router) {
     `;
 
     renderLayout(content, router);
+
+    // Initialize tab functionality
+    initializeTabs();
   } catch (error) {
     const content = `
       <div class="max-w-4xl mx-auto px-4 py-16 space-y-6">
@@ -230,8 +257,122 @@ export async function renderAccountsDashboard(router) {
         </div>
       </div>
     `;
+
     renderLayout(content, router);
   }
+}
+
+// Function to render accounts grouped by account type
+function renderGroupedByAccountType(accounts) {
+  // Group accounts by account_type
+  const groupedAccounts = accounts.reduce((groups, account) => {
+    const type = account.account_type;
+    if (!groups[type]) {
+      groups[type] = [];
+    }
+    groups[type].push(account);
+    return groups;
+  }, {});
+
+  // Get all account types and sort them
+  const accountTypes = Object.keys(groupedAccounts).sort();
+
+  if (accountTypes.length === 0) {
+    return `
+      <div class="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl shadow-xl p-8 text-center">
+        <p class="text-gray-500">No accounts found. Start by creating journal entries or vouchers.</p>
+      </div>
+    `;
+  }
+
+  return accountTypes.map(accountType => {
+    const accountsInType = groupedAccounts[accountType];
+    const totalDebit = accountsInType.reduce((sum, acc) => sum + (acc.total_debit || 0), 0);
+    const totalCredit = accountsInType.reduce((sum, acc) => sum + (acc.total_credit || 0), 0);
+    const totalBalance = totalDebit - totalCredit;
+
+    return `
+      <div class="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl shadow-xl mb-6 overflow-hidden">
+        <!-- Account Type Header -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+          <div class="flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-gray-900">${accountType}</h3>
+            <div class="flex gap-6 text-sm">
+              <span class="text-gray-600">Accounts: <span class="font-semibold text-gray-900">${accountsInType.length}</span></span>
+              <span class="text-gray-600">Total Debit: <span class="font-semibold text-green-600">₹${formatNumber(totalDebit)}</span></span>
+              <span class="text-gray-600">Total Credit: <span class="font-semibold text-red-600">₹${formatNumber(totalCredit)}</span></span>
+              <span class="text-gray-600">Balance: <span class="font-semibold ${totalBalance > 0 ? 'text-green-600' : 'text-red-600'}">₹${formatNumber(Math.abs(totalBalance))} ${totalBalance > 0 ? 'DR' : 'CR'}</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accounts Table for this type -->
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Head</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Debit</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Credit</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-100">
+              ${accountsInType.map(account => `
+                <tr class="hover:bg-blue-50/50 transition">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${account.account_head}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-semibold">₹${formatNumber(account.total_debit || 0)}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 font-semibold">₹${formatNumber(account.total_credit || 0)}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold ${account.balance > 0 ? 'text-green-600' : 'text-red-600'}">
+                    ₹${formatNumber(Math.abs(account.balance || 0))} ${account.balance > 0 ? 'DR' : 'CR'}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <a href="/ledger/account/${encodeURIComponent(account.account_head)}" data-navigo
+                       class="inline-flex items-center px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition">
+                      View Details
+                    </a>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Function to initialize tab functionality
+function initializeTabs() {
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabContents = document.querySelectorAll('.tab-content');
+
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const targetTab = button.dataset.tab;
+
+      // Update tab button styles
+      tabButtons.forEach(btn => {
+        if (btn.dataset.tab === targetTab) {
+          btn.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+          btn.classList.add('border-blue-500', 'text-blue-600');
+        } else {
+          btn.classList.remove('border-blue-500', 'text-blue-600');
+          btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+        }
+      });
+
+      // Show/hide tab content
+      tabContents.forEach(content => {
+        if (content.id === `tab-${targetTab}-content`) {
+          content.classList.remove('hidden');
+        } else {
+          content.classList.add('hidden');
+        }
+      });
+    });
+  });
 }
 
 function formatNumber(num) {

@@ -3,8 +3,12 @@
  * Displays party item history with pagination
  */
 
+import { getPartyId, isPartySelected } from './utils.js';
+
 export async function openPartyItemHistoryModal(stock, state, onFetchHistory) {
-    if (!state.selectedParty || !state.selectedParty.id) {
+    // Use helper function for consistent party ID handling
+    const partyId = getPartyId(state.selectedParty);
+    if (!isPartySelected(state.selectedParty)) {
         alert('Please select a party first to view history.');
         return;
     }
@@ -19,7 +23,7 @@ export async function openPartyItemHistoryModal(stock, state, onFetchHistory) {
     let historyData = [];
     try {
         const response = await fetch(
-            `/api/inventory/sales/party-item-history?partyId=${state.selectedParty.id}&stockId=${stock.id}&limit=all`,
+            `/api/inventory/sales/party-item-history?partyId=${partyId}&stockId=${stock.id}&limit=all`,
             {
                 method: 'GET',
                 credentials: 'same-origin',

@@ -3,7 +3,7 @@
  * Handles main UI layout rendering and component display
  */
 
-import { formatCurrency } from './utils.js';
+import { formatCurrency, getHistoryCacheKey, getPartyId } from './utils.js';
 import { renderOtherChargesList } from './otherChargesManager.js';
 
 export function renderItemsList(state) {
@@ -149,8 +149,10 @@ export function renderTotals(state) {
 export async function renderPartyCard(state) {
     if (state.selectedParty) {
         let balanceInfo = null;
+        // Use helper function for consistent party ID handling
+        const partyId = getPartyId(state.selectedParty);
         try {
-            const response = await fetch(`/api/inventory/sales/party-balance/${state.selectedParty._id || state.selectedParty.id}`, {
+            const response = await fetch(`/api/inventory/sales/party-balance/${partyId}`, {
                 method: 'GET',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' }

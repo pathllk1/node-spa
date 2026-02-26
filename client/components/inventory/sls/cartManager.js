@@ -3,6 +3,8 @@
  * Handles cart operations: add items, remove items, update quantities
  */
 
+import { formatCurrency, getHistoryCacheKey, getPartyId } from './utils.js';
+
 export function addItemToCart(state, stockItem) {
     const existing = state.cart.find(i => i.stockId === stockItem.id && i.batch === stockItem.batch);
 
@@ -72,8 +74,7 @@ export function updateCartItemNarration(state, index, narration) {
 export function clearCart(state) {
     state.cart = [];
     state.selectedParty = null;
-    state.historyCache = {};
     state.otherCharges = [];
     state.selectedConsignee = null;  // FIX: Clear consignee data as well
-    state.consigneeSameAsBillTo = true;  // FIX: Reset the toggle to default state
+    state.consigneeSameAsBillTo = true;  // FIX: Reset toggle to default state
 }

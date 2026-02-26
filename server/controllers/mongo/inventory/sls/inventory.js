@@ -2,6 +2,7 @@ import mongoose        from 'mongoose';
 import ExcelJS         from 'exceljs';
 import { Stock, Party, Bill, StockReg, Ledger, Settings, FirmSettings, Firm, BillSequence, VoucherSequence }
   from '../../../../models/index.js';
+import { exportBillsToExcel } from '../exportUtils.js';
 
 const getActorUsername = (req) => req?.user?.username ?? null;
 
@@ -1531,6 +1532,52 @@ export const exportStockMovementsToExcel = async (req, res) => {
   } catch (err) {
     console.error('[EXPORT_EXCEL] Error:', err);
     if (!res.headersSent) res.status(500).json({ error: err.message });
+    else res.end();
+  }
+};
+
+export const exportBillsExcel = async (req, res) => {
+  try {
+    const firmId = getFirmId(req, res, 'EXPORT_BILLS_EXCEL');
+    if (!firmId) return;
+
+    const { type, searchTerm, dateFrom, dateTo } = req.query;
+
+    // Filter bills
+    let bills = await Bill.find({ firm_id: firmId }).sort({ createdAt: -1 }).lean();
+
+    if (type) {
+      bills = bills.filter(b => b.btype === type);
+    }
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      bills = bills.filter(b => (b.bno || '').toLowerCase().includes(term) || (b.firm || '').toLowerCase().includes(term));
+    }
+    if (dateFrom || dateTo) {
+      bills = bills.filter(b => {
+        const bdate = new Date(b.bdate);
+        if (dateFrom && bdate < new Date(dateFrom)) return false;
+        if (dateTo) {
+          const toDate = new Date(dateTo);
+          toDate.setHours(23, 59, 59, 999);
+          if (bdate > toDate) return false;
+        }
+        return true;
+      });
+    }
+
+    const buffer = await exportBillsToExcel(bills);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=bills-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    res.send(buffer);
+  } catch (error) {
+    console.error('Export error:', error);
+    if (!res.headersSent) res.status(500).json({ error: error.message });
     else res.end();
   }
 };

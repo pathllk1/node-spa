@@ -337,6 +337,8 @@ export function renderCreateMode(ctx) {
                           <input 
                             type="number" 
                             value="${wage.gross_salary || 0}"
+                            data-emp-id="${emp.master_roll_id}"
+                            data-field="gross_salary"
                             readonly
                             style="width: 100px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; background: #f9fafb; text-align: right; font-size: 13px; color: #374151;"
                           />

@@ -122,9 +122,10 @@ function initJournalEntryForm(router) {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label class="block text-xs font-semibold text-gray-700 mb-1.5">Account Head *</label>
-            <select name="account_head_${entryId}" required class="account-head-select w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option value="">Select Account</option>
-            </select>
+            <input type="text" name="account_head_${entryId}" list="account-head-list-${entryId}" required
+                   class="account-head-input w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   placeholder="Select or type account name">
+            <datalist id="account-head-list-${entryId}"></datalist>
           </div>
 
           <div>
@@ -199,10 +200,11 @@ function initJournalEntryForm(router) {
       const response = await api.get('/api/ledger/accounts');
       const accounts = response || [];
 
-      const select = document.querySelector(`select[name="account_head_${entryId}"]`);
-      if (select) {
-        select.innerHTML = '<option value="">Select Account</option>' +
-          accounts.map(account => `<option value="${account.account_head}">${account.account_head}</option>`).join('');
+      const datalist = document.getElementById(`account-head-list-${entryId}`);
+      if (datalist) {
+        datalist.innerHTML = accounts.map(account =>
+          `<option value="${account.account_head}">`
+        ).join('');
       }
     } catch (error) {
       console.error('Failed to load account heads:', error);
@@ -256,7 +258,7 @@ function initJournalEntryForm(router) {
     let hasValidEntry = false;
 
     document.querySelectorAll('.entry-row').forEach(row => {
-      const accountHead = row.querySelector('select[name^="account_head_"]').value;
+      const accountHead = row.querySelector('input[name^="account_head_"]').value;
       const accountType = row.querySelector('select[name^="account_type_"]').value;
       const debitAmount = row.querySelector('.debit-amount').value;
       const creditAmount = row.querySelector('.credit-amount').value;

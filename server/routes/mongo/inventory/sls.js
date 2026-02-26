@@ -22,6 +22,7 @@ router.post('/parties', inventoryController.createParty);
 
 // --- BILLS API ---
 router.post('/bills', inventoryController.createBill);
+router.get('/bills/export', inventoryController.exportBillsExcel);
 router.get('/bills/:id/pdf', generateInvoicePDF);
 router.get('/bills/:id', inventoryController.getBillById);
 router.get('/bills', inventoryController.getAllBills);

@@ -59,7 +59,14 @@ export const getAllMasterRolls = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    res.json({ success: true, count: rows.length, data: rows });
+    // Transform _id to id for frontend compatibility
+    const transformedRows = rows.map(row => ({
+      ...row,
+      id: row._id.toString(),
+      _id: row._id.toString()  // Keep _id for MongoDB operations
+    }));
+
+    res.json({ success: true, count: transformedRows.length, data: transformedRows });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -81,7 +88,14 @@ export const getMasterRollById = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Employee not found or access denied' });
     }
 
-    res.json({ success: true, data: row });
+    // Transform _id to id for frontend compatibility
+    const transformedRow = {
+      ...row,
+      id: row._id.toString(),
+      _id: row._id.toString()
+    };
+
+    res.json({ success: true, data: transformedRow });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -122,12 +122,48 @@ export async function getExistingWagesForMonth(req, res) {
     if (!month)                   return res.status(400).json({ success: false, message: 'Month required (format: YYYY-MM)' });
     if (!MONTH_REGEX.test(month)) return res.status(400).json({ success: false, message: 'Invalid month format. Use YYYY-MM' });
 
-    const wages = await Wage.find({ firm_id: firmId, salary_month: month })
-      .populate('master_roll_id', 'employee_name aadhar bank account_no')
-      .populate('created_by',     'fullname')
-      .populate('updated_by',     'fullname')
-      .sort({ 'master_roll_id.employee_name': 1 })
+    // Get wages first
+    const rawWages = await Wage.find({ firm_id: firmId, salary_month: month })
+      .populate('created_by', 'fullname')
+      .populate('updated_by', 'fullname')
       .lean();
+
+    // Get all unique master_roll_ids
+    const masterRollIds = [...new Set(rawWages.map(w => w.master_roll_id).filter(id => id))];
+
+    // Fetch master roll data
+    const masterRolls = await MasterRoll.find({ _id: { $in: masterRollIds } })
+      .select('employee_name aadhar bank account_no project site')
+      .lean();
+
+    // Create lookup map
+    const masterRollMap = new Map();
+    masterRolls.forEach(mr => {
+      masterRollMap.set(mr._id.toString(), mr);
+    });
+
+    // Merge data — also expose _id as a plain string `id` so the frontend
+    // can use wage.id consistently (lean() returns _id as ObjectId, not id).
+    const wages = rawWages.map(wage => {
+      const masterRoll = masterRollMap.get(wage.master_roll_id?.toString());
+      if (masterRoll) {
+        wage.master_roll_id = {
+          ...masterRoll,
+          _id: masterRoll._id,
+        };
+      }
+      return {
+        ...wage,
+        id: wage._id.toString(), // normalize: frontend uses wage.id everywhere
+      };
+    });
+
+    // Sort by employee name
+    wages.sort((a, b) => {
+      const aName = a.master_roll_id?.employee_name || '';
+      const bName = b.master_roll_id?.employee_name || '';
+      return aName.localeCompare(bName);
+    });
 
     res.json({ success: true, data: wages, meta: { total: wages.length, month, firmId } });
   } catch (error) {
@@ -404,10 +440,9 @@ export async function getWagesForMonth(req, res) {
     if (!month) return res.status(400).json({ success: false, message: 'Month required (format: YYYY-MM)' });
 
     const wages = await Wage.find({ firm_id: firmId, salary_month: month })
-      .populate('master_roll_id', 'employee_name aadhar bank account_no')
+      .populate('master_roll_id', 'employee_name aadhar bank account_no project site')
       .populate('created_by',     'fullname')
-      .populate('updated_by',     'fullname')
-      .lean();
+      .populate('updated_by',     'fullname');
 
     // Sort by employee name after population
     wages.sort((a, b) =>

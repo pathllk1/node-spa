@@ -8,6 +8,25 @@ export const formatCurrency = (num) =>
 
 export const getHistoryCacheKey = (partyId, stockId) => `${partyId}:${stockId}`;
 
+/**
+ * Get consistent party ID from party object (handles both id and _id properties)
+ * @param {Object} party - Party object
+ * @returns {string|null} Party ID or null if not found
+ */
+export const getPartyId = (party) => {
+    if (!party) return null;
+    return party._id || party.id || null;
+};
+
+/**
+ * Check if party is selected and has valid ID
+ * @param {Object} party - Party object from state
+ * @returns {boolean} True if party is selected with valid ID
+ */
+export const isPartySelected = (party) => {
+    return party && getPartyId(party) !== null;
+};
+
 export function populateConsigneeFromBillTo(state) {
     if (state.selectedParty) {
         state.selectedConsignee = {

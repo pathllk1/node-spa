@@ -149,9 +149,21 @@ export const getCurrentUser = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Return consistent user object format like login
+    const firm = user.firm_id;
     res.json({
       success:       true,
-      user,
+      user: {
+        id:         user._id,
+        username:   user.username,
+        email:      user.email,
+        fullname:   user.fullname,
+        role:       user.role,
+        firm_id:    firm?._id ?? null,
+        firm_name:  firm?.name ?? null,
+        firm_code:  firm?.code ?? null,
+        last_login: user.last_login,
+      },
       tokenRefreshed: req.tokenRefreshed || false,
     });
   } catch (error) {

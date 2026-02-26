@@ -48,14 +48,14 @@ router.put('/bulk-update', updateWagesBulk);
 // Body: { wage_days, gross_salary, epf_deduction, ... }
 router.put('/:id', updateWage);
 
+// Bulk delete wages (must come BEFORE /:id route)
+// DELETE /api/wages/bulk-delete
+// Body: { ids: ["id1", "id2", ...] }
+router.delete('/bulk-delete', deleteWagesBulk);
+
 // Delete single wage
 // DELETE /api/wages/:id
 router.delete('/:id', deleteWage);
-
-// Bulk delete wages (must come BEFORE /:id route)
-// DELETE /api/wages/bulk-delete
-// Body: { ids: [1, 2, 3, ...] }
-router.delete('/bulk-delete', deleteWagesBulk);
 
 /* --------------------------------------------------
    UTILITY ROUTES

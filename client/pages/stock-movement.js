@@ -6,17 +6,17 @@ export async function renderStockMovement(router) {
   if (!canAccess) return;
 
   const content = `
-  <div class="px-4 py-16 space-y-8">
+  <div class="px-4 py-4 space-y-4">
 
     <!-- Header -->
-    <div class="text-center space-y-4">
-      <div class="w-20 h-20 mx-auto bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-10 h-10 text-white">
+    <div class="text-center space-y-2">
+      <div class="w-12 h-12 mx-auto bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6 text-white">
           <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 6v2.25m0 0v2.25m0-2.25h2.25m-2.25 0h-2.25m6.75-3v6.75m-6.75 0v6.75m0-6.75l2.25-2.25m-2.25 2.25l-2.25-2.25m6.75-3l2.25 2.25m-2.25-2.25l-2.25 2.25" />
         </svg>
       </div>
-      <h1 class="text-4xl font-bold text-gray-900">Stock Movement</h1>
-      <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+      <h1 class="text-2xl font-bold text-gray-900">Stock Movement</h1>
+      <p class="text-base text-gray-600 max-w-2xl mx-auto">
         View and analyze all stock movements and inventory transactions.
       </p>
     </div>
@@ -62,7 +62,7 @@ export async function renderStockMovement(router) {
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="bg-white rounded-xl shadow-lg p-4">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-green-100">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-green-600">
@@ -76,7 +76,7 @@ export async function renderStockMovement(router) {
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="bg-white rounded-xl shadow-lg p-4">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-red-100">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-red-600">
@@ -90,7 +90,7 @@ export async function renderStockMovement(router) {
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="bg-white rounded-xl shadow-lg p-4">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-blue-100">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-blue-600">
@@ -104,7 +104,7 @@ export async function renderStockMovement(router) {
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="bg-white rounded-xl shadow-lg p-4">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-purple-100">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-purple-600">
@@ -121,10 +121,6 @@ export async function renderStockMovement(router) {
 
     <!-- Movements Table -->
     <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900">Stock Movements</h3>
-        <p class="text-sm text-gray-600">Showing <span id="movements-count">0</span> movements</p>
-      </div>
 
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -580,7 +576,6 @@ function initializeMovementsPage(router) {
 
     const netMovement = totalIn - totalOut;
 
-    movementsCount.textContent = totalRecords;
     totalInEl.textContent = totalIn.toFixed(2);
     totalOutEl.textContent = totalOut.toFixed(2);
     netMovementEl.textContent = netMovement.toFixed(2);

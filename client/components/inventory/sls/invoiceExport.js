@@ -3,6 +3,8 @@
  * Handles invoice export to Excel and PDF formats
  */
 
+import { formatCurrency, getPartyId } from './utils.js';
+
 export function exportInvoiceToExcel(state, formatCurrency) {
     try {
         // Create CSV content

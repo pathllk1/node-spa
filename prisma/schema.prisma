@@ -15,16 +15,22 @@ datasource db {
 }
 
 enum Role {
-  USER
-  MANAGER
-  ADMIN
-  SUPER_ADMIN
+  user
+  manager
+  admin
+  super_admin
 }
 
 enum UserStatus {
-  PENDING
-  APPROVED
-  REJECTED
+  pending
+  approved
+  rejected
+}
+
+enum FirmStatus {
+  pending
+  approved
+  rejected
 }
 
 model Firm {
@@ -58,7 +64,7 @@ model Firm {
   bank_branch       String?
   ifsc_code         String?
   payment_terms     String?
-  status            String?  @default("approved")
+  status        FirmStatus @default(approved)
   license_numbers   String?
   insurance_details String?
   currency          String?  @default("INR")
@@ -84,6 +90,7 @@ model Firm {
   ledgers           Ledger[]
   billSequences     BillSequence[]
   firmSettings      FirmSettings[]
+  voucherSequences  VoucherSequence[]
 
   @@map("firms")
 }
@@ -94,10 +101,10 @@ model User {
   email         String     @unique
   fullname      String
   password      String
-  role          Role       @default(USER)
+  role          Role       @default(user)
   firm_id       String?    @db.ObjectId
   firm          Firm?      @relation(fields: [firm_id], references: [id])
-  status        UserStatus @default(PENDING)
+  status        UserStatus @default(pending)
   last_mail_sent DateTime?
   last_login    DateTime?
   createdAt     DateTime   @default(now())
@@ -112,8 +119,6 @@ model User {
   createdWages     Wage[]       @relation("CreatedBy")
   updatedWages     Wage[]       @relation("UpdatedBy")
   cancelledBills   Bill[]       @relation("CancelledBy")
-  createdBills     Bill[] @relation("CreatedBy")
-  updatedBills     Bill[] @relation("UpdatedBy")
 
   @@map("users")
 }
@@ -167,15 +172,15 @@ model MasterRoll {
   wages               Wage[]
   userMasterRolls     UserMasterRoll[]
 
-  @@map("master_rolls")
+  @@map("masterrolls")
 }
 
 model Wage {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   firm_id           String   @db.ObjectId
   firm              Firm     @relation(fields: [firm_id], references: [id])
-  master_roll_id    String   @db.ObjectId
-  masterRoll        MasterRoll @relation(fields: [master_roll_id], references: [id])
+  master_roll_id    String?  @db.ObjectId
+  masterRoll        MasterRoll? @relation(fields: [master_roll_id], references: [id])
   p_day_wage        Float?
   wage_days         Float?   @default(26)
   project           String?
@@ -239,7 +244,7 @@ model Stock {
   grate     Float    @default(0)
   total     Float    @default(0)
   mrp       Float?
-  batches   String?  // JSON string
+  batches   Json?  // JSON array
   user      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -253,8 +258,8 @@ model Stock {
 model Party {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   firm_id    String   @db.ObjectId
-  firm       Firm     @relation(fields: [firm_id], references: [id])
-  firm_name  String
+  firm_entity Firm     @relation(fields: [firm_id], references: [id])
+  firm       String
   gstin      String?  @default("UNREGISTERED")
   contact    String?
   state      String?
@@ -277,7 +282,8 @@ model Party {
 model Bill {
   id                   String   @id @default(auto()) @map("_id") @db.ObjectId
   firm_id              String   @db.ObjectId
-  firm                 Firm     @relation(fields: [firm_id], references: [id])
+  firm_entity          Firm     @relation(fields: [firm_id], references: [id])
+  voucher_id           String?
   bno                  String
   bdate                String
   supply               String?
@@ -291,10 +297,11 @@ model Bill {
   rof                  Float?   @default(0)
   btype                String?  @default("SALES")
   usern                String?
-  firm_name            String?
+  firm                 String?
   party_id             String?  @db.ObjectId
   party                Party?   @relation(fields: [party_id], references: [id])
   oth_chg_json         String?  // JSON string
+  other_charges        Json?    // JSON array
   order_no             String?
   vehicle_no           String?
   dispatch_through     String?
@@ -308,10 +315,6 @@ model Bill {
   cancelled_at         DateTime?
   cancelled_by         String?  @db.ObjectId
   cancelledBy          User?    @relation("CancelledBy", fields: [cancelled_by], references: [id])
-  created_by           String?  @db.ObjectId
-  createdBy            User?    @relation("CreatedBy", fields: [created_by], references: [id])
-  updated_by           String?  @db.ObjectId
-  updatedBy            User?    @relation("UpdatedBy", fields: [updated_by], references: [id])
   consignee_name       String?
   consignee_gstin      String?
   consignee_address    String?
@@ -331,7 +334,7 @@ model Bill {
 model StockReg {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
   firm_id        String   @db.ObjectId
-  firm           Firm     @relation(fields: [firm_id], references: [id])
+  firm_entity    Firm     @relation(fields: [firm_id], references: [id])
   type           String
   bno            String?
   bdate          String?
@@ -351,12 +354,12 @@ model StockReg {
   bill_id        String?  @db.ObjectId
   bill           Bill?    @relation(fields: [bill_id], references: [id])
   user           String?
-  firm_name      String?
+  firm             String?
   qtyh           Float?   @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  @@map("stock_reg")
+  @@map("stockregs")
 }
 
 model Ledger {
@@ -382,7 +385,7 @@ model Ledger {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  @@map("ledger")
+  @@map("ledgers")
 }
 
 model BillSequence {
@@ -396,7 +399,7 @@ model BillSequence {
   updatedAt      DateTime @updatedAt
 
   @@unique([firm_id, financial_year, voucher_type])
-  @@map("bill_sequences")
+  @@map("billsequences")
 }
 
 model Settings {
@@ -421,5 +424,18 @@ model FirmSettings {
   updatedAt    DateTime @updatedAt
 
   @@unique([firm_id, setting_key])
-  @@map("firm_settings")
+  @@map("firmsettings")
+}
+
+model VoucherSequence {
+  id             String @id @default(auto()) @map("_id") @db.ObjectId
+  firm_id        String @db.ObjectId
+  firm           Firm @relation(fields: [firm_id], references: [id])
+  financial_year String
+  last_sequence  Int? @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([firm_id, financial_year])
+  @@map("voucher_sequences")
 }

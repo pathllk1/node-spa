@@ -4,7 +4,7 @@
  */
 
 import { createInitialState, fetchCurrentUserFirmName, fetchData, loadExistingBillData } from './stateManager.js';
-import { formatCurrency, populateConsigneeFromBillTo } from './utils.js';
+import { formatCurrency, populateConsigneeFromBillTo, getPartyId } from './utils.js';
 import { addOtherCharge, removeOtherCharge, updateOtherCharge } from './otherChargesManager.js';
 import { addItemToCart, removeItemFromCart, updateCartItem, updateCartItemNarration, clearCart } from './cartManager.js';
 import { renderItemsList, renderTotals, renderPartyCard } from './layoutRenderer.js';
@@ -310,6 +310,9 @@ export function initSalesSystem(router) {
                                 state.historyCache = {};
                                 renderMainLayout(isEditMode);
                             });
+                        },
+                        onPartyCardUpdate: () => {
+                            renderPartyCard(state);
                         }
                     });
                 };
@@ -534,9 +537,10 @@ export function initSalesSystem(router) {
                     // Show spinner and disable button
                     showSaveSpinner();
 
+                    const partyId = getPartyId(state.selectedParty);
                     const billData = {
                         meta: state.meta,
-                        party: state.selectedParty,
+                        party: partyId,
                         cart: state.cart,
                         otherCharges: state.otherCharges,
                         consignee: state.selectedConsignee

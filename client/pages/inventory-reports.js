@@ -7,12 +7,12 @@ export async function renderInventoryReports(router) {
   if (!canAccess) return;
 
   const content = `
-  <div class="px-4 py-16 space-y-8">
+  <div class="px-4 py-4 space-y-4">
 
     <!-- Header -->
-    <div class="text-center space-y-4">
-      <div class="w-20 h-20 mx-auto bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-10 h-10 text-white">
+    <div class="text-center space-y-2">
+      <div class="w-12 h-12 mx-auto bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6 text-white">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
         </svg>
       </div>
@@ -23,7 +23,7 @@ export async function renderInventoryReports(router) {
     </div>
 
     <!-- Controls -->
-    <div class="bg-white rounded-xl shadow-lg p-6">
+    <div class="bg-white rounded-xl shadow-lg p-4">
       <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div class="flex flex-col sm:flex-row gap-4 items-center">
           <div class="relative">
@@ -51,7 +51,7 @@ export async function renderInventoryReports(router) {
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
-            Export CSV
+            Export Excel
           </button>
         </div>
       </div>
@@ -59,7 +59,7 @@ export async function renderInventoryReports(router) {
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="bg-white rounded-xl shadow-lg p-4">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-blue-100">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-blue-600">
@@ -73,7 +73,7 @@ export async function renderInventoryReports(router) {
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="bg-white rounded-xl shadow-lg p-4">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-green-100">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-green-600">
@@ -87,7 +87,7 @@ export async function renderInventoryReports(router) {
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="bg-white rounded-xl shadow-lg p-4">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-orange-100">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-orange-600">
@@ -101,7 +101,7 @@ export async function renderInventoryReports(router) {
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="bg-white rounded-xl shadow-lg p-4">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-purple-100">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-purple-600">
@@ -118,10 +118,6 @@ export async function renderInventoryReports(router) {
 
     <!-- Bills Table -->
     <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900">Bills Overview</h3>
-        <p class="text-sm text-gray-600">Showing <span id="bills-count">0</span> bills</p>
-      </div>
 
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -495,7 +491,6 @@ function initializeBillsPage(router) {
   const refreshBtn = document.getElementById('refresh-bills');
   const exportBtn = document.getElementById('export-bills');
   const tableBody = document.getElementById('bills-table-body');
-  const billsCount = document.getElementById('bills-count');
   const totalBillsEl = document.getElementById('total-bills');
   const totalRevenueEl = document.getElementById('total-revenue');
   const totalTaxEl = document.getElementById('total-tax');
@@ -1080,7 +1075,6 @@ function initializeBillsPage(router) {
       .filter(bill => bill.status !== 'CANCELLED')
       .reduce((sum, bill) => sum + ((bill.cgst || 0) + (bill.sgst || 0) + (bill.igst || 0)), 0);
 
-    billsCount.textContent = totalBills;
     totalBillsEl.textContent = totalBills;
     totalRevenueEl.textContent = `₹${totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     totalTaxEl.textContent = `₹${totalTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -1134,36 +1128,44 @@ function initializeBillsPage(router) {
     }
   }
 
-  // Export to CSV
-  function exportToCSV() {
-    if (filteredBills.length === 0) {
-      alert('No bills to export');
-      return;
-    }
-
-    const csvContent = [
-      ['Bill No', 'Date', 'Party', 'Type', 'Taxable Amount', 'Tax Amount', 'Total Amount', 'Status'],
-      ...filteredBills.map(bill => [
-        bill.bno || '',
-        formatDate(bill.bdate),
-        bill.firm || '',
-        bill.btype || 'SALES',
-        (bill.gtot || 0).toFixed(2),
-        ((bill.cgst || 0) + (bill.sgst || 0) + (bill.igst || 0)).toFixed(2),
-        (bill.ntot || 0).toFixed(2),
-        bill.status || 'ACTIVE'
-      ])
-    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `bills-report-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Export to Excel
+  function exportToExcel() {
+    const params = new URLSearchParams();
+    
+    if (typeFilter.value) params.append('type', typeFilter.value);
+    if (searchInput.value) params.append('searchTerm', searchInput.value);
+    if (dateFromFilter.value) params.append('dateFrom', dateFromFilter.value);
+    if (dateToFilter.value) params.append('dateTo', dateToFilter.value);
+    
+    const url = `/api/inventory/sales/bills/export?${params.toString()}`;
+    
+    fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    }).then(response => {
+      if (response.ok) {
+        response.blob().then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = `bills-report-${new Date().toISOString().split('T')[0]}.xlsx`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        });
+      } else {
+        console.error('Export failed:', response.status, response.statusText);
+        response.text().then(text => console.error('Response body:', text));
+        alert('Export failed. Please check console for details.');
+      }
+    }).catch(err => {
+      console.error('Export error:', err);
+      alert('Export error: ' + err.message);
+    });
   }
 
   // Utility functions
@@ -1183,7 +1185,7 @@ function initializeBillsPage(router) {
   dateFromFilter.addEventListener('change', filterBills);
   dateToFilter.addEventListener('change', filterBills);
   refreshBtn.addEventListener('click', loadBills);
-  exportBtn.addEventListener('click', exportToCSV);
+  exportBtn.addEventListener('click', exportToExcel);
 
   // Sorting event listeners
   document.querySelectorAll('th[data-sort]').forEach(header => {

@@ -20,9 +20,9 @@ export function renderManageMode(ctx) {
   } = ctx;
 
   const filteredWages = getFilteredManageWages();
-  const uniqueBanks = getUniqueValues(existingWages, 'bank');
-  const uniqueProjects = getUniqueValues(existingWages, 'project');
-  const uniqueSites = getUniqueValues(existingWages, 'site');
+  const uniqueBanks = getUniqueValues(existingWages.map(w => w.master_roll_id).filter(Boolean), 'bank');
+  const uniqueProjects = getUniqueValues(existingWages.map(w => w.master_roll_id).filter(Boolean), 'project');
+  const uniqueSites = getUniqueValues(existingWages.map(w => w.master_roll_id).filter(Boolean), 'site');
   
   return `
       <div class="manage-mode">
@@ -147,7 +147,7 @@ export function renderManageMode(ctx) {
                       return sum + (edited ? edited.gross_salary : 0);
                     }, 0))}</span></div>
                   </div>
-                  <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #10b981;">
+                  <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #f59e0b;">
                     <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total EPF</div>
                     <div style="font-size: 16px; font-weight: 700; color: #f59e0b;"><span id="summary-total-epf">${formatCurrency(Array.from(selectedWageIds).reduce((sum, wageId) => {
                       const wage = existingWages.find(w => w.id === wageId);
@@ -186,6 +186,19 @@ export function renderManageMode(ctx) {
               <div style="margin-top: 15px; padding: 15px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
                 <h4 style="margin-bottom: 10px; color: #92400e; font-size: 14px; font-weight: 600;">✏️ Bulk Edit Form (${selectedWageIds.size} wages selected)</h4>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px;">
+                  <div>
+                    <label style="display: block; margin-bottom: 3px; font-size: 12px; color: #78350f;">Wage Days</label>
+                    <input 
+                      type="number"
+                      min="0"
+                      max="31"
+                      value="${bulkEditData.wage_days || ''}"
+                      data-action="set-bulk-edit"
+                      data-field="wage_days"
+                      placeholder="Leave blank to skip"
+                      style="width: 100%; padding: 5px 8px; border: 1px solid #d97706; border-radius: 4px; font-size: 12px;"
+                    />
+                  </div>
                   <div>
                     <label style="display: block; margin-bottom: 3px; font-size: 12px; color: #78350f;">EPF Deduction</label>
                     <input 
@@ -439,78 +452,78 @@ export function renderManageMode(ctx) {
                             type="checkbox" 
                             ${isSelected ? 'checked' : ''}
                             data-action="toggle-wage"
-                            data-wage-id="${wage.id}"
+                            data-wage-id="${String(wage.id)}"
                             style="cursor: pointer; width: 16px; height: 16px;"
                           />
                         </td>
                         <td style="padding: 10px;">
-                          <div style="font-weight: 600; color: #1f2937;">${wage.employee_name}</div>
-                          <div style="font-size: 11px; color: #6b7280;">${wage.bank} - ${wage.account_no}</div>
+                          <div style="font-weight: 600; color: #1f2937;">${wage.master_roll_id?.employee_name}</div>
+                          <div style="font-size: 11px; color: #6b7280;">${wage.master_roll_id?.project || 'N/A'} - ${wage.master_roll_id?.site || 'N/A'}</div>
                         </td>
                         <td style="padding: 10px; text-align: center;">
                           <input 
-                            id="wage-${wage.id}-wage_days"
+                            id="wage-${String(wage.id)}-wage_days"
                             type="number" 
                             value="${edited.wage_days ?? ''}"
                             data-action="edit-wage"
-                            data-wage-id="${wage.id}"
+                            data-wage-id="${String(wage.id)}"
                             data-field="wage_days"
                             style="width: 50px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px; text-align: center;"
                           />
                         </td>
                         <td style="padding: 10px; text-align: right;">
-                          <span id="wage-${wage.id}-gross-display" style="font-weight: 500;">${formatCurrency(edited.gross_salary)}</span>
+                          <span id="wage-${String(wage.id)}-gross-display" style="font-weight: 500;">${formatCurrency(edited.gross_salary)}</span>
                         </td>
                         <td style="padding: 10px; text-align: right;">
                           <input 
-                            id="wage-${wage.id}-epf_deduction"
+                            id="wage-${String(wage.id)}-epf_deduction"
                             type="number" 
                             step="0.01"
                             value="${edited.epf_deduction ?? ''}"
                             data-action="edit-wage"
-                            data-wage-id="${wage.id}"
+                            data-wage-id="${String(wage.id)}"
                             data-field="epf_deduction"
                             style="width: 70px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px; text-align: right;"
                           />
                         </td>
                         <td style="padding: 10px; text-align: right;">
                           <input 
-                            id="wage-${wage.id}-esic_deduction"
+                            id="wage-${String(wage.id)}-esic_deduction"
                             type="number" 
                             step="0.01"
                             value="${edited.esic_deduction ?? ''}"
                             data-action="edit-wage"
-                            data-wage-id="${wage.id}"
+                            data-wage-id="${String(wage.id)}"
                             data-field="esic_deduction"
                             style="width: 70px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px; text-align: right;"
                           />
                         </td>
                         <td style="padding: 10px; text-align: right;">
                           <input 
-                            id="wage-${wage.id}-other_deduction"
+                            id="wage-${String(wage.id)}-other_deduction"
                             type="number" 
                             step="0.01"
                             value="${edited.other_deduction ?? ''}"
                             data-action="edit-wage"
-                            data-wage-id="${wage.id}"
+                            data-wage-id="${String(wage.id)}"
                             data-field="other_deduction"
                             style="width: 70px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px; text-align: right;"
                           />
                         </td>
                         <td style="padding: 10px; text-align: right;">
                           <input 
-                            id="wage-${wage.id}-other_benefit"
+                            id="wage-${String(wage.id)}-other_benefit"
                             type="number" 
                             step="0.01"
                             value="${edited.other_benefit ?? ''}"
                             data-action="edit-wage"
-                            data-wage-id="${wage.id}"
+                            data-wage-id="${String(wage.id)}"
                             data-field="other_benefit"
                             style="width: 70px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px; text-align: right;"
                           />
                         </td>
                         <td style="padding: 10px; text-align: right;">
-                          <span id="wage-${wage.id}-net-display" style="font-weight: 600; color: #059669;">${formatCurrency(netSalary)}</span>
+                          <span id="wage-${String(wage.id)}-net-display" style="font-weight: 600; color: #059669;">${formatCurrency(netSalary)}</span>
                         </td>
                         <td style="padding: 10px;">
                           <div style="font-size: 11px;">
