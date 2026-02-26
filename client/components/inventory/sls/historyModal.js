@@ -18,11 +18,14 @@ export async function openPartyItemHistoryModal(stock, state, onFetchHistory) {
     // Fetch history data from API
     let historyData = [];
     try {
-        const response = await fetch(`/api/inventory/sales/stocks/${stock.id}?partyId=${state.selectedParty.id}&stockId=${stock.id}&limit=all`, {
-            method: 'GET',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' }
-        });
+        const response = await fetch(
+            `/api/inventory/sales/party-item-history?partyId=${state.selectedParty.id}&stockId=${stock.id}&limit=all`,
+            {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' }
+            }
+        );
         
         if (!response.ok) {
             console.warn('Failed to fetch history:', response.status);

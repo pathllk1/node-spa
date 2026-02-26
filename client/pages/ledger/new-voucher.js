@@ -171,7 +171,7 @@ function initVoucherForm(router) {
       const parties = response.data || [];
 
       partySelect.innerHTML = '<option value="">Select Party</option>' +
-        parties.map(party => `<option value="${party.id}">${party.firm} (${party.contact_person || 'N/A'})</option>`).join('');
+        parties.map(party => `<option value="${party._id}">${party.firm} (${party.contact_person || 'N/A'})</option>`).join('');
     } catch (error) {
       console.error('Failed to load parties:', error);
       partySelect.innerHTML = '<option value="">Failed to load parties</option>';

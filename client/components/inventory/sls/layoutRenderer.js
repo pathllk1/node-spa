@@ -150,7 +150,7 @@ export async function renderPartyCard(state) {
     if (state.selectedParty) {
         let balanceInfo = null;
         try {
-            const response = await fetch(`/api/inventory/sales/party-balance/${state.selectedParty.id}`, {
+            const response = await fetch(`/api/inventory/sales/party-balance/${state.selectedParty._id || state.selectedParty.id}`, {
                 method: 'GET',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' }

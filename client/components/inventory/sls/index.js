@@ -6,7 +6,7 @@
 import { createInitialState, fetchCurrentUserFirmName, fetchData, loadExistingBillData } from './stateManager.js';
 import { formatCurrency, populateConsigneeFromBillTo } from './utils.js';
 import { addOtherCharge, removeOtherCharge, updateOtherCharge } from './otherChargesManager.js';
-import { addItemToCart, removeItemFromCart, updateCartItem, clearCart } from './cartManager.js';
+import { addItemToCart, removeItemFromCart, updateCartItem, updateCartItemNarration, clearCart } from './cartManager.js';
 import { renderItemsList, renderTotals, renderPartyCard } from './layoutRenderer.js';
 import { openStockModal } from './stockModal.js';
 import { showBatchSelectionModal } from './batchModal.js';
@@ -39,18 +39,16 @@ export function initSalesSystem(router) {
     const finalEditParam = editBillIdParam || sessionEditId;
     console.log('SLS: final edit param:', finalEditParam);
     
-    // Validate edit bill ID
+    // Validate edit bill ID — MongoDB uses 24-char hex ObjectId strings, not integers
     let editBillId = null;
     let isEditMode = false;
     
     if (finalEditParam) {
-        const parsedId = parseInt(finalEditParam, 10);
-        console.log('SLS: parsedId:', parsedId, 'isNaN:', isNaN(parsedId), 'parsedId > 0:', parsedId > 0);
-        if (!isNaN(parsedId) && parsedId > 0) {
-            editBillId = parsedId;
+        // Accept a valid MongoDB ObjectId string (24 hex chars)
+        const isValidObjectId = /^[a-f\d]{24}$/i.test(finalEditParam);
+        if (isValidObjectId) {
+            editBillId = finalEditParam;   // keep as string — the API expects it as-is
             isEditMode = true;
-            // Clear sessionStorage after use (moved to after loading)
-            // sessionStorage.removeItem('editBillId');
         } else {
             // Invalid bill ID - redirect to create mode
             console.warn('Invalid edit bill ID:', finalEditParam);
@@ -629,6 +627,17 @@ export function initSalesSystem(router) {
                 }
             };
         });
+
+        // Narration inputs - delegate from items container to avoid stale listener issues
+        const itemsContainer = document.getElementById('items-container');
+        if (itemsContainer) {
+            itemsContainer.addEventListener('input', (e) => {
+                if (e.target.matches('input[data-field="narration"]')) {
+                    const idx = parseInt(e.target.dataset.idx);
+                    updateCartItemNarration(state, idx, e.target.value);
+                }
+            });
+        }
 
         // Remove buttons
         document.querySelectorAll('.btn-remove').forEach(btn => {

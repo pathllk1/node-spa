@@ -9,6 +9,7 @@ const billSchema = new Schema(
       ref: 'Firm',
       required: true,
     },
+    voucher_id:         { type: String },   // 8-digit voucher number for ledger grouping
     bno:        { type: String, required: true },
     bdate:      { type: String, required: true },
     supply:     { type: String },
@@ -28,7 +29,8 @@ const billSchema = new Schema(
       ref: 'Party',
       default: null,
     },
-    oth_chg_json:         { type: String },   // JSON string
+    oth_chg_json:         { type: String },   // JSON string - LEGACY FIELD
+    other_charges:        [{ type: Schema.Types.Mixed }],   // Array of charge objects
     order_no:             { type: String },
     vehicle_no:           { type: String },
     dispatch_through:     { type: String },

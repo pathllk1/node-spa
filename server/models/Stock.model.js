@@ -6,7 +6,9 @@ const { Schema } = mongoose;
 const batchSchema = new Schema({
   batch:   { type: String },
   qty:     { type: Number, required: true },
+  uom:      { type: String, required: true, default: 'PCS' },
   rate:    { type: Number, required: true },
+  grate:   { type: Number, required: true, default: 18 },
   expiry:  { type: Date },
   mrp:     { type: Number },
 }, { _id: true }); // Allow _id generation for batch documents

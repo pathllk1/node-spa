@@ -11,5 +11,6 @@ export { default as Bill }           from './Bill.model.js';
 export { default as StockReg }       from './StockReg.model.js';
 export { default as Ledger }         from './Ledger.model.js';
 export { default as BillSequence }   from './BillSequence.model.js';
+export { default as VoucherSequence } from './VoucherSequence.model.js';
 export { default as Settings }       from './Settings.model.js';
 export { default as FirmSettings }   from './FirmSettings.model.js';

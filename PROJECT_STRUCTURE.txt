@@ -2,7 +2,7 @@ PROJECT STRUCTURE - Business Management Application
 ==================
 
 Application Overview:
-This is a comprehensive Node.js Single Page Application for business management, supporting multi-firm operations with modules for user management, employee records, wages, inventory, and accounting. Database: MongoDB with Prisma ORM.
+This is a comprehensive Node.js Single Page Application for business management, supporting multi-firm operations with modules for user management, employee records, wages, inventory, and accounting. Database: MongoDB with Mongoose ODM.
 
 nodejs-spa-auth/
 │
@@ -26,34 +26,35 @@ nodejs-spa-auth/
 ├── 📁 prisma/                   # Prisma ORM configuration
 │   └── 📄 schema.prisma         # Database schema definition (MongoDB)
 │
-├── 📁 server/                   # Backend (Express.js + MongoDB + Prisma ORM)
+├── 📁 server/                   # Backend (Express.js + MongoDB + Mongoose ODM)
 │   ├── 📄 server.js            # Main server entry point
+│   ├── 📄 server1.js           # Alternative server configuration
 │   │
-│   ├── 📁 controllers/         # Business logic controllers (7 files + 3 subdirectories)
+│   ├── 📁 controllers/         # Business logic controllers (8 files + 3 subdirectories)
 │   │   ├── authController.js   # Authentication (login, logout, refresh)
 │   │   ├── firmManagementController.js # Firm CRUD operations
 │   │   ├── masterRoll.controller.js # Employee records management
 │   │   ├── wages.controller.js # Salary and wage processing
 │   │   ├── settingsController.js # System settings
 │   │   ├── systemConfigController.js # System configuration
-│   │   └── 📁 inventory/       # Inventory controllers (category-wise)
-│   │       ├── 📄 pdfMakeController.js # PDF generation for inventory
-│   │       ├── 📁 cnt/         # Inventory count controllers
-│   │       │   └── inventory.js
-│   │       ├── 📁 dln/         # Inventory delivery note controllers
-│   │       │   └── inventory.js
-│   │       ├── 📁 dnt/         # Inventory debit note controllers
-│   │       │   └── inventory.js
-│   │       ├── 📁 prs/         # Inventory purchase controllers
-│   │       │   └── inventory.js
-│   │       └── 📁 sls/         # Inventory sales controllers
-│   │           └── inventory.js
-│   │   └── 📁 ledger/          # Accounting controllers (5 files)
-│   │       ├── journalEntryController.js # Journal entries
-│   │       ├── ledgerController.js # Ledger operations
-│   │       ├── voucherController.js # Voucher management
-│   │       ├── pdfMakeController.js # PDF for ledger
-│   │       └── ledger.csv      # Ledger data export
+│   │   ├── 📁 inventory/       # Inventory controllers (category-wise)
+│   │   │   ├── pdfMakeController.js # PDF generation for inventory
+│   │   │   ├── 📁 cnt/         # Inventory count controllers
+│   │   │   │   └── inventory.js
+│   │   │   ├── 📁 dln/         # Inventory delivery note controllers
+│   │   │   │   └── inventory.js
+│   │   │   ├── 📁 dnt/         # Inventory debit note controllers
+│   │   │   │   └── inventory.js
+│   │   │   ├── 📁 prs/         # Inventory purchase controllers
+│   │   │   │   └── inventory.js
+│   │   │   └── 📁 sls/         # Inventory sales controllers
+│   │   │       └── inventory.js
+│   │   ├── 📁 ledger/          # Accounting controllers (5 files)
+│   │   │   ├── journalEntryController.js # Journal entries
+│   │   │   ├── ledgerController.js # Ledger operations
+│   │   │   ├── voucherController.js # Voucher management
+│   │   │   ├── pdfMakeController.js # PDF for ledger
+│   │   │   └── ledger.csv      # Ledger data export
 │   │   └── 📁 mongo/           # MongoDB controllers (8 files + 2 subdirectories)
 │   │       ├── authController.js # MongoDB auth controller
 │   │       ├── firmManagementController.js # MongoDB firm management
@@ -64,14 +65,14 @@ nodejs-spa-auth/
 │   │       ├── wages.controller.js # MongoDB wages controller
 │   │       ├── 📁 inventory/       # MongoDB inventory controllers
 │   │       │   └── 📁 sls/         # MongoDB sales controllers
-│   │       │       └── inventory.js
+│   │       │       └── inventory.js # Complete inventory management with Excel export
 │   │       └── 📁 ledger/          # MongoDB ledger controllers (4 files)
 │   │           ├── journalEntryController.js # MongoDB journal entries
 │   │           ├── ledgerController.js # MongoDB ledger operations
 │   │           ├── pdfMakeController.js # MongoDB PDF for ledger
 │   │           └── voucherController.js # MongoDB voucher management
 │   │
-│   ├── 📁 models/              # Mongoose models (16 files)
+│   ├── 📁 models/              # Mongoose models (17 files)
 │   │   ├── Bill.model.js       # Bill/invoice model
 │   │   ├── BillSequence.model.js # Bill sequence model
 │   │   ├── Firm.model.js       # Firm model
@@ -81,19 +82,20 @@ nodejs-spa-auth/
 │   │   ├── Party.model.js      # Customer/supplier model
 │   │   ├── RefreshToken.model.js # Refresh token model
 │   │   ├── Settings.model.js   # Global settings model
-│   │   ├── Stock.model.js      # Inventory stock model
+│   │   ├── Stock.model.js      # Inventory stock model with batch support
 │   │   ├── StockReg.model.js   # Stock movement model
 │   │   ├── User.model.js       # User accounts model
 │   │   ├── UserMasterRoll.model.js # User-employee relation model
 │   │   ├── UserWage.model.js   # User-wage relation model
+│   │   ├── VoucherSequence.model.js # Voucher sequence model
 │   │   ├── Wage.model.js       # Wage records model
 │   │   └── index.js            # Models index file
 │   │
-│   ├── 📁 routes/              # API route definitions (9 files + 1 subdirectory)
+│   ├── 📁 routes/              # API route definitions (10 files + 1 subdirectory)
 │   │   ├── admin.js            # Admin routes
 │   │   ├── api.js              # General API routes
 │   │   ├── auth.js             # Authentication routes
-│   │   ├── authRoutes.js       # Auth routes (legacy?)
+│   │   ├── authRoutes.js       # Auth routes (legacy)
 │   │   ├── ledger.routes.js    # Ledger routes
 │   │   ├── masterRoll.routes.js # Master roll routes
 │   │   ├── pageRoutes.js       # Page routes
@@ -144,66 +146,66 @@ nodejs-spa-auth/
 │   │   └── 📁 fonts/           # Font files
 │   │
 │   ├── 📁 pages/               # Page components (16 files + 1 subdirectory)
-│   │   ├── home.js             # Public home page
-│   │   ├── about.js            # Public about page
-│   │   ├── login.js            # Login page
-│   │   ├── dashboard.js        # Main dashboard
-│   │   ├── profile.js          # User profile
-│   │   ├── authPage.js         # Authentication page
-│   │   ├── master-roll.js      # Employee records page
-│   │   ├── WagesDashboard.js   # Wages management dashboard
-│   │   ├── sales.js            # Sales page
-│   │   ├── stocks.js           # Stocks page
-│   │   ├── inventory-dashboard.js # Inventory dashboard
-│   │   ├── inventory-categories.js # Inventory categories
-│   │   ├── inventory-suppliers.js # Suppliers management
-│   │   ├── inventory-reports.js # Inventory reports
-│   │   ├── stock-movement.js    # Stock movement tracking
-│   │   ├── accounts-dashboard.js # Accounts dashboard
+│   │   ├── 📄 home.js             # Public home page
+│   │   ├── 📄 about.js            # Public about page
+│   │   ├── 📄 login.js            # Login page
+│   │   ├── 📄 dashboard.js        # Main dashboard
+│   │   ├── 📄 profile.js          # User profile
+│   │   ├── 📄 authPage.js         # Authentication page
+│   │   ├── 📄 master-roll.js      # Employee records page
+│   │   ├── 📄 WagesDashboard.js   # Wages management dashboard
+│   │   ├── 📄 sales.js            # Sales page
+│   │   ├── 📄 stocks.js           # Stocks page
+│   │   ├── 📄 inventory-dashboard.js # Inventory dashboard
+│   │   ├── 📄 inventory-categories.js # Inventory categories
+│   │   ├── 📄 inventory-suppliers.js # Suppliers management
+│   │   ├── 📄 inventory-reports.js # Inventory reports
+│   │   ├── 📄 stock-movement.js    # Stock movement tracking
+│   │   ├── 📄 accounts-dashboard.js # Accounts dashboard
 │   │   └── 📁 ledger/          # Ledger pages (7 files)
-│   │       ├── journal-entries.js
-│   │       ├── vouchers.js
-│   │       ├── trial-balance.js
-│   │       ├── general-ledger.js
-│   │       ├── account-details.js
-│   │       ├── new-journal-entry.js
-│   │       └── new-voucher.js
+│   │       ├── 📄 journal-entries.js
+│   │       ├── 📄 vouchers.js
+│   │       ├── 📄 trial-balance.js
+│   │       ├── 📄 general-ledger.js
+│   │       ├── 📄 account-details.js
+│   │       ├── 📄 new-journal-entry.js
+│   │       └── 📄 new-voucher.js
 │   │
 │   ├── 📁 components/          # Reusable UI components (4 files + 2 subdirectories)
-│   │   ├── layout.js           # Page layout
-│   │   ├── navbar.js           # Navigation bar
-│   │   ├── sidebar.js          # Sidebar navigation
-│   │   ├── voucher-modal.js    # Voucher modal
-│   │   ├── 📁 inventory/       # Inventory components
+│   │   ├── 📄 layout.js           # Page layout
+│   │   ├── 📄 navbar.js           # Navigation bar
+│   │   ├── 📄 sidebar.js          # Sidebar navigation
+│   │   ├── 📄 voucher-modal.js    # Voucher modal
+│   │   ├── 📁 inventory/       # Inventory components (19 files)
 │   │   │   ├── 📁 sls/         # Sales components (16 files)
-│   │   │   │   ├── batchModal.js
-│   │   │   │   ├── cartManager.js
-│   │   │   │   ├── chargesModal.js
-│   │   │   │   ├── historyModal.js
-│   │   │   │   ├── index.js
-│   │   │   │   ├── invoiceExport.js
-│   │   │   │   ├── layoutRenderer.js
-│   │   │   │   ├── otherChargesManager.js
-│   │   │   │   ├── partyCreate.js
-│   │   │   │   ├── partyManager.js
-│   │   │   │   ├── partyModal.js
-│   │   │   │   ├── stateManager.js
-│   │   │   │   ├── stockCrud.js
-│   │   │   │   ├── stockModal.js
-│   │   │   │   ├── toast.js
-│   │   │   │   └── utils.js
+│   │   │   │   ├── 📄 batchModal.js
+│   │   │   │   ├── 📄 cartManager.js
+│   │   │   │   ├── 📄 chargesModal.js
+│   │   │   │   ├── 📄 historyModal.js
+│   │   │   │   ├── 📄 index.js
+│   │   │   │   ├── 📄 invoiceExport.js
+│   │   │   │   ├── 📄 layoutRenderer.js
+│   │   │   │   ├── 📄 otherChargesManager.js
+│   │   │   │   ├── 📄 partyCreate.js
+│   │   │   │   ├── 📄 partyManager.js
+│   │   │   │   ├── 📄 partyModal.js
+│   │   │   │   ├── 📄 stateManager.js
+│   │   │   │   ├── 📄 stockCrud.js
+│   │   │   │   ├── 📄 stockModal.js
+│   │   │   │   ├── 📄 toast.js
+│   │   │   │   └── 📄 utils.js
 │   │   │   └── 📁 stocks/      # Stock components (3 files)
-│   │   │       ├── index.js
-│   │   │       ├── stockApi.js
-│   │   │       └── stockRenderer.js
+│   │   │       ├── 📄 index.js
+│   │   │       ├── 📄 stockApi.js
+│   │   │       └── 📄 stockRenderer.js # Enhanced batch management with UOM/GST support
 │   │   └── 📁 wages/           # Wages components (3 files)
 │   │
 │   ├── 📁 utils/               # Client utilities (2 files)
-│   │   ├── api.js              # HTTP client wrapper
-│   │   └── auth.js             # Authentication manager
+│   │   ├── 📄 api.js              # HTTP client wrapper
+│   │   └── 📄 auth.js             # Authentication manager
 │   │
 │   └── 📁 middleware/          # Client-side middleware (1 file)
-│       └── authMiddleware.js   # Route guards
+│       └── 📄 authMiddleware.js   # Route guards
 │
 ├── 📁 api/                     # Serverless API for Vercel (1 file)
 │   └── index.js                # Vercel serverless entry point
@@ -227,12 +229,13 @@ Tables:
 - wages: Salary and wage processing records
 - user_master_rolls: User-employee assignment (many-to-many)
 - user_wages: User-wage assignment (many-to-many)
-- stocks: Inventory items with batch support
+- stocks: Inventory items with batch support (enhanced with uom/grate fields)
 - parties: Customers and suppliers
 - bills: Sales/purchase invoices
 - stock_reg: Stock movement transactions
 - ledger: General ledger entries
 - bill_sequences: Bill number generation sequences
+- voucher_sequences: Voucher number generation sequences
 - settings: Global application settings
 - firm_settings: Firm-specific settings
 
@@ -246,9 +249,10 @@ KEY FEATURES
 ✅ HTTP-only Cookies with SameSite protection
 ✅ Content Security Policy (CSP) headers
 ✅ XSS Protection
-✅ MongoDB with Prisma ORM
+✅ MongoDB with Mongoose ODM
+✅ Enhanced Batch Management with UOM and GST Rate Support
 ✅ PDF Report Generation
-✅ Excel Export Functionality
+✅ Excel Export Functionality (Stock Movements)
 ✅ GST Calculations
 ✅ Employee Master Rolls & Wage Management
 ✅ Inventory Management (Stocks, Parties, Bills, Movements)
@@ -275,3 +279,24 @@ QUICK START
 
 4. Login with demo credentials:
    admin/admin123, user/user123, or demo/demo123
+
+
+RECENT ENHANCEMENTS
+==================
+
+🔧 Stock Management Enhancements:
+- Fixed UOM and GST rate field persistence in batch management
+- Added comprehensive migration logic for existing batch data
+- Enhanced database schema with proper batch field support
+- Improved client-side field validation and updates
+- Added Excel export functionality for stock movements
+
+🔧 Database Schema Updates:
+- Added VoucherSequence model for auto-increment voucher IDs
+- Enhanced Stock model with proper batch schema (uom, grate fields)
+- Improved data consistency between batch and root-level fields
+
+🔧 API Enhancements:
+- MongoDB-specific controllers for better performance
+- Enhanced error handling and validation
+- Improved data migration and backward compatibility

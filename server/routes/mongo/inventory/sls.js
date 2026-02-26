@@ -1,6 +1,6 @@
 import express from 'express';
 import * as inventoryController from '../../../controllers/mongo/inventory/sls/inventory.js';
-
+import { generateInvoicePDF } from '../../../controllers/mongo/inventory/pdfMakeController.js';
 import * as firmManagementController from "../../../controllers/mongo/firmManagementController.js";
 import { authMiddleware } from '../../../middleware/mongo/authMiddleware.js';
 
@@ -12,7 +12,7 @@ router.use(authMiddleware);
 // --- STOCKS API ---
 router.get('/stocks', inventoryController.getAllStocks);
 router.post('/stocks', inventoryController.createStock);
-router.get('/stocks/:id', inventoryController.getPartyItemHistory);
+router.get('/stocks/:id', inventoryController.getStockById);
 router.put('/stocks/:id', inventoryController.updateStock);
 router.delete('/stocks/:id', inventoryController.deleteStock);
 
@@ -22,7 +22,7 @@ router.post('/parties', inventoryController.createParty);
 
 // --- BILLS API ---
 router.post('/bills', inventoryController.createBill);
-
+router.get('/bills/:id/pdf', generateInvoicePDF);
 router.get('/bills/:id', inventoryController.getBillById);
 router.get('/bills', inventoryController.getAllBills);
 router.put('/bills/:id', inventoryController.updateBill);
@@ -37,6 +37,7 @@ router.get('/stock-movements/:stockId', inventoryController.getStockMovementsByS
 router.post('/stock-movements', inventoryController.createStockMovement);
 
 // --- UTILITY ENDPOINTS ---
+router.get('/party-item-history', inventoryController.getPartyItemHistory);
 router.get('/other-charges-types', inventoryController.getOtherChargesTypes);
 router.get('/next-bill-number', inventoryController.getNextBillNumberPreviewEndpoint);
 router.get('/current-firm', inventoryController.getCurrentUserFirmName);

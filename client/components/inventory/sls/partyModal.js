@@ -44,7 +44,7 @@ export function openPartyModal(state, callbacks) {
         }
 
         container.innerHTML = data.map(party => `
-            <div class="party-item border border-gray-200 p-3 rounded-lg hover:border-blue-400 hover:shadow-md cursor-pointer flex justify-between items-center transition-all bg-white group" data-id="${party.id}">
+            <div class="party-item border border-gray-200 p-3 rounded-lg hover:border-blue-400 hover:shadow-md cursor-pointer flex justify-between items-center transition-all bg-white group" data-id="${party._id || party.id}">
                 <div>
                     <div class="font-bold text-blue-900 text-sm mb-1 group-hover:text-blue-700">${party.firm}</div>
                     <div class="flex items-center gap-2">
@@ -60,8 +60,8 @@ export function openPartyModal(state, callbacks) {
         // Re-attach click events for selection
         container.querySelectorAll('.party-item').forEach(div => {
             div.addEventListener('click', () => {
-                const id = parseInt(div.getAttribute('data-id'));
-                const selectedParty = state.parties.find(p => p.id === id);
+                const id = div.getAttribute('data-id');   // keep as string — MongoDB ObjectId
+                const selectedParty = state.parties.find(p => (p._id || p.id)?.toString() === id);
                 
                 if (selectedParty) {
                     state.selectedParty = selectedParty;

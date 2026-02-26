@@ -159,7 +159,7 @@ export async function loadExistingBillData(state, billId) {
         state.cart = (bill.items || []).map(item => ({
             stockId: item.stock_id,
             item: item.item,
-            narration: item.narration || '',
+            narration: item.item_narration || '',
             batch: item.batch || null,
             oem: item.oem || '',
             hsn: item.hsn,

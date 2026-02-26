@@ -5,8 +5,7 @@ import 'dotenv/config.js'; // Load environment variables from .env file
 // Initialize database with error handling - use dynamic import
 (async () => {
   try {
-    const { connectDB } = await import('./utils/mongo/mongoose.config.js');
-    await connectDB(); // Actually establish the MongoDB connection
+    await import('./utils/db.js'); // Initialize the database and create tables
   } catch (err) {
     console.error('⚠️  Database initialization failed:', err.message);
     console.log('ℹ️  Server will continue running, but database operations may fail');
@@ -18,14 +17,14 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { securityMiddleware } from './middleware/securityMiddleware.js';
 import { csrfGenerateToken, csrfValidateToken } from './middleware/csrfMiddleware.js';
-import authRoutes from './routes/mongo/authRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import pageRoutes from './routes/pageRoutes.js';
-
-import masterRollRoutes from './routes/mongo/masterRoll.routes.js';
-import wagesRoutes from './routes/mongo/wages.routes.js';
-import settingsRoutes from './routes/mongo/settings.routes.js';
-import inventorySalesRoutes from './routes/mongo/inventory/sls.js';
-import ledgerRoutes from './routes/mongo/ledger.routes.js';
+import adminRoutes from './routes/admin.js';
+import masterRollRoutes from './routes/masterRoll.routes.js';
+import wagesRoutes from './routes/wages.routes.js';
+import settingsRoutes from './routes/settings.routes.js';
+import inventorySalesRoutes from './routes/inventory/sls.js';
+import ledgerRoutes from './routes/ledger.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -56,7 +55,7 @@ app.use(express.static(join(__dirname, '../client'), {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/pages', pageRoutes);
-
+app.use("/api/admin", adminRoutes);
 app.use('/api/master-rolls', masterRollRoutes);
 app.use('/api/wages',  wagesRoutes);
 app.use('/api/settings',  settingsRoutes);

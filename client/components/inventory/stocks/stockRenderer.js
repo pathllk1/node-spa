@@ -71,7 +71,7 @@ function attachTableEventListeners(state) {
         button.addEventListener('click', (e) => {
             e.preventDefault();
             const action = button.dataset.action;
-            const stockId = parseInt(button.dataset.stockId);
+            const stockId = button.dataset.stockId; // Use ObjectId string directly
             
             // Find the stock data from the current state's stocks array
             const stockData = window.stocksSystem.state.stocks.find(s => s.id === stockId);
@@ -406,161 +406,114 @@ export function renderStockModal(stock, state, onSave) {
     const isEdit = !!stock;
     const modalHtml = `
         <div id="stock-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl lg:max-w-5xl xl:max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
+            <div class="relative bg-white rounded-lg shadow-xl w-full max-w-[95vw] lg:max-w-[90vw] max-h-[85vh] overflow-hidden flex flex-col">
                 <!-- Header -->
-                <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
+                <div class="flex items-center justify-between p-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                     <div>
-                        <h3 class="text-xl font-bold text-gray-900">
+                        <h3 class="text-base font-bold text-gray-900">
                             ${isEdit ? 'Edit Stock Item' : 'Add New Stock Item'}
                         </h3>
-                        <p class="text-sm text-gray-600 mt-1">
-                            ${isEdit ? 'Update the stock information below' : 'Fill in the details to add new stock'}
+                        <p class="text-xs text-gray-600 mt-1">
+                            ${isEdit ? 'Update stock details' : 'Add stock with batches'}
                         </p>
                     </div>
-                    <button id="stock-modal-close" class="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg">
-                        <i class="fas fa-times text-xl"></i>
+                    <button id="stock-modal-close" class="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
-                
+
                 <!-- Form Content -->
-                <div class="p-6 overflow-y-auto flex-1">
-                    <form id="stock-form" class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Item Description -->
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    Item Description <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" name="item" required 
-                                    value="${stock?.item || ''}"
-                                    placeholder="Enter item description"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                            </div>
-                            
-                            <!-- Batch No -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Batch No</label>
-                                <input type="text" name="batch" 
-                                    value="${stock?.batch || ''}"
-                                    placeholder="Enter batch number"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                            </div>
-                            
-                            <!-- Part No -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Part No</label>
-                                <input type="text" name="pno" 
-                                    value="${stock?.pno || ''}"
-                                    placeholder="Enter part number"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                            </div>
+                <div class="p-3 overflow-y-auto flex-1">
+                    <form id="stock-form" class="space-y-3">
+                        <!-- Common Item Information -->
+                        <div class="bg-gray-50 p-2 rounded border border-gray-200">
+                            <h4 class="text-xs font-semibold text-gray-900 mb-2 flex items-center">
+                                <i class="fas fa-info-circle text-blue-600 mr-1"></i>
+                                Item Info
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <!-- Item Description -->
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                        Item Description <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" name="item" required
+                                        value="${stock?.item || ''}"
+                                        placeholder="Item description"
+                                        class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
 
-                            <!-- OEM / Brand -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">OEM / Brand</label>
-                                <input type="text" name="oem" 
-                                    value="${stock?.oem || ''}"
-                                    placeholder="Enter OEM or brand name"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                            </div>
-                            
-                            <!-- HSN/SAC Code -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    HSN/SAC Code <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" name="hsn" required 
-                                    value="${stock?.hsn || ''}"
-                                    placeholder="Enter HSN/SAC code"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                            </div>
+                                <!-- Part No -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Part No</label>
+                                    <input type="text" name="pno"
+                                        value="${stock?.pno || ''}"
+                                        placeholder="Part number"
+                                        class="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
 
-                            <!-- Quantity -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    Quantity <span class="text-red-500">*</span>
-                                </label>
-                                <input type="number" step="0.01" name="qty" required 
-                                    value="${stock?.qty || ''}"
-                                    placeholder="Enter quantity"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                            </div>
-                            
-                            <!-- UOM -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    UOM <span class="text-red-500">*</span>
-                                </label>
-                                <select name="uom" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                                    <option value="">Select UOM</option>
-                                    <option value="NOS" ${stock?.uom === 'NOS' ? 'selected' : ''}>NOS</option>
-                                    <option value="PCS" ${stock?.uom === 'PCS' ? 'selected' : ''}>PCS</option>
-                                    <option value="SET" ${stock?.uom === 'SET' ? 'selected' : ''}>SET</option>
-                                    <option value="BOX" ${stock?.uom === 'BOX' ? 'selected' : ''}>BOX</option>
-                                    <option value="MTR" ${stock?.uom === 'MTR' ? 'selected' : ''}>MTR</option>
-                                    <option value="KGS" ${stock?.uom === 'KGS' ? 'selected' : ''}>KGS</option>
-                                </select>
-                            </div>
+                                <!-- OEM / Brand -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">OEM/Brand</label>
+                                    <input type="text" name="oem"
+                                        value="${stock?.oem || ''}"
+                                        placeholder="OEM or brand"
+                                        class="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
 
-                            <!-- Selling Rate -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    Selling Rate (₹) <span class="text-red-500">*</span>
-                                </label>
-                                <input type="number" step="0.01" name="rate" required 
-                                    value="${stock?.rate || ''}"
-                                    placeholder="Enter selling rate"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                            </div>
-
-                            <!-- GST % -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    GST % <span class="text-red-500">*</span>
-                                </label>
-                                <select name="grate" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                                    <option value="">Select GST Rate</option>
-                                    <option value="18" ${stock?.grate === 18 ? 'selected' : ''}>18%</option>
-                                    <option value="12" ${stock?.grate === 12 ? 'selected' : ''}>12%</option>
-                                    <option value="5" ${stock?.grate === 5 ? 'selected' : ''}>5%</option>
-                                    <option value="28" ${stock?.grate === 28 ? 'selected' : ''}>28%</option>
-                                    <option value="0" ${stock?.grate === 0 ? 'selected' : ''}>0%</option>
-                                </select>
-                            </div>
-
-                            <!-- MRP -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">MRP</label>
-                                <input type="number" step="0.01" name="mrp" 
-                                    value="${stock?.mrp || ''}"
-                                    placeholder="Enter MRP (optional)"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                                <!-- HSN/SAC Code -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                        HSN Code <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" name="hsn" required
+                                        value="${stock?.hsn || ''}"
+                                        placeholder="HSN/SAC code"
+                                        class="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
                             </div>
                         </div>
 
                         <!-- Batch Management Section -->
-                        <div class="mt-8">
-                            <div class="flex items-center justify-between mb-4">
-                                <h4 class="text-lg font-semibold text-gray-900">Batch Management</h4>
-                                <button type="button" id="add-batch-btn" 
-                                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
-                                    <i class="fas fa-plus"></i>
-                                    Add Batch
-                                </button>
+                        <div class="bg-blue-50 p-2 rounded border border-blue-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-xs font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-boxes text-blue-600 mr-1"></i>
+                                    Batch Management
+                                    <span class="ml-1 text-xs font-normal text-orange-600 font-medium">(Required)</span>
+                                </h4>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-gray-600">Total Qty:</span>
+                                    <span id="total-quantity-display" class="font-semibold text-blue-600 text-xs">0</span>
+                                </div>
                             </div>
-                            
-                            <div class="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+
+                            <div class="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
+                                <div class="flex items-start gap-2">
+                                    <i class="fas fa-info-circle text-yellow-600 text-xs mt-0.5"></i>
+                                    <div class="text-xs text-yellow-800">
+                                        <p class="font-medium">Required: At least one batch must be added</p>
+                                        <p class="text-xs mt-1">• Enter quantity, rate, and GST for each batch</p>
+                                        <p class="text-xs">• Batch number is optional - leave empty if no batch tracking</p>
+                                        <p class="text-xs">• MRP and expiry date are optional</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white border border-gray-200 rounded overflow-hidden">
                                 <div class="overflow-x-auto">
-                                    <table class="min-w-full divide-y divide-gray-200" id="batches-table">
+                                    <table class="min-w-full divide-y divide-gray-200 text-xs" id="batches-table">
                                         <thead class="bg-gray-100">
                                             <tr>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch No</th>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate (₹)</th>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MRP (₹)</th>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</th>
-                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total (₹)</th>
-                                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase w-[120px]">Batch (Optional)</th>
+                                                <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase w-[80px]">Qty *</th>
+                                                <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase w-[70px]">UOM *</th>
+                                                <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase w-[100px]">Rate *</th>
+                                                <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase w-[80px]">GST *</th>
+                                                <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase w-[100px]">MRP</th>
+                                                <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase w-[120px]">Expiry</th>
+                                                <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase w-[100px]">Total</th>
+                                                <th class="px-3 py-2 text-center font-medium text-gray-500 uppercase w-[60px]">Del</th>
                                             </tr>
                                         </thead>
                                         <tbody class="bg-white divide-y divide-gray-200" id="batches-tbody">
@@ -568,27 +521,38 @@ export function renderStockModal(stock, state, onSave) {
                                         </tbody>
                                     </table>
                                 </div>
-                                
+
+                                <!-- Add Batch Button -->
+                                <div class="p-2 bg-gray-50 border-t border-gray-200">
+                                    <button type="button" id="add-batch-btn"
+                                        class="w-full px-2 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs">
+                                        <i class="fas fa-plus mr-1"></i>Add First Batch
+                                    </button>
+                                    <p class="text-xs text-gray-500 mt-1 text-center">
+                                        Start by adding your first batch (required)
+                                    </p>
+                                </div>
+
                                 <!-- Empty state -->
-                                <div id="batches-empty-state" class="text-center py-8 text-gray-500">
-                                    <i class="fas fa-boxes text-4xl mb-2 text-gray-300"></i>
-                                    <p>No batches added yet</p>
-                                    <p class="text-sm">Click "Add Batch" to start managing batches</p>
+                                <div id="batches-empty-state" class="text-center py-4 text-gray-500">
+                                    <i class="fas fa-boxes text-2xl mb-1 text-gray-300"></i>
+                                    <p class="text-xs font-medium">No batches added yet</p>
+                                    <p class="text-xs">Click "Add First Batch" to start</p>
                                 </div>
                             </div>
                         </div>
                     </form>
                 </div>
-                
+
                 <!-- Footer -->
-                <div class="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-                    <button type="button" id="stock-modal-cancel" 
-                        class="px-6 py-3 text-sm font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors">
+                <div class="flex justify-end gap-2 p-3 border-t border-gray-200 bg-gray-50">
+                    <button type="button" id="stock-modal-cancel"
+                        class="px-3 py-1.5 text-xs font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 rounded">
                         Cancel
                     </button>
                     <button type="submit" form="stock-form"
-                        class="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-lg transition-all transform hover:scale-105">
-                        ${isEdit ? 'Update Stock' : 'Add Stock'}
+                        class="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded">
+                        ${isEdit ? 'Update' : 'Add'}
                     </button>
                 </div>
             </div>
@@ -600,57 +564,111 @@ export function renderStockModal(stock, state, onSave) {
 
     // Initialize batches array
     let batches = [];
-    
-    // If editing, load existing batches
-    if (stock && stock.batches) {
-        if (typeof stock.batches === 'string') {
-            try {
-                batches = JSON.parse(stock.batches);
-            } catch (e) {
-                batches = [];
-            }
-        } else if (Array.isArray(stock.batches)) {
-            batches = [...stock.batches];
+
+    // If editing, load existing batches or create from legacy data
+    if (stock) {
+        if (stock.batches && Array.isArray(stock.batches) && stock.batches.length > 0) {
+            // Use existing batches with migration for missing fields
+            batches = stock.batches.map((batch, idx) => {
+                // Migrate batch to include missing fields
+                const migratedBatch = {
+                    _id: batch._id,
+                    batch: batch.batch || '',
+                    qty: parseFloat(batch.qty) || 0,
+                    uom: batch.uom || stock.uom || 'PCS', // Fallback to main stock UOM
+                    rate: parseFloat(batch.rate) || 0,
+                    grate: batch.grate !== undefined ? parseFloat(batch.grate) : (stock.grate || 18), // Fallback to main stock GST
+                    expiry: batch.expiry || null,
+                    mrp: batch.mrp ? parseFloat(batch.mrp) : null
+                };
+                return migratedBatch;
+            });
+        } else if (stock.qty && stock.rate) {
+            // Convert legacy single-item data to batch format
+            batches = [{
+                batch: stock.batch || '',
+                qty: parseFloat(stock.qty) || 0,
+                uom: stock.uom || 'PCS',
+                rate: parseFloat(stock.rate) || 0,
+                grate: parseFloat(stock.grate) || 0,
+                mrp: stock.mrp ? parseFloat(stock.mrp) : null,
+                expiry: stock.expiry || null
+            }];
         }
+    }
+
+    // If no batches exist (new item), start with one empty batch
+    if (batches.length === 0) {
+        batches = [{
+            batch: '',
+            qty: 0,
+            uom: 'PCS',
+            rate: 0,
+            grate: 18, // Default GST
+            mrp: null,
+            expiry: null
+        }];
     }
 
     // Function to render a batch row
     function renderBatchRow(batch, index) {
         const total = (batch.qty || 0) * (batch.rate || 0);
+        
         return `
             <tr class="batch-row hover:bg-gray-50" data-index="${index}">
-                <td class="px-4 py-3 whitespace-nowrap">
-                    <input type="text" value="${batch.batch || ''}" 
-                        class="batch-input w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                        placeholder="Batch No" data-field="batch">
+                <td class="px-3 py-2 whitespace-nowrap">
+                    <input type="text" value="${batch.batch || ''}"
+                        class="batch-input w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
+                        placeholder="Optional: Leave empty if no batch" data-field="batch">
                 </td>
-                <td class="px-4 py-3 whitespace-nowrap">
-                    <input type="number" step="0.01" value="${batch.qty || ''}" 
-                        class="batch-input w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                <td class="px-3 py-2 whitespace-nowrap">
+                    <input type="number" step="0.01" value="${batch.qty || ''}" required
+                        class="batch-input w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
                         placeholder="Qty" data-field="qty">
                 </td>
-                <td class="px-4 py-3 whitespace-nowrap">
-                    <input type="number" step="0.01" value="${batch.rate || ''}" 
-                        class="batch-input w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                <td class="px-3 py-2 whitespace-nowrap">
+                    <select class="batch-input w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs" required data-field="uom">
+                        <option value="">UOM</option>
+                        <option value="NOS" ${batch.uom == 'NOS' ? 'selected' : ''}>NOS</option>
+                        <option value="PCS" ${batch.uom == 'PCS' ? 'selected' : ''}>PCS</option>
+                        <option value="SET" ${batch.uom == 'SET' ? 'selected' : ''}>SET</option>
+                        <option value="BOX" ${batch.uom == 'BOX' ? 'selected' : ''}>BOX</option>
+                        <option value="MTR" ${batch.uom == 'MTR' ? 'selected' : ''}>MTR</option>
+                        <option value="KGS" ${batch.uom == 'KGS' ? 'selected' : ''}>KGS</option>
+                    </select>
+                </td>
+                <td class="px-3 py-2 whitespace-nowrap">
+                    <input type="number" step="0.01" value="${batch.rate || ''}" required
+                        class="batch-input w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
                         placeholder="Rate" data-field="rate">
                 </td>
-                <td class="px-4 py-3 whitespace-nowrap">
-                    <input type="number" step="0.01" value="${batch.mrp || ''}" 
-                        class="batch-input w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                <td class="px-3 py-2 whitespace-nowrap">
+                    <select class="batch-input w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs" required data-field="grate">
+                        <option value="">GST%</option>
+                        <option value="18" ${batch.grate == 18 ? 'selected' : ''}>18%</option>
+                        <option value="12" ${batch.grate == 12 ? 'selected' : ''}>12%</option>
+                        <option value="5" ${batch.grate == 5 ? 'selected' : ''}>5%</option>
+                        <option value="28" ${batch.grate == 28 ? 'selected' : ''}>28%</option>
+                        <option value="0" ${batch.grate == 0 ? 'selected' : ''}>0%</option>
+                    </select>
+                </td>
+                <td class="px-3 py-2 whitespace-nowrap">
+                    <input type="number" step="0.01" value="${batch.mrp || ''}"
+                        class="batch-input w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
                         placeholder="MRP" data-field="mrp">
                 </td>
-                <td class="px-4 py-3 whitespace-nowrap">
-                    <input type="date" value="${batch.expiry ? new Date(batch.expiry).toISOString().split('T')[0] : ''}" 
-                        class="batch-input w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                <td class="px-3 py-2 whitespace-nowrap">
+                    <input type="date" value="${batch.expiry ? new Date(batch.expiry).toISOString().split('T')[0] : ''}"
+                        class="batch-input w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
                         data-field="expiry">
                 </td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td class="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
                     ₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}
                 </td>
-                <td class="px-4 py-3 whitespace-nowrap text-center">
-                    <button type="button" class="delete-batch-btn text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors" 
+                <td class="px-3 py-2 whitespace-nowrap text-center">
+                    <button type="button" class="delete-batch-btn text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
                         data-index="${index}" title="Delete batch">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                     </button>
@@ -663,44 +681,61 @@ export function renderStockModal(stock, state, onSave) {
     function updateBatchesDisplay() {
         const tbody = document.getElementById('batches-tbody');
         const emptyState = document.getElementById('batches-empty-state');
-        
+
         if (batches.length === 0) {
             tbody.innerHTML = '';
             emptyState.classList.remove('hidden');
+            updateTotalQuantity(0);
         } else {
             emptyState.classList.add('hidden');
             tbody.innerHTML = batches.map((batch, index) => renderBatchRow(batch, index)).join('');
-            
+
             // Attach input event listeners for real-time total calculation
             document.querySelectorAll('.batch-input').forEach(input => {
-                input.addEventListener('input', (e) => {
+                // Handle both input and change events for comprehensive coverage
+                const handleFieldChange = (e) => {
                     const row = e.target.closest('.batch-row');
                     const index = parseInt(row.dataset.index);
                     const field = e.target.dataset.field;
-                    
-                    // Update batch data
-                    if (field === 'qty' || field === 'rate') {
+
+                    // Update batch data with strict consistency
+                    if (field === 'qty' || field === 'rate' || field === 'mrp') {
+                        // Numeric fields: parse as float, fallback to 0
                         batches[index][field] = parseFloat(e.target.value) || 0;
+                    } else if (field === 'grate') {
+                        // GST rate: parse as float, fallback to 0
+                        batches[index][field] = parseFloat(e.target.value) || 0;
+                    } else if (field === 'uom') {
+                        // UOM: handle as string value, ensure it's not empty
+                        batches[index][field] = e.target.value || 'PCS';
                     } else {
+                        // Other fields: handle as string values
                         batches[index][field] = e.target.value;
                     }
-                    
-                    // Recalculate total
+
+                    // Recalculate total for this batch
                     const qty = parseFloat(batches[index].qty) || 0;
                     const rate = parseFloat(batches[index].rate) || 0;
                     const total = qty * rate;
-                    
+
                     // Update total display
-                    const totalCell = row.querySelector('td:nth-child(6)');
+                    const totalCell = row.querySelector('td:nth-child(8)');
                     totalCell.textContent = `₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-                });
+
+                    // Update overall total quantity
+                    updateTotalQuantity();
+                };
+
+                // Add both input and change event listeners
+                input.addEventListener('input', handleFieldChange);
+                input.addEventListener('change', handleFieldChange);
             });
-            
+
             // Attach delete button listeners
             document.querySelectorAll('.delete-batch-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const index = parseInt(e.target.closest('button').dataset.index);
-                    
+
                     // Add confirmation dialog
                     if (confirm('Are you sure you want to remove this batch?')) {
                         batches.splice(index, 1);
@@ -708,6 +743,18 @@ export function renderStockModal(stock, state, onSave) {
                     }
                 });
             });
+
+            // Update total quantity display
+            updateTotalQuantity();
+        }
+    }
+
+    // Function to update total quantity display
+    function updateTotalQuantity() {
+        const totalQty = batches.reduce((sum, batch) => sum + (parseFloat(batch.qty) || 0), 0);
+        const display = document.getElementById('total-quantity-display');
+        if (display) {
+            display.textContent = totalQty.toLocaleString('en-IN');
         }
     }
 
@@ -719,11 +766,20 @@ export function renderStockModal(stock, state, onSave) {
         batches.push({
             batch: '',
             qty: 0,
+            uom: 'PCS',
             rate: 0,
+            grate: 18, // Default GST
             mrp: null,
             expiry: null
         });
         updateBatchesDisplay();
+        
+        // Update button text after first batch is added
+        const addBtn = document.getElementById('add-batch-btn');
+        if (batches.length > 1) {
+            addBtn.innerHTML = '<i class="fas fa-plus mr-1"></i>Add Another Batch';
+            addBtn.nextElementSibling.textContent = 'Add more batches if needed';
+        }
     });
 
     // Attach event listeners to modal buttons
@@ -745,22 +801,61 @@ export function renderStockModal(stock, state, onSave) {
     const form = document.getElementById('stock-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
+        // Validate that at least one batch exists
+        if (batches.length === 0) {
+            alert('Please add at least one batch to create a stock item. Click "Add First Batch" to begin.');
+            return;
+        }
+
+        // Validate that all batches have required fields
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+            console.log(`Validating batch ${i + 1}:`, batch);
+            
+            if (!batch.qty || batch.qty <= 0) {
+                alert(`Batch ${i + 1}: Quantity is required and must be greater than 0.`);
+                return;
+            }
+            if (!batch.uom || batch.uom === '') {
+                alert(`Batch ${i + 1}: UOM is required.`);
+                return;
+            }
+            if (!batch.rate || batch.rate < 0) {
+                alert(`Batch ${i + 1}: Rate is required and must be >= 0.`);
+                return;
+            }
+            if (batch.grate === undefined || batch.grate === null || batch.grate === '') {
+                alert(`Batch ${i + 1}: GST % is required.`);
+                return;
+            }
+        }
+
+        // Log final batch data before submission
+        console.log('Final batch data for submission:', batches);
+
         const formData = new FormData(form);
         const stockData = {
             item: formData.get('item'),
-            batch: formData.get('batch'), // Keep for backward compatibility
             pno: formData.get('pno'),
             oem: formData.get('oem'),
             hsn: formData.get('hsn'),
-            qty: parseFloat(formData.get('qty')),
-            uom: formData.get('uom'),
-            rate: parseFloat(formData.get('rate')),
-            grate: parseFloat(formData.get('grate')),
-            mrp: formData.get('mrp') ? parseFloat(formData.get('mrp')) : null,
-            total: parseFloat(formData.get('qty')) * parseFloat(formData.get('rate')),
+            // Calculate aggregated values from batches for backward compatibility
+            qty: batches.reduce((sum, batch) => sum + (parseFloat(batch.qty) || 0), 0),
+            uom: batches[0]?.uom || 'PCS', // Use first batch's UOM as primary
+            rate: batches.length > 0 ? batches.reduce((sum, batch) => sum + (parseFloat(batch.rate) || 0), 0) / batches.length : 0, // Average rate
+            grate: batches[0]?.grate || 0, // Use first batch's GST
+            total: batches.reduce((sum, batch) => sum + ((parseFloat(batch.qty) || 0) * (parseFloat(batch.rate) || 0)), 0),
+            mrp: batches.length > 0 ? Math.max(...batches.map(b => parseFloat(b.mrp) || 0).filter(m => m > 0)) : null, // Max MRP from batches
             batches: batches.length > 0 ? batches : null
         };
+
+        // Log complete submission data for debugging
+        console.log('=== FORM SUBMISSION DEBUG ===');
+        console.log('Form data:', Object.fromEntries(formData.entries()));
+        console.log('Batches array:', batches);
+        console.log('Final stock data:', stockData);
+        console.log('==========================');
 
         await onSave(stockData);
         const modal = document.getElementById('stock-modal');

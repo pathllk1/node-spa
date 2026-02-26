@@ -1031,7 +1031,7 @@ function initializeBillsPage(router) {
       const statusClass = status === 'CANCELLED' ? 'text-red-600 bg-red-100' : 'text-green-600 bg-green-100';
 
       return `
-        <tr class="hover:bg-lime-100" data-bill-id="${bill.id}">
+        <tr class="hover:bg-lime-100" data-bill-id="${bill._id}">
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${bill.bno || ''}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(bill.bdate)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${bill.firm || ''}</td>
@@ -1045,7 +1045,7 @@ function initializeBillsPage(router) {
             </span>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            <button class="bill-view-btn group relative inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 rounded-md shadow-sm hover:shadow-md hover:shadow-blue-500/25 transform hover:scale-105 transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-blue-500/30 active:scale-95 overflow-hidden" data-bill-id="${bill.id}">
+            <button class="bill-view-btn group relative inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 rounded-md shadow-sm hover:shadow-md hover:shadow-blue-500/25 transform hover:scale-105 transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-blue-500/30 active:scale-95 overflow-hidden" data-bill-id="${bill._id}">
               <!-- Animated background gradient on hover -->
               <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-md"></div>
               
