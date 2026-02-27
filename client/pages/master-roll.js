@@ -291,6 +291,32 @@ function getMasterRollHTML() {
           </div>
         </div>
 
+        <div id="wages-history-section" class="hidden mt-6 pt-4 border-t border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Wages History
+            </div>
+            <button id="export-wages-history-btn" type="button" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg shadow-sm transition duration-200 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Export
+            </button>
+          </h3>
+          <div id="wages-history-content" class="space-y-3">
+            <!-- Wages history will be populated here -->
+            <div class="text-center text-gray-500 py-8">
+              <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <p class="text-sm">Loading wages history...</p>
+            </div>
+          </div>
+        </div>
+
         <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
           <button type="button" id="cancel-btn" 
                   class="px-5 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition duration-200 text-sm font-semibold">
@@ -453,9 +479,13 @@ class MasterRollManager {
       "Join Date": "date_of_joining",
       "DOE": "date_of_exit",
       "Date of Exit": "date_of_exit",
-      "Date_of_Exit": "Date of Exit",
+      "Date_of_Exit": "date_of_exit",
       "Remarks": "doe_rem"
     };
+
+    // Wages history data for export
+    this.currentWagesHistory = null;
+    this.currentEmployeeName = '';
   }
 
   init() {
@@ -1330,6 +1360,9 @@ class MasterRollManager {
     if (this.advancedFilters.site) {
       filtered = filtered.filter(r => r.site === this.advancedFilters.site);
     }
+    if (this.advancedFilters.status) {
+      filtered = filtered.filter(r => r.status === this.advancedFilters.status);
+    }
 
     this.filteredRolls = filtered;
     this.currentPage = 1;
@@ -1456,7 +1489,7 @@ class MasterRollManager {
 
       // Edit button handlers
       document.querySelectorAll(".edit-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const id = btn.dataset.id;
           const row = this.masterRolls.find(r => r.id == id);
           if (!row) return;
@@ -1466,6 +1499,13 @@ class MasterRollManager {
           }
           this.editingId = id;
           this.elements.modalTitle.textContent = "Edit Employee";
+          
+          // Show wages history section
+          document.getElementById("wages-history-section").classList.remove("hidden");
+          
+          // Fetch and display wages history
+          await this.loadWagesHistory(id);
+          
           this.elements.modal.classList.remove("hidden");
         });
       });
@@ -1484,6 +1524,7 @@ class MasterRollManager {
     this.elements.modalTitle.textContent = "Add New Employee";
     this.elements.form.reset();
     this.editingId = null;
+    document.getElementById("wages-history-section").classList.add("hidden");
     this.elements.modal.classList.remove("hidden");
   }
 
@@ -1526,6 +1567,7 @@ class MasterRollManager {
     this.advancedFilters.category = document.getElementById("filter-category").value;
     this.advancedFilters.project = document.getElementById("filter-project").value;
     this.advancedFilters.site = document.getElementById("filter-site").value;
+    this.advancedFilters.status = document.getElementById("filter-status").value;
 
     this.applyAdvancedFilters();
     this.renderTable();
@@ -1539,13 +1581,15 @@ class MasterRollManager {
     document.getElementById("filter-category").value = '';
     document.getElementById("filter-project").value = '';
     document.getElementById("filter-site").value = '';
+    document.getElementById("filter-status").value = '';
 
     this.advancedFilters = { 
       dateRange: { from: '', to: '' }, 
       wage: { min: '', max: '' }, 
       category: '', 
       project: '', 
-      site: '' 
+      site: '',
+      status: ''
     };
     this.applyAdvancedFilters();
     this.renderTable();
@@ -1566,5 +1610,183 @@ class MasterRollManager {
     this.renderColumnToggles();
     this.renderTableHeader();
     this.renderTable();
+  }
+
+  async loadWagesHistory(masterRollId) {
+    const contentDiv = document.getElementById("wages-history-content");
+    if (!contentDiv) return;
+
+    // Show loading
+    contentDiv.innerHTML = `
+      <div class="text-center text-gray-500 py-8">
+        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        <p class="text-sm">Loading wages history...</p>
+      </div>
+    `;
+
+    try {
+      const response = await fetch(`/api/wages/history/${masterRollId}`, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to load wages history');
+      }
+
+      const history = data.data.history || [];
+
+      if (history.length === 0) {
+        contentDiv.innerHTML = `
+          <div class="text-center text-gray-500 py-8">
+            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            <p class="text-sm">No wages history found for this employee.</p>
+          </div>
+        `;
+        // Store data for export
+        this.currentWagesHistory = history;
+        this.currentEmployeeName = data.data.employee.name;
+        return;
+      }
+
+      // Store data for export
+      this.currentWagesHistory = history;
+      this.currentEmployeeName = data.data.employee.name;
+
+      // Render wages history as a table
+      const wagesHTML = `
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm border border-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-2 text-left font-semibold text-gray-900 border-b">Month</th>
+                <th class="px-4 py-2 text-center font-semibold text-gray-900 border-b">Days</th>
+                <th class="px-4 py-2 text-right font-semibold text-gray-900 border-b">Gross</th>
+                <th class="px-4 py-2 text-right font-semibold text-gray-900 border-b">Net</th>
+                <th class="px-4 py-2 text-right font-semibold text-gray-900 border-b">EPF</th>
+                <th class="px-4 py-2 text-right font-semibold text-gray-900 border-b">ESIC</th>
+                <th class="px-4 py-2 text-right font-semibold text-gray-900 border-b">Other Ded.</th>
+                <th class="px-4 py-2 text-right font-semibold text-gray-900 border-b">Other Ben.</th>
+                <th class="px-4 py-2 text-left font-semibold text-gray-900 border-b">Paid Date</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              ${history.map(wage => `
+                <tr class="hover:bg-gray-50">
+                  <td class="px-4 py-3 font-medium text-gray-900">${wage.month}</td>
+                  <td class="px-4 py-3 text-center text-gray-700">${wage.wage_days}</td>
+                  <td class="px-4 py-3 text-right font-semibold text-gray-900">₹${parseFloat(wage.gross_salary).toLocaleString()}</td>
+                  <td class="px-4 py-3 text-right font-semibold text-green-600">₹${parseFloat(wage.net_salary).toLocaleString()}</td>
+                  <td class="px-4 py-3 text-right text-red-600">-₹${parseFloat(wage.epf_deduction || 0).toLocaleString()}</td>
+                  <td class="px-4 py-3 text-right text-red-600">-₹${parseFloat(wage.esic_deduction || 0).toLocaleString()}</td>
+                  <td class="px-4 py-3 text-right text-red-600">-₹${parseFloat(wage.other_deduction || 0).toLocaleString()}</td>
+                  <td class="px-4 py-3 text-right text-green-600">+₹${parseFloat(wage.other_benefit || 0).toLocaleString()}</td>
+                  <td class="px-4 py-3 text-gray-700">${wage.paid_date ? new Date(wage.paid_date).toLocaleDateString() : '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      contentDiv.innerHTML = wagesHTML;
+
+      // Attach export button handler
+      const exportBtn = document.getElementById("export-wages-history-btn");
+      if (exportBtn) {
+        exportBtn.onclick = () => this.exportWagesHistory(this.currentEmployeeName, this.currentWagesHistory);
+      }
+
+    } catch (error) {
+      console.error('Error loading wages history:', error);
+      contentDiv.innerHTML = `
+        <div class="text-center text-red-500 py-8">
+          <svg class="w-12 h-12 mx-auto mb-3 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="text-sm">Failed to load wages history.</p>
+          <p class="text-xs text-gray-500 mt-1">${error.message}</p>
+        </div>
+      `;
+    }
+  }
+
+  async exportWagesHistory(employeeName, history) {
+    if (!history || history.length === 0) {
+      this.showToast('No wages history to export', 'warning');
+      return;
+    }
+
+    const XLSX = window.XLSX;
+    if (!XLSX) {
+      this.showToast('Excel library not loaded', 'error');
+      return;
+    }
+
+    try {
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet([]);
+
+      // Add headers
+      const headers = [
+        'Month', 'Working Days', 'Gross Salary', 'Net Salary', 
+        'EPF Deduction', 'ESIC Deduction', 'Other Deduction', 'Other Benefit', 'Paid Date'
+      ];
+
+      // Prepare data
+      const data = history.map(wage => ({
+        'Month': wage.month,
+        'Working Days': wage.wage_days,
+        'Gross Salary': parseFloat(wage.gross_salary),
+        'Net Salary': parseFloat(wage.net_salary),
+        'EPF Deduction': parseFloat(wage.epf_deduction || 0),
+        'ESIC Deduction': parseFloat(wage.esic_deduction || 0),
+        'Other Deduction': parseFloat(wage.other_deduction || 0),
+        'Other Benefit': parseFloat(wage.other_benefit || 0),
+        'Paid Date': wage.paid_date ? new Date(wage.paid_date).toLocaleDateString() : ''
+      }));
+
+      // Create worksheet with data
+      XLSX.utils.sheet_add_json(ws, data, { header: headers, skipHeader: false });
+
+      // Set column widths
+      const colWidths = [
+        { wch: 10 }, // Month
+        { wch: 12 }, // Working Days
+        { wch: 12 }, // Gross Salary
+        { wch: 12 }, // Net Salary
+        { wch: 12 }, // EPF Deduction
+        { wch: 12 }, // ESIC Deduction
+        { wch: 14 }, // Other Deduction
+        { wch: 12 }, // Other Benefit
+        { wch: 12 }  // Paid Date
+      ];
+      ws['!cols'] = colWidths;
+
+      // Add to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Wages History');
+
+      // Generate filename
+      const filename = `Wages_History_${employeeName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(wb, filename);
+
+      this.showToast('Wages history exported successfully!', 'success');
+    } catch (error) {
+      console.error('Error exporting wages history:', error);
+      this.showToast('Failed to export wages history', 'error');
+    }
   }
 }

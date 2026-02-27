@@ -26,6 +26,7 @@ import wagesRoutes from './routes/mongo/wages.routes.js';
 import settingsRoutes from './routes/mongo/settings.routes.js';
 import inventorySalesRoutes from './routes/mongo/inventory/sls.js';
 import ledgerRoutes from './routes/mongo/ledger.routes.js';
+import adminRoutes from './routes/mongo/admin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -62,6 +63,7 @@ app.use('/api/wages',  wagesRoutes);
 app.use('/api/settings',  settingsRoutes);
 app.use('/api/inventory/sales', inventorySalesRoutes);
 app.use('/api/ledger', ledgerRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint for Vercel
 app.get('/api/health', (req, res) => {

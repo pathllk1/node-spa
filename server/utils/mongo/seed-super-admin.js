@@ -58,15 +58,29 @@ export async function seedSuperAdmin() {
 }
 
 // ── Run directly ─────────────────────────────────────────────────
-if (import.meta.url === `file://${process.argv[1]}`) {
+console.log('Script started...');
+console.log('process.argv[1]:', process.argv[1]);
+
+// Check if this script is being run directly (simpler approach)
+const isDirectRun = process.argv[1].endsWith('seed-super-admin.js') || process.argv[1].includes('seed-super-admin.js');
+console.log('Is direct run:', isDirectRun);
+
+if (isDirectRun) {
+  console.log('Running seed script...');
   connectDB()
-    .then(() => seedSuperAdmin())
     .then(() => {
+      console.log('Connected to database');
+      return seedSuperAdmin();
+    })
+    .then(() => {
+      console.log('Seed completed successfully');
       console.log('Done');
       disconnectDB();
     })
     .catch(err => {
-      console.error(err);
+      console.error('Script execution failed:', err);
       process.exit(1);
     });
+} else {
+  console.log('Script not running directly - exiting');
 }

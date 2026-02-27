@@ -8,7 +8,8 @@ import {
   updateWagesBulk,
   deleteWage,
   deleteWagesBulk,
-  getWageById
+  getWageById,
+  getWagesHistoryForEmployee
 } from '../../controllers/mongo/wages.controller.js';
 import { authMiddleware } from '../../middleware/mongo/authMiddleware.js';
 
@@ -64,6 +65,10 @@ router.delete('/:id', deleteWage);
 // Get single wage by ID (with full details)
 // GET /api/wages/details/:id
 router.get('/details/:id', getWageById);
+
+// Get wages history for a specific employee
+// GET /api/wages/history/:masterRollId
+router.get('/history/:masterRollId', getWagesHistoryForEmployee);
 
 // Get wages for a specific month (backward compatibility - deprecated)
 // GET /api/wages/list?month=2025-02

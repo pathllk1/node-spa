@@ -59,41 +59,37 @@ export function renderManageMode(ctx) {
 
             ${existingWages.length > 0 ? `
               <!-- Selection actions: always in DOM, shown/hidden via JS -->
-              <div id="manage-selection-actions" style="display: ${selectedWageIds.size > 0 ? 'flex' : 'none'}; gap: 15px; align-items: center; flex-wrap: wrap;">
-                <div style="margin-top: auto;">
-                  <button 
-                    id="bulk-edit-btn"
-                    data-action="toggle-bulk-edit"
-                    style="
-                      padding: 8px 16px;
-                      background: ${isBulkEditMode ? '#dc2626' : '#8b5cf6'};
-                      color: white;
-                      border: none;
-                      border-radius: 6px;
-                      cursor: pointer;
-                      font-weight: 600;
-                    "
-                  >
-                    ${isBulkEditMode ? '❌ Cancel Bulk Edit' : '✏️ Bulk Edit (' + selectedWageIds.size + ')'}
-                  </button>
-                </div>
-                <div style="margin-top: auto;">
-                  <button 
-                    id="delete-selected-btn"
-                    data-action="delete-selected"
-                    style="
-                      padding: 8px 16px;
-                      background: #ef4444;
-                      color: white;
-                      border: none;
-                      border-radius: 6px;
-                      cursor: pointer;
-                      font-weight: 600;
-                    "
-                  >
-                    🗑️ Delete Selected (${selectedWageIds.size})
-                  </button>
-                </div>
+              <div id="manage-selection-actions" style="display: ${selectedWageIds.size > 0 ? 'flex' : 'none'}; gap: 10px; align-items: center; margin-top: auto; flex-wrap: wrap;">
+                <button 
+                  id="bulk-edit-btn"
+                  data-action="toggle-bulk-edit"
+                  style="
+                    padding: 8px 16px;
+                    background: ${isBulkEditMode ? '#dc2626' : '#8b5cf6'};
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 600;
+                  "
+                >
+                  ${isBulkEditMode ? '❌ Cancel Bulk Edit' : '✏️ Bulk Edit (' + selectedWageIds.size + ')'}
+                </button>
+                <button 
+                  id="delete-selected-btn"
+                  data-action="delete-selected"
+                  style="
+                    padding: 8px 16px;
+                    background: #ef4444;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 600;
+                  "
+                >
+                  🗑️ Delete Selected (${selectedWageIds.size})
+                </button>
               </div>
 
               <!-- Save edited: always in DOM, shown/hidden via JS -->

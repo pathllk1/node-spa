@@ -430,6 +430,63 @@ export async function getWageById(req, res) {
   }
 }
 
+/* ── GET WAGES HISTORY FOR EMPLOYEE ───────────────────────────────────────── */
+
+export async function getWagesHistoryForEmployee(req, res) {
+  try {
+    const { masterRollId } = req.params;
+    const firmId = req.user.firm_id;
+
+    if (!masterRollId) {
+      return res.status(400).json({ success: false, message: 'Master roll ID is required' });
+    }
+
+    // Verify the employee belongs to the user's firm
+    const employee = await MasterRoll.findOne({ _id: masterRollId, firm_id: firmId })
+      .select('employee_name')
+      .lean();
+
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found or access denied' });
+    }
+
+    // Get all wages for this employee, sorted by month descending
+    const wages = await Wage.find({ master_roll_id: masterRollId, firm_id: firmId })
+      .select('salary_month wage_days gross_salary net_salary epf_deduction esic_deduction other_deduction other_benefit paid_date')
+      .sort({ salary_month: -1 })
+      .lean();
+
+    // Format the data for frontend
+    const history = wages.map(wage => ({
+      id: wage._id.toString(),
+      month: wage.salary_month,
+      wage_days: wage.wage_days,
+      gross_salary: wage.gross_salary,
+      net_salary: wage.net_salary,
+      epf_deduction: wage.epf_deduction,
+      esic_deduction: wage.esic_deduction,
+      other_deduction: wage.other_deduction,
+      other_benefit: wage.other_benefit,
+      paid_date: wage.paid_date
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        employee: {
+          id: masterRollId,
+          name: employee.employee_name
+        },
+        history: history,
+        totalRecords: history.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching wages history:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+}
+
 /* ── GET WAGES FOR MONTH (deprecated — use getExistingWagesForMonth) ─────── */
 
 export async function getWagesForMonth(req, res) {

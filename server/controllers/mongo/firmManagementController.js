@@ -63,7 +63,6 @@ export async function createFirm(req, res) {
       const { fullname, username, email: adminEmail, password } = a;
 
       if (!fullname || !username || !adminEmail || !password) {
-        // Firm was created; roll back or surface the error
         return res.status(400).json({ error: 'All admin account fields are required when creating admin user' });
       }
 
@@ -114,7 +113,6 @@ export async function getAllFirms(req, res) {
 /* ── GET FIRM BY ID ──────────────────────────────────────────────────────── */
 
 export async function getFirm(req, res) {
-  // Any authenticated user may view their own firm; super_admin sees all
   if (!req.user) {
     return res.status(403).json({ error: 'You are not permitted to perform this action' });
   }
@@ -142,15 +140,13 @@ export async function updateFirm(req, res) {
 
     const { name, enable_e_invoice, ...rest } = req.body;
 
-    // Guard against renaming to an existing firm's name
     if (name) {
       const clash = await Firm.findOne({ name, _id: { $ne: id } }).lean();
       if (clash) return res.status(409).json({ error: 'Another firm with this name already exists' });
     }
 
-    // Build update object with only the fields that were actually sent
     const updateFields = { ...rest };
-    if (name !== undefined)           updateFields.name            = name;
+    if (name !== undefined)             updateFields.name            = name;
     if (enable_e_invoice !== undefined) updateFields.enable_e_invoice = !!enable_e_invoice;
 
     await Firm.findByIdAndUpdate(id, { $set: updateFields });
@@ -173,7 +169,6 @@ export async function deleteFirm(req, res) {
     const existing = await Firm.findById(id).lean();
     if (!existing) return res.status(404).json({ error: 'Firm not found' });
 
-    // Parallel safety checks
     const [userCount, stockCount, billCount, partyCount] = await Promise.all([
       User.countDocuments({ firm_id: id }),
       Stock.countDocuments({ firm_id: id }),
@@ -201,7 +196,8 @@ export async function deleteFirm(req, res) {
   }
 }
 
-/* ── ASSIGN USER TO FIRM ─────────────────────────────────────────────────── */
+/* ── ASSIGN / UNASSIGN USER TO FIRM ─────────────────────────────────────── */
+// FIX: firmId can be null (unassign). Only userId is always required.
 
 export async function assignUserToFirm(req, res) {
   if (!requireSuperAdmin(req, res)) return;
@@ -209,25 +205,28 @@ export async function assignUserToFirm(req, res) {
   try {
     const { userId, firmId } = req.body;
 
-    if (!userId || !firmId) {
-      return res.status(400).json({ error: 'User ID and Firm ID are required' });
+    // userId is always required; firmId can be null to unassign
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
     }
 
-    const [user, firm] = await Promise.all([
-      User.findById(userId).lean(),
-      Firm.findById(firmId).lean(),
-    ]);
-
+    const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ error: 'User not found' });
-    if (!firm) return res.status(404).json({ error: 'Firm not found' });
 
-    if (user.firm_id && String(user.firm_id) !== String(firmId)) {
-      console.log(`User ${userId} was previously assigned to firm ${user.firm_id}, reassigning to ${firmId}`);
+    // If firmId is provided (not null/undefined), validate it exists
+    if (firmId) {
+      const firm = await Firm.findById(firmId).lean();
+      if (!firm) return res.status(404).json({ error: 'Firm not found' });
+
+      if (user.firm_id && String(user.firm_id) !== String(firmId)) {
+        console.log(`User ${userId} reassigned from firm ${user.firm_id} to ${firmId}`);
+      }
     }
 
-    await User.findByIdAndUpdate(userId, { $set: { firm_id: firmId } });
+    await User.findByIdAndUpdate(userId, { $set: { firm_id: firmId ?? null } });
 
-    res.json({ message: 'User assigned to firm successfully' });
+    const action = firmId ? 'assigned to firm' : 'unassigned from firm';
+    res.json({ message: `User ${action} successfully` });
   } catch (err) {
     console.error('Error assigning user to firm:', err.message);
     res.status(500).json({ error: 'Internal server error' });
@@ -242,16 +241,17 @@ export async function getAllUsersWithFirms(req, res) {
   try {
     const users = await User.find()
       .populate('firm_id', 'name')
-      .select('fullname username email firm_id')
+      .select('fullname username email firm_id role status')
       .sort({ fullname: 1 })
       .lean();
 
-    // Reshape to match the original response shape
     const shaped = users.map(u => ({
       _id:       u._id,
       fullname:  u.fullname,
       username:  u.username,
       email:     u.email,
+      role:      u.role,
+      status:    u.status,
       firm_id:   u.firm_id?._id ?? null,
       firm_name: u.firm_id?.name ?? null,
     }));
