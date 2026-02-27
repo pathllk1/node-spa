@@ -74,6 +74,7 @@ export function renderCreateMode(ctx) {
 
               <div style="margin-top: auto;">
                 <button 
+                  id="save-wages-btn"
                   data-action="save-wages"
                   ${isLoading || selectedEmployeeIds.size === 0 ? 'disabled' : ''}
                   style="
@@ -86,7 +87,7 @@ export function renderCreateMode(ctx) {
                     font-weight: 600;
                   "
                 >
-                  💾 Save Wages ${selectedEmployeeIds.size > 0 ? `(${selectedEmployeeIds.size})` : ''}
+                  💾 Save Wages${selectedEmployeeIds.size > 0 ? ` (${selectedEmployeeIds.size})` : ''}
                 </button>
               </div>
 
@@ -216,23 +217,23 @@ export function renderCreateMode(ctx) {
 
             <!-- Summary -->
             <div style="margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #f0fdf4, #fef2f2); border-radius: 8px; border: 1px solid #e5e7eb;">
-              <h4 style="margin-bottom: 10px; color: #374151; font-size: 13px; font-weight: 600;">📊 Summary (${selectedEmployeeIds.size} selected / ${filteredEmployees.length} total)</h4>
+              <h4 id="create-summary-header" style="margin-bottom: 10px; color: #374151; font-size: 13px; font-weight: 600;">📊 Summary (${selectedEmployeeIds.size} selected / ${filteredEmployees.length} total)</h4>
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
                 <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #ef4444;">
                   <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total Gross</div>
-                  <div style="font-size: 16px; font-weight: 700; color: #ef4444;">${formatCurrency(Array.from(selectedEmployeeIds).reduce((sum, empId) => sum + (wageData[empId]?.gross_salary || 0), 0))}</div>
+                  <div style="font-size: 16px; font-weight: 700; color: #ef4444;"><span id="create-summary-gross">${formatCurrency(Array.from(selectedEmployeeIds).reduce((sum, empId) => sum + (wageData[empId]?.gross_salary || 0), 0))}</span></div>
                 </div>
                 <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #f59e0b;">
                   <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total EPF</div>
-                  <div style="font-size: 16px; font-weight: 700; color: #f59e0b;">${formatCurrency(Array.from(selectedEmployeeIds).reduce((sum, empId) => sum + (wageData[empId]?.epf_deduction || 0), 0))}</div>
+                  <div style="font-size: 16px; font-weight: 700; color: #f59e0b;"><span id="create-summary-epf">${formatCurrency(Array.from(selectedEmployeeIds).reduce((sum, empId) => sum + (wageData[empId]?.epf_deduction || 0), 0))}</span></div>
                 </div>
                 <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #3b82f6;">
                   <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total ESIC</div>
-                  <div style="font-size: 16px; font-weight: 700; color: #3b82f6;">${formatCurrency(Array.from(selectedEmployeeIds).reduce((sum, empId) => sum + (wageData[empId]?.esic_deduction || 0), 0))}</div>
+                  <div style="font-size: 16px; font-weight: 700; color: #3b82f6;"><span id="create-summary-esic">${formatCurrency(Array.from(selectedEmployeeIds).reduce((sum, empId) => sum + (wageData[empId]?.esic_deduction || 0), 0))}</span></div>
                 </div>
                 <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #10b981;">
                   <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total Net Salary</div>
-                  <div style="font-size: 16px; font-weight: 700; color: #059669;">${formatCurrency(Array.from(selectedEmployeeIds).reduce((sum, empId) => {
+                  <div style="font-size: 16px; font-weight: 700; color: #059669;"><span id="create-summary-net">${formatCurrency(Array.from(selectedEmployeeIds).reduce((sum, empId) => {
                     const wage = wageData[empId];
                     if (!wage) return sum;
                     return sum + calculateNetSalary(
@@ -242,7 +243,7 @@ export function renderCreateMode(ctx) {
                       wage.other_deduction,
                       wage.other_benefit
                     );
-                  }, 0))}</div>
+                  }, 0))}</span></div>
                 </div>
               </div>
             </div>
@@ -263,6 +264,7 @@ export function renderCreateMode(ctx) {
                   <tr style="background: linear-gradient(to right, #ef4444, #10b981); border-bottom: 2px solid #e5e7eb;">
                     <th style="padding: 12px; text-align: center; color: white; font-weight: 600;">
                       <input 
+                        id="select-all-create"
                         type="checkbox" 
                         ${selectedEmployeeIds.size === filteredEmployees.length && filteredEmployees.length > 0 ? 'checked' : ''}
                         data-action="select-all-employees"
@@ -294,7 +296,7 @@ export function renderCreateMode(ctx) {
                     );
                     
                     return `
-                      <tr style="border-bottom: 1px solid #e5e7eb; background: ${isSelected ? '#eff6ff' : 'white'};">
+                      <tr data-emp-row="${emp.master_roll_id}" style="border-bottom: 1px solid #e5e7eb; background: ${isSelected ? '#eff6ff' : 'white'};">
                         <td style="padding: 12px; text-align: center;">
                           <input 
                             type="checkbox" 

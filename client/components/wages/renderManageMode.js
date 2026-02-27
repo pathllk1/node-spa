@@ -58,9 +58,11 @@ export function renderManageMode(ctx) {
             </div>
 
             ${existingWages.length > 0 ? `
-              ${selectedWageIds.size > 0 ? `
+              <!-- Selection actions: always in DOM, shown/hidden via JS -->
+              <div id="manage-selection-actions" style="display: ${selectedWageIds.size > 0 ? 'flex' : 'none'}; gap: 15px; align-items: center; flex-wrap: wrap;">
                 <div style="margin-top: auto;">
                   <button 
+                    id="bulk-edit-btn"
                     data-action="toggle-bulk-edit"
                     style="
                       padding: 8px 16px;
@@ -75,9 +77,9 @@ export function renderManageMode(ctx) {
                     ${isBulkEditMode ? '❌ Cancel Bulk Edit' : '✏️ Bulk Edit (' + selectedWageIds.size + ')'}
                   </button>
                 </div>
-
                 <div style="margin-top: auto;">
                   <button 
+                    id="delete-selected-btn"
                     data-action="delete-selected"
                     style="
                       padding: 8px 16px;
@@ -92,27 +94,27 @@ export function renderManageMode(ctx) {
                     🗑️ Delete Selected (${selectedWageIds.size})
                   </button>
                 </div>
-              ` : ''}
+              </div>
 
-              ${Object.keys(editedWages).length > 0 ? `
-                <div style="margin-top: auto;">
-                  <button 
-                    data-action="save-edited"
-                    ${isManageLoading ? 'disabled' : ''}
-                    style="
-                      padding: 8px 16px;
-                      background: #059669;
-                      color: white;
-                      border: none;
-                      border-radius: 6px;
-                      cursor: pointer;
-                      font-weight: 600;
-                    "
-                  >
-                    💾 Save Changes (${Object.keys(editedWages).length})
-                  </button>
-                </div>
-              ` : ''}
+              <!-- Save edited: always in DOM, shown/hidden via JS -->
+              <div id="save-edited-btn-container" style="margin-top: auto; display: ${Object.keys(editedWages).length > 0 ? 'block' : 'none'};">
+                <button 
+                  id="save-edited-btn"
+                  data-action="save-edited"
+                  ${isManageLoading ? 'disabled' : ''}
+                  style="
+                    padding: 8px 16px;
+                    background: #059669;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 600;
+                  "
+                >
+                  💾 Save Changes (${Object.keys(editedWages).length})
+                </button>
+              </div>
 
               <div style="margin-top: auto;">
                 <button 
@@ -134,52 +136,50 @@ export function renderManageMode(ctx) {
           </div>
 
           ${existingWages.length > 0 ? `
-            <!-- Manage Mode Totals Section -->
-            ${selectedWageIds.size > 0 ? `
-              <div style="margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #f0fdf4, #fef2f2); border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 15px;">
-                <h4 style="margin-bottom: 10px; color: #374151; font-size: 13px; font-weight: 600;">📊 Summary (${selectedWageIds.size} selected)</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
-                  <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #ef4444;">
-                    <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total Gross Salary</div>
-                    <div style="font-size: 16px; font-weight: 700; color: #059669;"><span id="summary-total-gross">${formatCurrency(Array.from(selectedWageIds).reduce((sum, wageId) => {
-                      const wage = existingWages.find(w => w.id === wageId);
-                      const edited = editedWages[wageId] || wage;
-                      return sum + (edited ? edited.gross_salary : 0);
-                    }, 0))}</span></div>
-                  </div>
-                  <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #f59e0b;">
-                    <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total EPF</div>
-                    <div style="font-size: 16px; font-weight: 700; color: #f59e0b;"><span id="summary-total-epf">${formatCurrency(Array.from(selectedWageIds).reduce((sum, wageId) => {
-                      const wage = existingWages.find(w => w.id === wageId);
-                      const edited = editedWages[wageId] || wage;
-                      return sum + (edited ? edited.epf_deduction : 0);
-                    }, 0))}</span></div>
-                  </div>
-                  <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #3b82f6;">
-                    <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total ESIC</div>
-                    <div style="font-size: 16px; font-weight: 700; color: #3b82f6;"><span id="summary-total-esic">${formatCurrency(Array.from(selectedWageIds).reduce((sum, wageId) => {
-                      const wage = existingWages.find(w => w.id === wageId);
-                      const edited = editedWages[wageId] || wage;
-                      return sum + (edited ? edited.esic_deduction : 0);
-                    }, 0))}</span></div>
-                  </div>
-                  <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #8b5cf6;">
-                    <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total Net Salary</div>
-                    <div style="font-size: 16px; font-weight: 700; color: #059669;"><span id="summary-total-net">${formatCurrency(Array.from(selectedWageIds).reduce((sum, wageId) => {
-                      const wage = existingWages.find(w => w.id === wageId);
-                      const edited = editedWages[wageId] || wage;
-                      return sum + (edited ? calculateNetSalary(
-                        toNumber(edited.gross_salary),
-                        toNumber(edited.epf_deduction),
-                        toNumber(edited.esic_deduction),
-                        toNumber(edited.other_deduction),
-                        toNumber(edited.other_benefit)
-                      ) : 0);
-                    }, 0))}</span></div>
-                  </div>
+            <!-- Summary panel: always in DOM, shown/hidden via JS -->
+            <div id="manage-summary-panel" style="margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #f0fdf4, #fef2f2); border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 15px; display: ${selectedWageIds.size > 0 ? 'block' : 'none'};">
+              <h4 id="manage-summary-header" style="margin-bottom: 10px; color: #374151; font-size: 13px; font-weight: 600;">📊 Summary (${selectedWageIds.size} selected)</h4>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #ef4444;">
+                  <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total Gross Salary</div>
+                  <div style="font-size: 16px; font-weight: 700; color: #059669;"><span id="summary-total-gross">${formatCurrency(Array.from(selectedWageIds).reduce((sum, wageId) => {
+                    const wage = existingWages.find(w => w.id === wageId);
+                    const edited = editedWages[wageId] || wage;
+                    return sum + (edited ? edited.gross_salary : 0);
+                  }, 0))}</span></div>
+                </div>
+                <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #f59e0b;">
+                  <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total EPF</div>
+                  <div style="font-size: 16px; font-weight: 700; color: #f59e0b;"><span id="summary-total-epf">${formatCurrency(Array.from(selectedWageIds).reduce((sum, wageId) => {
+                    const wage = existingWages.find(w => w.id === wageId);
+                    const edited = editedWages[wageId] || wage;
+                    return sum + (edited ? edited.epf_deduction : 0);
+                  }, 0))}</span></div>
+                </div>
+                <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #3b82f6;">
+                  <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total ESIC</div>
+                  <div style="font-size: 16px; font-weight: 700; color: #3b82f6;"><span id="summary-total-esic">${formatCurrency(Array.from(selectedWageIds).reduce((sum, wageId) => {
+                    const wage = existingWages.find(w => w.id === wageId);
+                    const edited = editedWages[wageId] || wage;
+                    return sum + (edited ? edited.esic_deduction : 0);
+                  }, 0))}</span></div>
+                </div>
+                <div style="padding: 8px; background: white; border-radius: 4px; border-left: 3px solid #8b5cf6;">
+                  <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">Total Net Salary</div>
+                  <div style="font-size: 16px; font-weight: 700; color: #059669;"><span id="summary-total-net">${formatCurrency(Array.from(selectedWageIds).reduce((sum, wageId) => {
+                    const wage = existingWages.find(w => w.id === wageId);
+                    const edited = editedWages[wageId] || wage;
+                    return sum + (edited ? calculateNetSalary(
+                      toNumber(edited.gross_salary),
+                      toNumber(edited.epf_deduction),
+                      toNumber(edited.esic_deduction),
+                      toNumber(edited.other_deduction),
+                      toNumber(edited.other_benefit)
+                    ) : 0);
+                  }, 0))}</span></div>
                 </div>
               </div>
-            ` : ''}
+            </div>
 
             <!-- Bulk Edit Form -->
             ${isBulkEditMode ? `
@@ -401,9 +401,7 @@ export function renderManageMode(ctx) {
             <h3 style="margin-bottom: 15px; color: #1f2937;">
               Wage Records for ${formatMonthDisplay(manageMonth)}
               <span style="color: #6b7280; font-size: 14px;">(${filteredWages.length} of ${existingWages.length} records)</span>
-              ${Object.keys(editedWages).length > 0 ? `
-                <span style="color: #f59e0b; font-size: 14px; margin-left: 10px;">⚠️ ${Object.keys(editedWages).length} unsaved changes</span>
-              ` : ''}
+              <span id="unsaved-changes-badge" style="color: #f59e0b; font-size: 14px; margin-left: 10px; display: ${Object.keys(editedWages).length > 0 ? 'inline' : 'none'};">⚠️ <span id="unsaved-count">${Object.keys(editedWages).length}</span> unsaved changes</span>
             </h3>
             
             <div style="overflow-x: auto;">
@@ -412,6 +410,7 @@ export function renderManageMode(ctx) {
                   <tr style="background: linear-gradient(to right, #ef4444, #10b981); border-bottom: 2px solid #e5e7eb;">
                     <th style="padding: 10px; text-align: center; color: white; font-weight: 600;">
                       <input 
+                        id="select-all-manage"
                         type="checkbox" 
                         ${selectedWageIds.size === filteredWages.length && filteredWages.length > 0 ? 'checked' : ''}
                         data-action="select-all-wages"
@@ -443,7 +442,7 @@ export function renderManageMode(ctx) {
                     );
                     
                     return `
-                      <tr style="
+                      <tr data-wage-row="${String(wage.id)}" style="
                         border-bottom: 1px solid #e5e7eb;
                         background: ${isSelected ? '#eff6ff' : 'white'};
                       ">

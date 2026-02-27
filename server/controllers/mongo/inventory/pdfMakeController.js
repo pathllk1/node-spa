@@ -304,25 +304,23 @@ export const generateInvoicePDF = async (req, res) => {
 
         const taxableValue = bill.gtot || 0;
         const totalTax = gstEnabled ? ((bill.cgst || 0) + (bill.sgst || 0) + (bill.igst || 0)) : 0;
-        const grandTotal = gstEnabled ? (bill.ntot || 0) : taxableValue;
-        const roundedGrandTotal = Math.round(grandTotal);
-        const roundOff = roundedGrandTotal - grandTotal;
+        // bill.ntot is already the rounded grand total (rounded in calcBillTotals before saving).
+        // bill.rof is the stored round-off amount (string from .toFixed(2)) — read it directly.
+        // Recalculating Math.round(bill.ntot) - bill.ntot always gives 0 because ntot is already an integer.
+        const roundedGrandTotal = gstEnabled ? (bill.ntot || 0) : Math.round(taxableValue);
+        const roundOff = parseFloat(bill.rof || 0);
 
         // ── Design Tokens ─────────────────────────────────────────────────────
+        // Ink-efficient: no filled backgrounds. Borders + bold typography only.
+        // Looks structured on screen AND prints cleanly in black & white.
         const C = {
-            primary:      '#1B3A6B',   // deep navy
-            primaryLight: '#2A5298',   // medium navy/blue
-            accent:       '#1B3A6B',   // header bar colour
-            accentBg:     '#EBF0FA',   // very light blue tint
-            headerText:   '#FFFFFF',   // white text on coloured headers
-            border:       '#C8D4E8',   // cool grey border
-            borderDark:   '#1B3A6B',   // navy border
-            rowAlt:       '#F4F7FC',   // alternate row tint
-            textDark:     '#1A1A2E',
-            textMid:      '#3D4D6A',
-            textLight:    '#6B7A99',
-            green:        '#166534',
-            red:          '#991B1B',
+            primary:    '#1B3A6B',   // navy — text accents & borders only, no area fills
+            border:     '#A0B4CC',   // medium grey border — visible in B&W print
+            borderDark: '#1B3A6B',   // navy border for outer frames & thick rules
+            textDark:   '#1A1A2E',   // near-black body text
+            textMid:    '#3D4D6A',   // mid-grey secondary text
+            textLight:  '#6B7A99',   // light grey hints / labels
+            red:        '#991B1B',   // error / reverse-charge notice
         };
 
         // Build Doc Definition
@@ -331,37 +329,32 @@ export const generateInvoicePDF = async (req, res) => {
                 font: 'DejaVuSans',
                 fontSize: 8.5,
                 color: C.textDark,
-                lineHeight: 1.2
+                lineHeight: 1.1
             },
             content: [
-                // ── Top colour bar + company + invoice meta ────────────────────
+                // ── Header: company info (left) + invoice meta (right) ────────────
                 {
                     table: {
                         widths: ['*', 185],
                         body: [[
-                            // LEFT: company block on coloured bar
+                            // LEFT: invoice type + company details — white, no fill
                             {
-                                fillColor: C.primary,
                                 stack: [
                                     { text: getInvoiceTypeLabel(bill), style: 'invoiceTypeLabel' },
                                     { text: gstEnabled ? 'TAX INVOICE UNDER GST' : 'INVOICE (GST DISABLED)', style: 'invoiceSubTag' },
                                     {
-                                        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 340, y2: 0, lineWidth: 0.5, lineColor: '#4A6FA5' }],
-                                        margin: [0, 5, 0, 5]
+                                        // thin navy rule separating title from company block
+                                        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 330, y2: 0, lineWidth: 1, lineColor: C.borderDark }],
+                                        margin: [0, 6, 0, 6]
                                     },
                                     { text: seller.name, style: 'companyName' },
                                     { text: seller.address, style: 'companyMeta' },
-                                    {
-                                        columns: [
-                                            { text: seller.gstin ? `GSTIN: ${seller.gstin}` : '', style: 'companyMeta', width: '*' },
-                                        ]
-                                    }
+                                    { text: seller.gstin ? `GSTIN: ${seller.gstin}` : '', style: 'companyMeta' }
                                 ],
-                                margin: [10, 10, 8, 10]
+                                margin: [0, 0, 8, 0]
                             },
-                            // RIGHT: invoice details table on coloured bar
+                            // RIGHT: invoice details — white, thin outer border box
                             {
-                                fillColor: C.primaryLight,
                                 stack: [
                                     {
                                         table: {
@@ -389,14 +382,33 @@ export const generateInvoicePDF = async (req, res) => {
                                                 ]] : [])
                                             ]
                                         },
-                                        layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 6, paddingTop: () => 2, paddingBottom: () => 2 }
+                                        layout: {
+                                            // inner meta table: thin borders all around each row
+                                            hLineWidth: (i, node) => (i === 0 || i === node.table.body.length) ? 1 : 0.5,
+                                            vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length) ? 1 : 0,
+                                            hLineColor: () => C.border,
+                                            vLineColor: () => C.border,
+                                            paddingLeft: () => 5,
+                                            paddingRight: () => 5,
+                                            paddingTop: () => 3,
+                                            paddingBottom: () => 3
+                                        }
                                     }
                                 ],
-                                margin: [8, 10, 10, 10]
+                                margin: [0, 0, 0, 0]
                             }
                         ]]
                     },
-                    layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+                    layout: {
+                        // outer header table: no side borders, thick navy bottom rule
+                        hLineWidth: (i, node) => i === node.table.body.length ? 2 : 0,
+                        vLineWidth: () => 0,
+                        hLineColor: () => C.borderDark,
+                        paddingLeft: () => 0,
+                        paddingRight: () => 0,
+                        paddingTop: () => 0,
+                        paddingBottom: () => 10
+                    },
                     margin: [0, 0, 0, 0]
                 },
 
@@ -405,7 +417,7 @@ export const generateInvoicePDF = async (req, res) => {
                     table: {
                         widths: ['*', '*'],
                         body: [[
-                            // Bill To
+                            // Bill To — no fill, bordered box
                             {
                                 stack: [
                                     { text: partyLabels.billTo.toUpperCase(), style: 'partyBoxTitle' },
@@ -414,10 +426,9 @@ export const generateInvoicePDF = async (req, res) => {
                                     { text: bill.state ? `State: ${bill.state}` : '', style: 'partyMeta' },
                                     { text: bill.gstin ? `GSTIN: ${bill.gstin}` : '', style: 'partyGstin' },
                                 ],
-                                fillColor: C.accentBg,
                                 margin: [8, 7, 8, 7]
                             },
-                            // Ship To
+                            // Ship To — no fill, bordered box
                             {
                                 stack: [
                                     { text: partyLabels.shipTo.toUpperCase(), style: 'partyBoxTitle' },
@@ -426,7 +437,6 @@ export const generateInvoicePDF = async (req, res) => {
                                     { text: (bill.consignee_state || bill.state) ? `State: ${bill.consignee_state || bill.state}` : '', style: 'partyMeta' },
                                     { text: (bill.consignee_gstin || bill.gstin) ? `GSTIN: ${bill.consignee_gstin || bill.gstin}` : '', style: 'partyGstin' },
                                 ],
-                                fillColor: '#FFFFFF',
                                 margin: [8, 7, 8, 7]
                             }
                         ]]
@@ -459,39 +469,39 @@ export const generateInvoicePDF = async (req, res) => {
                                 { text: 'GST%', style: 'tblHdr', alignment: 'right' },
                                 { text: 'Amount (₹)', style: 'tblHdr', alignment: 'right' }
                             ],
-                            // Item rows
+                            // Item rows — no fills, clean white rows
                             ...items.map((it, idx) => [
-                                { text: idx + 1, alignment: 'center', style: 'tblCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
+                                { text: idx + 1, alignment: 'center', style: 'tblCell' },
                                 {
                                     stack: [
                                         { text: it.item || '', bold: true, fontSize: 8.5 },
                                         ...(it.batch ? [{ text: `Batch: ${it.batch}`, fontSize: 7.5, color: C.textLight }] : []),
                                         ...(it.item_narration ? [{ text: it.item_narration, fontSize: 7.5, color: C.textLight }] : [])
                                     ],
-                                    style: 'tblCell', fillColor: idx % 2 === 1 ? C.rowAlt : null
+                                    style: 'tblCell'
                                 },
-                                { text: it.hsn || '', alignment: 'center', style: 'tblCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                { text: formatQuantity(it.qty), alignment: 'center', style: 'tblCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                { text: it.uom || '', alignment: 'center', style: 'tblCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                { text: formatCurrency(it.rate), alignment: 'right', style: 'tblCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                { text: formatPercentage(it.disc), alignment: 'right', style: 'tblCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                { text: gstEnabled ? formatPercentage(it.grate) : '-', alignment: 'right', style: 'tblCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                { text: formatCurrency(it.total), alignment: 'right', bold: true, style: 'tblCell', color: C.primary, fillColor: idx % 2 === 1 ? C.rowAlt : null }
+                                { text: it.hsn || '', alignment: 'center', style: 'tblCell' },
+                                { text: formatQuantity(it.qty), alignment: 'center', style: 'tblCell' },
+                                { text: it.uom || '', alignment: 'center', style: 'tblCell' },
+                                { text: formatCurrency(it.rate), alignment: 'right', style: 'tblCell' },
+                                { text: formatPercentage(it.disc), alignment: 'right', style: 'tblCell' },
+                                { text: gstEnabled ? formatPercentage(it.grate) : '-', alignment: 'right', style: 'tblCell' },
+                                { text: formatCurrency(it.total), alignment: 'right', bold: true, style: 'tblCell' }
                             ]),
-                            // Other charges rows
+                            // Other charges rows — no fills
                             ...otherCharges.map((ch, idx) => [
-                                { text: items.length + idx + 1, alignment: 'center', style: 'tblCell', fillColor: (items.length + idx) % 2 === 1 ? C.rowAlt : null },
+                                { text: items.length + idx + 1, alignment: 'center', style: 'tblCell' },
                                 {
                                     stack: [
                                         { text: ch.name || ch.type || 'Other Charge', bold: true, fontSize: 8.5 },
                                         { text: `HSN/SAC: ${ch.hsnSac || ''}`, fontSize: 7.5, color: C.textLight }
                                     ],
-                                    style: 'tblCell', fillColor: (items.length + idx) % 2 === 1 ? C.rowAlt : null
+                                    style: 'tblCell'
                                 },
-                                { text: ch.hsnSac || '', alignment: 'center', style: 'tblCell', fillColor: (items.length + idx) % 2 === 1 ? C.rowAlt : null },
-                                { text: '1', alignment: 'center', style: 'tblCell', fillColor: (items.length + idx) % 2 === 1 ? C.rowAlt : null },
-                                { text: 'NOS', alignment: 'center', style: 'tblCell', fillColor: (items.length + idx) % 2 === 1 ? C.rowAlt : null },
-                                { text: formatCurrency(ch.amount), alignment: 'right', style: 'tblCell', fillColor: (items.length + idx) % 2 === 1 ? C.rowAlt : null },
+                                { text: ch.hsnSac || '', alignment: 'center', style: 'tblCell' },
+                                { text: '1', alignment: 'center', style: 'tblCell' },
+                                { text: 'NOS', alignment: 'center', style: 'tblCell' },
+                                { text: formatCurrency(ch.amount), alignment: 'right', style: 'tblCell' },
                                 { text: '0.00%', alignment: 'right', style: 'tableCell' },
                                 { text: gstEnabled ? formatPercentage(ch.gstRate) : '-', alignment: 'right', style: 'tableCell' },
                                 { text: formatCurrency(ch.amount), alignment: 'right', bold: true, style: 'tableCell' }
@@ -505,8 +515,8 @@ export const generateInvoicePDF = async (req, res) => {
                         vLineColor: () => C.border,
                         paddingLeft: () => 5,
                         paddingRight: () => 5,
-                        paddingTop: () => 4,
-                        paddingBottom: () => 4
+                        paddingTop: () => 2,
+                        paddingBottom: () => 2
                     }
                 },
 
@@ -528,12 +538,12 @@ export const generateInvoicePDF = async (req, res) => {
                                             { text: 'Total Tax (₹)', style: 'hsnHdr', alignment: 'right' }
                                         ],
                                         ...hsnSummary.map((row, idx) => [
-                                            { text: row.hsn, alignment: 'center', style: 'hsnCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                            { text: formatCurrency(row.taxableValue), alignment: 'right', style: 'hsnCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                            { text: billType === 'intra-state' ? formatCurrency(row.cgst) : '—', alignment: 'right', style: 'hsnCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                            { text: billType === 'intra-state' ? formatCurrency(row.sgst) : '—', alignment: 'right', style: 'hsnCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                            { text: billType === 'inter-state' ? formatCurrency(row.igst) : '—', alignment: 'right', style: 'hsnCell', fillColor: idx % 2 === 1 ? C.rowAlt : null },
-                                            { text: formatCurrency(row.totalTax), alignment: 'right', style: 'hsnCell', bold: true, color: C.primary, fillColor: idx % 2 === 1 ? C.rowAlt : null }
+                                            { text: row.hsn, alignment: 'center', style: 'hsnCell' },
+                                            { text: formatCurrency(row.taxableValue), alignment: 'right', style: 'hsnCell' },
+                                            { text: billType === 'intra-state' ? formatCurrency(row.cgst) : '—', alignment: 'right', style: 'hsnCell' },
+                                            { text: billType === 'intra-state' ? formatCurrency(row.sgst) : '—', alignment: 'right', style: 'hsnCell' },
+                                            { text: billType === 'inter-state' ? formatCurrency(row.igst) : '—', alignment: 'right', style: 'hsnCell' },
+                                            { text: formatCurrency(row.totalTax), alignment: 'right', style: 'hsnCell', bold: true }
                                         ])
                                     ]
                                 },
@@ -544,8 +554,8 @@ export const generateInvoicePDF = async (req, res) => {
                                     vLineColor: () => C.border,
                                     paddingLeft: () => 5,
                                     paddingRight: () => 5,
-                                    paddingTop: () => 3,
-                                    paddingBottom: () => 3
+                                    paddingTop: () => 2,
+                                    paddingBottom: () => 2
                                 }
                             }
                         ],
@@ -562,7 +572,7 @@ export const generateInvoicePDF = async (req, res) => {
                             {
                                 stack: [
                                     { text: 'AMOUNT IN WORDS', style: 'footerSectionTitle' },
-                                    { text: numberToWords(roundedGrandTotal), bold: true, fontSize: 9, color: C.primary, margin: [0, 3, 0, 0] },
+                                    { text: numberToWords(roundedGrandTotal), bold: true, fontSize: 9, margin: [0, 3, 0, 0] },
                                     ...(bill.narration ? [
                                         { text: 'NARRATION', style: 'footerSectionTitle', margin: [0, 8, 0, 2] },
                                         { text: bill.narration, fontSize: 8.5, color: C.textMid }
@@ -592,15 +602,25 @@ export const generateInvoicePDF = async (req, res) => {
                                                 [{ text: 'Total Tax', style: 'totLabel' }, { text: formatCurrency(totalTax), alignment: 'right', style: 'totValue' }],
                                                 [{ text: 'Round Off', style: 'totLabel' }, { text: formatCurrency(roundOff), alignment: 'right', style: 'totValue' }],
                                                 [
-                                                    { text: 'GRAND TOTAL', style: 'grandTotLabel', fillColor: C.primary },
-                                                    { text: formatCurrency(roundedGrandTotal), alignment: 'right', style: 'grandTotValue', fillColor: C.primary }
+                                                    // Grand Total: bold navy text + thick top border (set in layout), no fill
+                                                    { text: 'GRAND TOTAL', style: 'grandTotLabel' },
+                                                    { text: formatCurrency(roundedGrandTotal), alignment: 'right', style: 'grandTotValue' }
                                                 ]
                                             ]
                                         },
                                         layout: {
-                                            hLineWidth: (i, node) => (i === 0 || i === node.table.body.length) ? 1 : 0.5,
+                                            // thick navy top & bottom borders; thick double-weight line above Grand Total row
+                                            hLineWidth: (i, node) => {
+                                                if (i === 0 || i === node.table.body.length) return 1.5;
+                                                if (i === node.table.body.length - 1) return 1.5; // above Grand Total
+                                                return 0.5;
+                                            },
                                             vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length) ? 1 : 0,
-                                            hLineColor: (i, node) => (i === 0 || i === node.table.body.length) ? C.borderDark : C.border,
+                                            hLineColor: (i, node) => {
+                                                if (i === 0 || i === node.table.body.length) return C.borderDark;
+                                                if (i === node.table.body.length - 1) return C.borderDark; // above Grand Total
+                                                return C.border;
+                                            },
                                             vLineColor: () => C.border,
                                             paddingLeft: () => 6,
                                             paddingRight: () => 6,
@@ -648,7 +668,7 @@ export const generateInvoicePDF = async (req, res) => {
                             },
                             {
                                 stack: [
-                                    { text: `For ${seller.name}`, bold: true, fontSize: 9, color: C.primary, alignment: 'right', margin: [0, 0, 0, 4] },
+                                    { text: `For ${seller.name}`, bold: true, fontSize: 9, alignment: 'right', margin: [0, 0, 0, 4] },
                                     { text: gstEnabled ? `GSTIN: ${seller.gstin}` : '', fontSize: 7.5, color: C.textLight, alignment: 'right' },
                                     {
                                         canvas: [{ type: 'line', x1: 0, y1: 0, x2: 130, y2: 0, lineWidth: 0.75, lineColor: C.border }],
@@ -672,39 +692,44 @@ export const generateInvoicePDF = async (req, res) => {
                 }
             ],
             styles: {
-                // Header bar
-                invoiceTypeLabel:  { fontSize: 17, bold: true, color: '#FFFFFF', margin: [0, 0, 0, 2] },
-                invoiceSubTag:     { fontSize: 7.5, color: '#BFD0F0', letterSpacing: 1 },
-                companyName:       { fontSize: 12, bold: true, color: '#FFFFFF' },
-                companyMeta:       { fontSize: 8, color: '#BFD0F0', margin: [0, 1, 0, 0] },
-                metaLabel:         { fontSize: 8, color: '#BFD0F0', bold: false },
-                metaValue:         { fontSize: 8.5, bold: true, color: '#FFFFFF' },
-                // Party boxes
-                partyBoxTitle:     { fontSize: 7.5, bold: true, color: C.primary, letterSpacing: 0.5 },
+                // ── Header ────────────────────────────────────────────────────
+                // No fills. Dark text on white. Navy used only for invoice type title.
+                invoiceTypeLabel:  { fontSize: 17, bold: true, color: C.primary },
+                invoiceSubTag:     { fontSize: 7.5, color: C.textLight },
+                companyName:       { fontSize: 12, bold: true, color: C.textDark },
+                companyMeta:       { fontSize: 8, color: C.textMid, margin: [0, 1, 0, 0] },
+                metaLabel:         { fontSize: 8, color: C.textLight },
+                metaValue:         { fontSize: 8.5, bold: true, color: C.textDark },
+                // ── Party boxes ───────────────────────────────────────────────
+                partyBoxTitle:     { fontSize: 7.5, bold: true, color: C.primary },
                 partyName:         { fontSize: 9.5, bold: true, color: C.textDark },
                 partyMeta:         { fontSize: 8, color: C.textMid, margin: [0, 1, 0, 0] },
-                partyGstin:        { fontSize: 8, bold: true, color: C.primary, margin: [0, 2, 0, 0] },
-                // Items table
-                tblHdr:            { fontSize: 8, bold: true, color: C.headerText, fillColor: C.primary, margin: [0, 2, 0, 2] },
+                partyGstin:        { fontSize: 8, bold: true, color: C.textDark, margin: [0, 2, 0, 0] },
+                // ── Items table ───────────────────────────────────────────────
+                // Header: no fill, navy bold text. Thick bottom border distinguishes header.
+                // Compact margins so more rows fit per page.
+                tblHdr:            { fontSize: 8, bold: true, color: C.primary, margin: [0, 2, 0, 2] },
                 tblCell:           { fontSize: 8.5, margin: [0, 2, 0, 2] },
-                // HSN table
-                hsnHdr:            { fontSize: 7.5, bold: true, color: C.headerText, fillColor: C.primaryLight, margin: [0, 2, 0, 2] },
+                // ── HSN / SAC table ───────────────────────────────────────────
+                // Header: no fill, navy bold text.
+                hsnHdr:            { fontSize: 7.5, bold: true, color: C.primary, margin: [0, 1, 0, 1] },
                 hsnCell:           { fontSize: 8, margin: [0, 1, 0, 1] },
                 sectionTitle:      { fontSize: 8.5, bold: true, color: C.primary, margin: [0, 0, 0, 3] },
-                // Footer totals
+                // ── Footer totals ─────────────────────────────────────────────
                 footerSectionTitle:{ fontSize: 7.5, bold: true, color: C.primary, margin: [0, 0, 0, 2] },
                 totLabel:          { fontSize: 8.5, color: C.textMid },
                 totValue:          { fontSize: 8.5, bold: true, color: C.textDark },
-                grandTotLabel:     { fontSize: 10, bold: true, color: '#FFFFFF' },
-                grandTotValue:     { fontSize: 11, bold: true, color: '#FFFFFF' },
-                // Signatures
+                // Grand Total: no fill. Bold navy text + thick border above (set in layout).
+                grandTotLabel:     { fontSize: 10, bold: true, color: C.primary },
+                grandTotValue:     { fontSize: 11, bold: true, color: C.primary },
+                // ── Signatures ────────────────────────────────────────────────
                 sigLabel:          { fontSize: 8, color: C.textMid },
-                // Legacy (kept for any remaining references)
+                // ── Legacy (kept for safety — do not remove) ──────────────────
                 label:             { fontSize: 8.5, color: C.textLight },
-                value:             { fontSize: 8.5, bold: true },
+                value:             { fontSize: 8.5, bold: true, color: C.textDark },
                 boxTitle:          { fontSize: 9, bold: true, color: C.primary },
-                grandLabel:        { fontSize: 10, bold: true, color: '#FFFFFF' },
-                grandValue:        { fontSize: 12, bold: true, color: '#FFFFFF' }
+                grandLabel:        { fontSize: 10, bold: true, color: C.primary },
+                grandValue:        { fontSize: 12, bold: true, color: C.primary }
             },
             pageMargins: [30, 30, 30, 30]
         };

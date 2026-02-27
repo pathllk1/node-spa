@@ -209,6 +209,154 @@ let createRenderDebounceTimer = null;
     if (netInput) netInput.value = netSalary.toFixed(2);
   }
 
+
+  /* --------------------------------------------------
+     SURGICAL DOM UPDATE HELPERS
+     These patch only changed elements instead of calling
+     render() + renderLayout() on every micro-interaction
+     (checkbox, month change, payment field, etc.)
+  -------------------------------------------------- */
+
+  // ── Create mode helpers ───────────────────────────
+
+  /**
+   * Update only selection-related DOM in the Create tab.
+   * @param {string|null} toggledEmpId  Row just toggled, or null for select-all.
+   */
+  function updateCreateSelectionUI(toggledEmpId) {
+    const filteredEmps = getFilteredCreateEmployees();
+    const allSelected  = filteredEmps.length > 0
+      && filteredEmps.every(e => selectedEmployeeIds.has(e.master_roll_id));
+
+    if (toggledEmpId != null) {
+      // Single toggle: paint only that one row
+      const row = document.querySelector(`tr[data-emp-row="${toggledEmpId}"]`);
+      if (row) row.style.background = selectedEmployeeIds.has(toggledEmpId) ? '#eff6ff' : 'white';
+    } else {
+      // Select-all / deselect-all: update every visible row + checkbox
+      filteredEmps.forEach(emp => {
+        const id  = emp.master_roll_id;
+        const row = document.querySelector(`tr[data-emp-row="${id}"]`);
+        const cb  = document.querySelector(`input[data-action="toggle-employee"][data-emp-id="${id}"]`);
+        if (row) row.style.background = selectedEmployeeIds.has(id) ? '#eff6ff' : 'white';
+        if (cb)  cb.checked = selectedEmployeeIds.has(id);
+      });
+    }
+
+    // Header select-all checkbox
+    const selectAllCb = document.getElementById('select-all-create');
+    if (selectAllCb) selectAllCb.checked = allSelected;
+
+    // Save Wages button — label + enabled state
+    const saveBtn = document.getElementById('save-wages-btn');
+    if (saveBtn) {
+      const has = selectedEmployeeIds.size > 0;
+      saveBtn.disabled = !has;
+      saveBtn.style.background = has ? '#059669' : '#9ca3af';
+      saveBtn.style.cursor = has ? 'pointer' : 'not-allowed';
+      saveBtn.textContent = has
+        ? `💾 Save Wages (${selectedEmployeeIds.size})`
+        : '💾 Save Wages';
+    }
+
+    updateCreateSummaryTotals();
+  }
+
+  /** Recalculate and repaint the Create-mode summary totals panel. */
+  function updateCreateSummaryTotals() {
+    const header  = document.getElementById('create-summary-header');
+    const grossEl = document.getElementById('create-summary-gross');
+    const epfEl   = document.getElementById('create-summary-epf');
+    const esicEl  = document.getElementById('create-summary-esic');
+    const netEl   = document.getElementById('create-summary-net');
+    if (!grossEl) return; // panel not in DOM yet (no employees loaded)
+
+    let tGross = 0, tEpf = 0, tEsic = 0, tNet = 0;
+    selectedEmployeeIds.forEach(id => {
+      const w = wageData[id];
+      if (!w) return;
+      tGross += w.gross_salary   || 0;
+      tEpf   += w.epf_deduction  || 0;
+      tEsic  += w.esic_deduction || 0;
+      tNet   += calculateNetSalary(
+        w.gross_salary, w.epf_deduction, w.esic_deduction,
+        w.other_deduction, w.other_benefit
+      );
+    });
+
+    if (header)  header.textContent  = `📊 Summary (${selectedEmployeeIds.size} selected / ${employees.length} total)`;
+    if (grossEl) grossEl.textContent = formatCurrency(tGross);
+    if (epfEl)   epfEl.textContent   = formatCurrency(tEpf);
+    if (esicEl)  esicEl.textContent  = formatCurrency(tEsic);
+    if (netEl)   netEl.textContent   = formatCurrency(tNet);
+  }
+
+  // ── Manage mode helpers ───────────────────────────
+
+  /**
+   * Update only selection-related DOM in the Manage tab.
+   * @param {string|null} toggledWageId  Row just toggled, or null for select-all.
+   */
+  function updateManageSelectionUI(toggledWageId) {
+    const filteredWages = getFilteredManageWages();
+    const allSelected   = filteredWages.length > 0
+      && filteredWages.every(w => selectedWageIds.has(w.id));
+
+    if (toggledWageId != null) {
+      const row = document.querySelector(`tr[data-wage-row="${toggledWageId}"]`);
+      if (row) row.style.background = selectedWageIds.has(toggledWageId) ? '#eff6ff' : 'white';
+    } else {
+      filteredWages.forEach(wage => {
+        const row = document.querySelector(`tr[data-wage-row="${wage.id}"]`);
+        const cb  = document.querySelector(`input[data-action="toggle-wage"][data-wage-id="${wage.id}"]`);
+        if (row) row.style.background = selectedWageIds.has(wage.id) ? '#eff6ff' : 'white';
+        if (cb)  cb.checked = selectedWageIds.has(wage.id);
+      });
+    }
+
+    // Header select-all checkbox
+    const selectAllCb = document.getElementById('select-all-manage');
+    if (selectAllCb) selectAllCb.checked = allSelected;
+
+    // Bulk-action container — show/hide
+    const actionArea = document.getElementById('manage-selection-actions');
+    if (actionArea) actionArea.style.display = selectedWageIds.size > 0 ? 'flex' : 'none';
+
+    // Button label counts
+    const bulkBtn = document.getElementById('bulk-edit-btn');
+    if (bulkBtn && !isBulkEditMode) {
+      bulkBtn.textContent = `✏️ Bulk Edit (${selectedWageIds.size})`;
+    }
+    const delBtn = document.getElementById('delete-selected-btn');
+    if (delBtn) delBtn.textContent = `🗑️ Delete Selected (${selectedWageIds.size})`;
+
+    // Summary panel — show/hide and refresh counts
+    const panel = document.getElementById('manage-summary-panel');
+    if (panel) {
+      panel.style.display = selectedWageIds.size > 0 ? 'block' : 'none';
+      if (selectedWageIds.size > 0) {
+        const hdr = document.getElementById('manage-summary-header');
+        if (hdr) hdr.textContent = `📊 Summary (${selectedWageIds.size} selected)`;
+        updateSummaryPanel(); // existing fn — updates the 4 total <span>s
+      }
+    }
+  }
+
+  /**
+   * Show the Save Changes button and unsaved-changes badge without re-rendering.
+   * Called by handleManageFieldChange every time a field is edited.
+   */
+  function showSaveEditedButton(count) {
+    const container = document.getElementById('save-edited-btn-container');
+    const badge     = document.getElementById('unsaved-changes-badge');
+    const countEl   = document.getElementById('unsaved-count');
+    const btn       = document.getElementById('save-edited-btn');
+    if (container) container.style.display = 'block';
+    if (badge)     badge.style.display     = 'inline';
+    if (countEl)   countEl.textContent     = count;
+    if (btn)       btn.textContent         = `💾 Save Changes (${count})`;
+  }
+
   function calculateBulkForAllEmployees() {
     employees.forEach(emp => {
       if (!wageData[emp.master_roll_id]) {
@@ -224,8 +372,8 @@ let createRenderDebounceTimer = null;
       }
       calculateAllWagesForEmployee(emp.master_roll_id);
     });
-    const content = render();
-    renderLayout(content, window.wagesDashboard.router);
+    // updateWageRowDisplay() already patched each row — just refresh summary
+    updateCreateSummaryTotals();
   }
 
   // ====================================================================
@@ -690,6 +838,8 @@ function handleManageFieldChange(wageId, field, value) {
     if (netEl) netEl.innerText = formatCurrency(newNetSalary);
 
     updateSummaryPanel();
+    // Show Save Changes button + unsaved badge without a full re-render
+    showSaveEditedButton(Object.keys(editedWages).length);
   }
 
   /* --------------------------------------------------
@@ -1177,8 +1327,7 @@ function handleManageFieldChange(wageId, field, value) {
     // Create mode - Data loading
     setMonth: (month) => {
       selectedMonth = month;
-      const content = render();
-      renderLayout(content, window.wagesDashboard.router);
+      // Browser already updated the input value — no re-render needed
     },
     loadEmployees: loadEmployeesForWages,
     
@@ -1193,8 +1342,7 @@ function handleManageFieldChange(wageId, field, value) {
       } else {
         selectedEmployeeIds.delete(empId);
       }
-      const content = render();
-      renderLayout(content, window.wagesDashboard.router);
+      updateCreateSelectionUI(empId); // surgical patch — no full re-render
     },
     toggleSelectAllCreate: (checked) => {
       const filteredEmployees = getFilteredCreateEmployees();
@@ -1203,8 +1351,7 @@ function handleManageFieldChange(wageId, field, value) {
       } else {
         filteredEmployees.forEach(emp => selectedEmployeeIds.delete(emp.master_roll_id));
       }
-      const content = render();
-      renderLayout(content, window.wagesDashboard.router);
+      updateCreateSelectionUI(null); // null = select-all path
     },
     
     // Create mode - Filters
@@ -1251,15 +1398,13 @@ function handleManageFieldChange(wageId, field, value) {
     saveWages: saveWages,
     setCommonPayment: (field, value) => {
       commonPaymentData[field] = value;
-      const content = render();
-      renderLayout(content, window.wagesDashboard.router);
+      // Browser already updated the input — no re-render needed
     },
 
     // Manage mode - Data loading
     setManageMonth: (month) => {
       manageMonth = month;
-      const content = render();
-      renderLayout(content, window.wagesDashboard.router);
+      // Browser already updated the input — no re-render needed
     },
     loadManageWages: loadExistingWages,
     
@@ -1355,8 +1500,7 @@ function handleManageFieldChange(wageId, field, value) {
       } else {
         selectedWageIds.delete(wageId);
       }
-      const content = render();
-      renderLayout(content, window.wagesDashboard.router);
+      updateManageSelectionUI(wageId); // surgical patch — no full re-render
     },
     toggleSelectAll: (checked) => {
       const filteredWages = getFilteredManageWages();
@@ -1365,8 +1509,7 @@ function handleManageFieldChange(wageId, field, value) {
       } else {
         filteredWages.forEach(wage => selectedWageIds.delete(wage.id));
       }
-      const content = render();
-      renderLayout(content, window.wagesDashboard.router);
+      updateManageSelectionUI(null); // null = select-all path
     },
 
     // Export
