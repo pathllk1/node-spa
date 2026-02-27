@@ -1,45 +1,39 @@
 import express from "express";
 import bcrypt from "bcrypt";
-import { db, Firm, User } from "../../utils/db.js";
-import { authenticateJWT, requireRole } from "../../middleware/auth.js";
+import User from "../../models/User.model.js";
+import Firm from "../../models/Firm.model.js";
+import { authMiddleware as authenticateJWT } from "../../middleware/mongo/authMiddleware.js";
+import { requireRole } from "../../middleware/mongo/auth.js";
 import * as firmManagementController from "../../controllers/mongo/firmManagementController.js";
 
 const router = express.Router();
 
 /* --------------------------------------------------
-   PREPARED STATEMENTS  (SQLite – user management only)
--------------------------------------------------- */
-
-const getAllPendingUsers = db.prepare(`
-  SELECT u.*,
-         CASE WHEN u.firm_id IS NOT NULL THEN f.name ELSE 'No Firm' END AS firm_name,
-         CASE WHEN u.firm_id IS NOT NULL THEN f.code ELSE NULL END AS firm_code
-  FROM users u
-  LEFT JOIN firms f ON f.id = u.firm_id
-  WHERE u.status = 'pending'
-  ORDER BY u.created_at DESC
-`);
-
-const getAllUsers = db.prepare(`
-  SELECT u.id, u.username, u.email, u.fullname, u.role, u.status,
-         u.created_at, u.updated_at,
-         CASE WHEN u.firm_id IS NOT NULL THEN f.name ELSE 'No Firm' END AS firm_name,
-         CASE WHEN u.firm_id IS NOT NULL THEN f.code ELSE NULL END AS firm_code
-  FROM users u
-  LEFT JOIN firms f ON f.id = u.firm_id
-  WHERE u.role != 'super_admin'
-  ORDER BY u.created_at DESC
-`);
-
-/* --------------------------------------------------
-   USER MANAGEMENT ROUTES  (SQLite)
+   USER MANAGEMENT ROUTES  (MongoDB)
    All require super_admin role
 -------------------------------------------------- */
 
 // Get all users
-router.get("/users", authenticateJWT, requireRole("super_admin"), (req, res) => {
+router.get("/users", authenticateJWT, requireRole("super_admin"), async (req, res) => {
   try {
-    const users = getAllUsers.all();
+    const users = await User.aggregate([
+      { $match: { role: { $ne: 'super_admin' } } },
+      { $lookup: { from: 'firms', localField: 'firm_id', foreignField: '_id', as: 'firm' } },
+      { $unwind: { path: '$firm', preserveNullAndEmptyArrays: true } },
+      { $project: {
+        id: '$_id',
+        username: 1,
+        email: 1,
+        fullname: 1,
+        role: 1,
+        status: 1,
+        created_at: '$createdAt',
+        updated_at: '$updatedAt',
+        firm_name: { $ifNull: ['$firm.name', 'No Firm'] },
+        firm_code: '$firm.code'
+      } },
+      { $sort: { created_at: -1 } }
+    ]);
     res.json({ success: true, users });
   } catch (err) {
     console.error("Get users error:", err);
@@ -48,9 +42,26 @@ router.get("/users", authenticateJWT, requireRole("super_admin"), (req, res) => 
 });
 
 // Get pending users
-router.get("/users/pending", authenticateJWT, requireRole("super_admin"), (req, res) => {
+router.get("/users/pending", authenticateJWT, requireRole("super_admin"), async (req, res) => {
   try {
-    const users = getAllPendingUsers.all();
+    const users = await User.aggregate([
+      { $match: { status: 'pending' } },
+      { $lookup: { from: 'firms', localField: 'firm_id', foreignField: '_id', as: 'firm' } },
+      { $unwind: { path: '$firm', preserveNullAndEmptyArrays: true } },
+      { $project: {
+        id: '$_id',
+        username: 1,
+        email: 1,
+        fullname: 1,
+        role: 1,
+        status: 1,
+        created_at: '$createdAt',
+        updated_at: '$updatedAt',
+        firm_name: { $ifNull: ['$firm.name', 'No Firm'] },
+        firm_code: '$firm.code'
+      } },
+      { $sort: { created_at: -1 } }
+    ]);
     res.json({ success: true, users });
   } catch (err) {
     console.error("Get pending users error:", err);
@@ -59,7 +70,7 @@ router.get("/users/pending", authenticateJWT, requireRole("super_admin"), (req, 
 });
 
 // Approve / Reject user
-router.patch("/users/:id/status", authenticateJWT, requireRole("super_admin"), (req, res) => {
+router.patch("/users/:id/status", authenticateJWT, requireRole("super_admin"), async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -68,7 +79,10 @@ router.patch("/users/:id/status", authenticateJWT, requireRole("super_admin"), (
       return res.status(400).json({ success: false, error: "Invalid status" });
     }
 
-    User.updateStatus.run(status, id);
+    const updatedUser = await User.findByIdAndUpdate(id, { status }, { new: true });
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
     res.json({ success: true, message: `User ${status} successfully` });
   } catch (err) {
     console.error("Update user status error:", err);
@@ -76,13 +90,16 @@ router.patch("/users/:id/status", authenticateJWT, requireRole("super_admin"), (
   }
 });
 
-// Dashboard stats  (SQLite counts for users; firm counts come from Mongo below if needed)
-router.get("/stats", authenticateJWT, requireRole("super_admin"), (req, res) => {
+// Dashboard stats  (MongoDB counts for users; firm counts come from Mongo below if needed)
+router.get("/stats", authenticateJWT, requireRole("super_admin"), async (req, res) => {
   try {
+    const totalUsers = await User.countDocuments({ role: { $ne: 'super_admin' } });
+    const pendingUsers = await User.countDocuments({ status: 'pending' });
+    const approvedUsers = await User.countDocuments({ status: 'approved' });
     const stats = {
-      totalUsers:    db.prepare("SELECT COUNT(*) AS count FROM users WHERE role != 'super_admin'").get().count,
-      pendingUsers:  db.prepare("SELECT COUNT(*) AS count FROM users WHERE status = 'pending'").get().count,
-      approvedUsers: db.prepare("SELECT COUNT(*) AS count FROM users WHERE status = 'approved'").get().count,
+      totalUsers,
+      pendingUsers,
+      approvedUsers,
     };
     res.json({ success: true, stats });
   } catch (err) {
