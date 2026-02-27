@@ -236,10 +236,17 @@ export async function assignUserToFirm(req, res) {
 /* ── GET ALL USERS WITH FIRMS ────────────────────────────────────────────── */
 
 export async function getAllUsersWithFirms(req, res) {
-  if (!requireSuperAdmin(req, res)) return;
+  if (!req.user) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
 
   try {
-    const users = await User.find()
+    let query = {};
+    if (req.user.role === 'admin') {
+      query.firm_id = req.user.firm_id;
+    }
+
+    const users = await User.find(query)
       .populate('firm_id', 'name')
       .select('fullname username email firm_id role status')
       .sort({ fullname: 1 })
@@ -259,6 +266,51 @@ export async function getAllUsersWithFirms(req, res) {
     res.json({ users: shaped });
   } catch (err) {
     console.error('Error fetching users with firms:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+/* ── CREATE USER (ADMIN ONLY FOR THEIR FIRM) ───────────────────────────── */
+
+export async function createUser(req, res) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const { fullname, username, email, password, role } = req.body;
+
+    if (!fullname || !username || !email || !password || !role) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    if (!['user', 'manager'].includes(role)) {
+      return res.status(400).json({ error: 'Role must be user or manager' });
+    }
+
+    const [usernameTaken, emailTaken] = await Promise.all([
+      User.findOne({ username }).lean(),
+      User.findOne({ email }).lean(),
+    ]);
+
+    if (usernameTaken) return res.status(409).json({ error: 'Username already exists' });
+    if (emailTaken)    return res.status(409).json({ error: 'Email already exists' });
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const newUser = await User.create({
+      fullname,
+      username,
+      email,
+      password: hashedPassword,
+      role,
+      firm_id: req.user.firm_id,
+      status: 'approved',
+    });
+
+    res.status(201).json({ message: 'User created successfully', userId: newUser._id });
+  } catch (err) {
+    console.error('Error creating user:', err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 }

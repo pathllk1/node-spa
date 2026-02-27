@@ -34,7 +34,7 @@ function renderFooter() {
   if (footerContainer) {
     const currentYear = new Date().getFullYear();
     footerContainer.innerHTML = `
-      <footer class="fixed bottom-0 left-0 w-full h-12 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white border-t border-purple-700 z-10">
+      <footer class="fixed bottom-0 left-0 w-full h-12 bg-gradient-to-l from-indigo-600 via-purple-600 to-pink-600 text-white border-t border-purple-700 z-10">
         <div class="h-full flex items-center justify-between px-6">
           <div class="text-xs">
             © ${currentYear} SecureApp. All rights reserved.

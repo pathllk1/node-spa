@@ -16,7 +16,11 @@ import 'dotenv/config.js'; // Load environment variables from .env file
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+
+
+
 import { securityMiddleware } from './middleware/securityMiddleware.js';
+import sanitizer from './middleware/sanitizer.js';
 import { csrfGenerateToken, csrfValidateToken } from './middleware/csrfMiddleware.js';
 import authRoutes from './routes/mongo/authRoutes.js';
 import pageRoutes from './routes/pageRoutes.js';
@@ -40,6 +44,7 @@ const isVercel = process.env.VERCEL === '1';
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(sanitizer);
 
 // Security middleware - CSP/XSS protection
 app.use(securityMiddleware);

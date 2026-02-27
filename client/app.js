@@ -9,6 +9,7 @@ const loadAbout = () => import('./pages/about.js').then(m => m.renderAbout);
 const loadLogin = () => import('./pages/login.js').then(m => m.renderLogin);
 const loadDashboard = () => import('./pages/dashboard.js').then(m => m.renderDashboard);
 const loadProfile = () => import('./pages/profile.js').then(m => m.renderProfile);
+const loadSuperAdmin = () => import('./pages/superAdmin.js').then(m => m.renderSuperAdmin);
 const loadMasterRoll = () => import('./pages/master-roll.js').then(m => m.renderMasterRoll);
 const loadWagesDashboard = () => import('./pages/WagesDashboard.js').then(m => m.renderWagesDashboard);
 const loadSales = () => import('./pages/sales.js').then(m => m.renderSales);
@@ -112,6 +113,7 @@ router
   .on('/login',                     navigate(loadLogin))
   .on('/dashboard',                 navigate(loadDashboard))
   .on('/profile',                   navigate(loadProfile))
+  .on('/super-admin',               navigate(loadSuperAdmin))
 
   // HR
   .on('/master-roll',               navigate(loadMasterRoll))

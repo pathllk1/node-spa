@@ -2,6 +2,7 @@ import { renderLayout } from '../components/layout.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { fetchWithCSRF } from '../utils/api.js';
 import { authManager } from '../utils/auth.js';
+import { UserCreator } from '../components/admin/userCreator.js';
 
 export async function renderProfile(router) {
   const canAccess = await requireAuth(router);
@@ -9,6 +10,7 @@ export async function renderProfile(router) {
 
   const user        = authManager.getUser();
   const isSuperAdmin = user.role === 'super_admin';
+  const userCreator = user.role === 'admin' ? new UserCreator() : null;
 
   try {
     const [profileRes, settingsRes] = await Promise.all([
@@ -108,6 +110,22 @@ export async function renderProfile(router) {
           </div>
         </section>
 
+        ${user.role === 'admin' ? `
+        <!-- Firm Users -->
+        <section class="space-y-4">
+          <h2 class="text-lg font-semibold text-gray-800">Firm Users</h2>
+          <div id="firm-users-list" class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-semibold">Firm Users</h3>
+              <button id="add-user-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Add User</button>
+            </div>
+            <div id="firm-users-content">
+              Loading...
+            </div>
+          </div>
+        </section>
+        ` : ''}
+
         ${isSuperAdmin ? `
         <!-- Admin Panel -->
         <section class="space-y-4">
@@ -144,6 +162,13 @@ export async function renderProfile(router) {
     `;
 
     renderLayout(content, router);
+
+    if (user.role === 'admin') {
+      loadFirmUsers();
+      if (userCreator) {
+        document.getElementById('add-user-btn')?.addEventListener('click', () => userCreator.show());
+      }
+    }
 
     if (isSuperAdmin) initializeAdminComponents();
 
@@ -283,3 +308,44 @@ function statusMsg(color, text) {
   };
   return `<div class="border rounded-lg px-4 py-2.5 text-sm ${map[color]}">${text}</div>`;
 }
+
+/* ── Load Firm Users for Admin ───────────────────────────────────── */
+
+async function loadFirmUsers() {
+  const user = authManager.getUser();
+  try {
+    const res = await fetch('/api/admin/users-with-firms', { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } });
+    if (!res.ok) throw new Error('Failed to fetch users');
+    
+    const data = await res.json();
+    const firmUsers = data.users.filter(u => u.firm_id === user.firm_id);
+    
+    const listEl = document.getElementById('firm-users-content');
+    if (!listEl) return;
+    
+    if (firmUsers.length === 0) {
+      listEl.innerHTML = '<p class="text-gray-500">No users in your firm.</p>';
+      return;
+    }
+    
+    listEl.innerHTML = `
+      <div class="space-y-3">
+        ${firmUsers.map(u => `
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p class="font-medium text-gray-900">${u.fullname}</p>
+              <p class="text-sm text-gray-500">@${u.username} · ${u.email}</p>
+            </div>
+            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">${u.role}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch (err) {
+    console.error('Error loading firm users:', err);
+    const listEl = document.getElementById('firm-users-content');
+    if (listEl) listEl.innerHTML = '<p class="text-red-500">Failed to load firm users.</p>';
+  }
+}
+
+window.loadFirmUsers = loadFirmUsers;

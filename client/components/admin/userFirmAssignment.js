@@ -76,7 +76,7 @@ export class UserFirmAssignment {
       toast.success(data.message || 'Assignment updated successfully');
 
       await this.loadData();
-      this.render();
+      await this.render();
     } catch (error) {
       console.error('Error assigning user to firm:', error);
       toast.error('Failed to update assignment: ' + error.message);
@@ -85,7 +85,7 @@ export class UserFirmAssignment {
 
   /* ── RENDER ─────────────────────────────────────────────────────── */
 
-  render() {
+  async render() {
     if (!this.container) return;
 
     const assigned   = this.users.filter(u => u.firm_id).length;
@@ -149,94 +149,67 @@ export class UserFirmAssignment {
           </select>
         </div>
 
-        <!-- Table -->
-        <div class="bg-white border border-gray-200 rounded-xl shadow-xs overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
-                  <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-                  <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Firm</th>
-                  <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Assign To</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                ${this.filteredUsers.length === 0 ? `
-                  <tr>
-                    <td colspan="4" class="px-5 py-16 text-center">
-                      <div class="flex flex-col items-center text-gray-400">
-                        <svg class="w-12 h-12 mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <p class="font-medium text-gray-600">No users found</p>
-                        <p class="text-xs mt-1">Try adjusting your search or filter.</p>
-                      </div>
-                    </td>
-                  </tr>
-                ` : this.filteredUsers.map(user => `
-                  <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-5 py-3.5">
-                      <div class="flex items-center gap-3">
-                        <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600
-                                    flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <span class="text-white font-bold text-xs">${user.fullname.charAt(0).toUpperCase()}</span>
-                        </div>
-                        <div>
-                          <p class="font-semibold text-gray-900 leading-tight">${user.fullname}</p>
-                          <p class="text-xs text-gray-500">@${user.username} · ${user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-5 py-3.5">
-                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${roleBadge(user.role)}">
-                        ${user.role}
-                      </span>
-                    </td>
-                    <td class="px-5 py-3.5">
-                      ${user.firm_name ? `
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 ring-1 ring-blue-200 ring-inset">
-                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/>
-                          </svg>
-                          ${user.firm_name}
-                        </span>
-                      ` : `
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 ring-1 ring-gray-200 ring-inset">
-                          Not Assigned
-                        </span>
-                      `}
-                    </td>
-                    <td class="px-5 py-3.5">
-                      <div class="flex items-center gap-2">
-                        <select class="assign-firm-select text-sm border border-gray-300 rounded-lg px-2.5 py-1.5
-                                       focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none
-                                       min-w-[160px]" data-user-id="${user._id}">
-                          <option value="">— Select —</option>
-                          <option value="unassign" ${!user.firm_id ? 'selected' : ''}>Remove from Firm</option>
-                          ${this.firms.map(f => `
-                            <option value="${f._id}" ${String(user.firm_id) === String(f._id) ? 'selected' : ''}>${f.name}</option>
-                          `).join('')}
-                        </select>
-                        <button class="assign-btn inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold
-                                       text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg
-                                       transition-colors shadow-sm" data-user-id="${user._id}">
-                          Apply
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
+        <!-- Users Grid -->
+        <div class="bg-white border border-gray-200 rounded-xl shadow-xs overflow-hidden p-4">
+          <div id="user-grid" style="height: 600px"></div>
         </div>
 
       </div>
     `;
 
+    await this.initGrid();
+
     this.attachEventListeners();
+  }
+
+  async initGrid() {
+    if (!window.agGrid) {
+      await new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = '/cdns/ag-grid-enterprise.min.js';
+        script.onload = resolve;
+        document.head.appendChild(script);
+      });
+    }
+
+    window.userFirmAssignment = this;
+    const firms = this.firms;
+
+    const columnDefs = [
+      { field: 'fullname', headerName: 'Full Name' },
+      { field: 'username', headerName: 'Username' },
+      { field: 'email', headerName: 'Email' },
+      { field: 'role', headerName: 'Role' },
+      { field: 'firm_name', headerName: 'Firm' },
+      { headerName: 'Assign', cellRenderer: (params) => {
+        return `<select data-user-id="${params.data._id}" class="text-sm border rounded px-2 py-1">
+          <option value="">— Select —</option>
+          <option value="unassign">Remove from Firm</option>
+          ${firms.map(f => `<option value="${f._id}" ${String(params.data.firm_id) === String(f._id) ? 'selected' : ''}>${f.name}</option>`).join('')}
+        </select>`;
+      } }
+    ];
+
+    const gridOptions = {
+      columnDefs,
+      rowData: [],
+      defaultColDef: { sortable: true, filter: true, resizable: true },
+      pagination: true,
+      paginationPageSize: 10,
+      paginationPageSizeSelector: [10, 20, 50, 100]
+    };
+
+    const gridDiv = document.getElementById('user-grid');
+    this.gridApi = agGrid.createGrid(gridDiv, gridOptions);
+    this.gridApi.setGridOption('rowData', this.users);
+
+    gridDiv.addEventListener('change', (e) => {
+      if (e.target.tagName === 'SELECT' && e.target.dataset.userId) {
+        const userId = e.target.dataset.userId;
+        const firmId = e.target.value === 'unassign' ? null : e.target.value;
+        this.assignUserToFirm(userId, firmId);
+      }
+    });
   }
 
   /* ── EVENT LISTENERS ────────────────────────────────────────────── */
@@ -245,31 +218,21 @@ export class UserFirmAssignment {
     document.getElementById('user-search')?.addEventListener('input', (e) => {
       this.searchTerm = e.target.value;
       this.applyFilters();
-      this.render();
+      this.gridApi.setGridOption('rowData', this.filteredUsers);
     });
 
     document.getElementById('firm-filter')?.addEventListener('change', (e) => {
       this.selectedFirmFilter = e.target.value;
       this.applyFilters();
-      this.render();
+      this.gridApi.setGridOption('rowData', this.filteredUsers);
     });
 
-    // Assign buttons (event delegation)
-    this.container.addEventListener('click', (e) => {
-      const btn = e.target.closest('.assign-btn');
-      if (!btn) return;
-
-      e.preventDefault();
-      const userId = btn.dataset.userId;
-      const select = btn.closest('td')?.querySelector('.assign-firm-select');
-      const firmId = select?.value;
-
-      if (!firmId) {
-        toast.warning('Please select a firm first');
-        return;
+    window.addEventListener('message', (e) => {
+      if (e.data.type === 'setData') {
+        this.gridApi.setGridOption('rowData', e.data.users);
+        this.firms.length = 0;
+        this.firms.push(...e.data.firms);
       }
-
-      this.assignUserToFirm(userId, firmId === 'unassign' ? null : firmId);
     });
   }
 }

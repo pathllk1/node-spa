@@ -479,6 +479,13 @@ export class FirmModal {
     });
   }
 
+  _getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
+
   _populateForm() {
     const form = document.getElementById('firm-form');
     Object.entries(this.firmData).forEach(([key, value]) => {
@@ -585,10 +592,22 @@ export class FirmModal {
       const url    = this.isEdit ? `/api/admin/firms/${this.firmId}` : '/api/admin/firms';
       const method = this.isEdit ? 'PUT' : 'POST';
 
+      // Get CSRF token from cookie
+      const csrfToken = this._getCookie('csrfToken');
+      if (!csrfToken) {
+        toast.error('CSRF token missing. Please refresh the page and try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        return;
+      }
+
       const response = await fetch(url, {
         method,
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken
+        },
         body: JSON.stringify(firmData),
       });
 
@@ -667,6 +686,7 @@ export class FirmModal {
       legal_name: 'input[name="legal_name"]',
       trade_name: 'input[name="name"]',
       business_constitution: 'input[name="business_type"]',
+      nature: 'input[name="industry_type"]',
     };
 
     // Apply direct mappings
@@ -674,13 +694,27 @@ export class FirmModal {
       if (gstData[gstKey]) {
         const el = document.querySelector(selector);
         if (el) {
-          el.value = gstData[gstKey];
-          console.log(`Set ${selector} to ${gstData[gstKey]}`);
+          el.value = Array.isArray(gstData[gstKey]) ? gstData[gstKey].join(', ') : gstData[gstKey];
+          console.log(`Set ${selector} to ${el.value}`);
         } else {
           console.log(`Element ${selector} not found`);
         }
       }
     });
+
+    // Handle industry type from nature array
+    if (gstData.place_of_business_principal && gstData.place_of_business_principal.nature) {
+      const natureArray = gstData.place_of_business_principal.nature;
+      if (Array.isArray(natureArray) && natureArray.length > 0) {
+        const industryEl = document.querySelector('input[name="industry_type"]');
+        if (industryEl) {
+          industryEl.value = natureArray.join(', ');
+          console.log('Set industry_type to:', natureArray.join(', '));
+        } else {
+          console.log('Industry type element not found');
+        }
+      }
+    }
 
     // Handle address
     if (gstData.place_of_business_principal && gstData.place_of_business_principal.address) {
@@ -767,6 +801,18 @@ export class FirmModal {
         console.log('Set status to approved');
       } else {
         console.log('Status element not found');
+      }
+    }
+
+    // Extract PAN from GST number
+    if (gstData.gstin && typeof gstData.gstin === 'string' && gstData.gstin.length === 15) {
+      const pan = gstData.gstin.substring(2, 12);
+      const panEl = document.querySelector('input[name="pan_number"]');
+      if (panEl) {
+        panEl.value = pan;
+        console.log('Set pan_number to:', pan);
+      } else {
+        console.log('PAN element not found');
       }
     }
   }

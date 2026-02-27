@@ -5,6 +5,7 @@ import Firm from "../../models/Firm.model.js";
 import { authMiddleware as authenticateJWT } from "../../middleware/mongo/authMiddleware.js";
 import { requireRole } from "../../middleware/mongo/auth.js";
 import * as firmManagementController from "../../controllers/mongo/firmManagementController.js";
+import * as superAdminController from "../../controllers/mongo/superAdminController.js";
 
 const router = express.Router();
 
@@ -133,6 +134,15 @@ router.delete("/firms/:id", authenticateJWT, requireRole("super_admin"), firmMan
 router.post("/assign-user-to-firm", authenticateJWT, requireRole("super_admin"), firmManagementController.assignUserToFirm);
 
 // Get all users with their assigned firms (MongoDB population)
-router.get("/users-with-firms", authenticateJWT, requireRole("super_admin"), firmManagementController.getAllUsersWithFirms);
+router.get("/users-with-firms", authenticateJWT, requireRole(["super_admin", "admin"]), firmManagementController.getAllUsersWithFirms);
+
+// Create user (admin only for their firm)
+router.post("/users", authenticateJWT, requireRole("admin"), firmManagementController.createUser);
+
+// Super Admin Routes
+router.get('/super-admin/stats', authenticateJWT, requireRole('super_admin'), superAdminController.getSuperAdminStats);
+router.get('/super-admin/users', authenticateJWT, requireRole('super_admin'), superAdminController.getAllUsersForAdmin);
+router.put('/super-admin/users/role', authenticateJWT, requireRole('super_admin'), superAdminController.updateUserRole);
+router.get('/super-admin/firms', authenticateJWT, requireRole('super_admin'), superAdminController.getAllFirmsForAdmin);
 
 export default router;

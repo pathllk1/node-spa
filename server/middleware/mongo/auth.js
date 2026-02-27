@@ -112,25 +112,15 @@ export async function authenticateJWT(req, res, next) {
  * Middleware to check if user has specific role
  * @param {string[]} roles - Array of allowed roles
  */
-export const requireRole = (...roles) => {
+export function requireRole(requiredRoles) {
+  if (!Array.isArray(requiredRoles)) requiredRoles = [requiredRoles];
   return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ 
-        success: false, 
-        error: "Authentication required" 
-      });
+    if (!req.user || !requiredRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'You are not permitted to perform this action' });
     }
-
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        success: false, 
-        error: `Access denied. Required role: ${roles.join(" or ")}` 
-      });
-    }
-
     next();
   };
-};
+}
 
 /**
  * Middleware to check if user belongs to specific firm

@@ -660,6 +660,15 @@ export const createBill = async (req, res) => {
 
   if (!cart || cart.length === 0) return res.status(400).json({ error: 'Cart cannot be empty' });
 
+  if (!party || !mongoose.Types.ObjectId.isValid(party)) {
+    return res.status(400).json({ error: 'Invalid party ID' });
+  }
+
+  const partyDoc = await Party.findById(party).lean();
+  if (!partyDoc) {
+    return res.status(404).json({ error: 'Party not found' });
+  }
+
   // ── Cart input validation ──────────────────────────────────────────────
   for (const item of cart) {
     if (!item.stockId || !mongoose.Types.ObjectId.isValid(item.stockId))
@@ -695,19 +704,19 @@ export const createBill = async (req, res) => {
       voucher_id:        voucherId,
       bno:               billNo,
       bdate:             meta.billDate,
-      supply:            party.firm      || '',       // buyer / party name
+      supply:            partyDoc.firm      || '',       // buyer / party name
       firm:              firmName,                    // seller firm name
-      addr:              party.addr      || '',
-      gstin:             party.gstin     || 'UNREGISTERED',
-      state:             party.state     || '',
-      pin:               party.pin       || null,
-      state_code:        party.state_code || null,
+      addr:              partyDoc.addr      || '',
+      gstin:             partyDoc.gstin     || 'UNREGISTERED',
+      state:             partyDoc.state     || '',
+      pin:               partyDoc.pin       || null,
+      state_code:        partyDoc.state_code || null,
       gtot,
       ntot,
       rof,
       btype:             meta.billType ? meta.billType.toUpperCase() : 'SALES',
       usern:             actorUsername,
-      party_id:          party.id ?? party._id ?? null,
+      party_id:          partyDoc._id,
       other_charges:     otherCharges?.length > 0 ? otherCharges : null,
       order_no:          meta.referenceNo    || null,
       vehicle_no:        meta.vehicleNo      || null,
@@ -774,7 +783,7 @@ export const createBill = async (req, res) => {
         type:           'SALE',
         bno:            billNo,
         bdate:          meta.billDate,
-        supply:         party.firm,
+        supply:         partyDoc.firm,
         item:           item.item,
         item_narration: item.narration || null,
         batch:          item.batch     || null,
@@ -795,8 +804,7 @@ export const createBill = async (req, res) => {
     await StockReg.insertMany(stockRegDocs, { session });
 
     // C. Post ledger entries (within the same session)
-    await postSalesLedger({ firmId, billId, voucherId, billNo, billDate: meta.billDate,
-      party, ntot, cgst, sgst, igst, rof, otherCharges, cart, actorUsername, session });
+    await postSalesLedger({ firmId, billId, voucherId, billNo, billDate: meta.billDate, party: partyDoc, ntot, cgst, sgst, igst, rof, otherCharges, cart, actorUsername, session });
 
     await session.commitTransaction();
 

@@ -39,8 +39,7 @@ export class FirmManager {
       toast.error('Failed to load firms: ' + error.message);
     }
 
-    // FIX: always render (and re-attach listeners) after data loads
-    this.render();
+    await this.render();
   }
 
   applyFilters() {
@@ -128,38 +127,11 @@ export class FirmManager {
     }
   }
 
-  async deleteFirm(id) {
-    if (!confirm('Are you sure you want to delete this firm? This action cannot be undone.')) return false;
-
-    try {
-      const response = await fetch(`/api/admin/firms/${id}`, {
-        method: 'DELETE',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      toast.success(data.message || 'Firm deleted successfully');
-      await this.loadFirms();
-      return true;
-    } catch (error) {
-      console.error('Error deleting firm:', error);
-      toast.error('Failed to delete firm: ' + error.message);
-      return false;
-    }
-  }
-
   /* ── RENDER ────────────────────────────────────────────────────────── */
 
-  render() {
+  async render() {
     if (!this.container) return;
 
-    const currentFirms = this.getCurrentPageFirms();
     const approved  = this.firms.filter(f => f.status === 'approved').length;
     const pending   = this.firms.filter(f => f.status === 'pending').length;
     const suspended = this.firms.filter(f => f.status === 'suspended' || f.status === 'rejected').length;
@@ -210,249 +182,80 @@ export class FirmManager {
           `).join('')}
         </div>
 
-        <!-- Search + Sort Bar -->
-        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row gap-3">
-          <div class="relative flex-1">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
-                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
-            </svg>
-            <input
-              id="firm-search"
-              type="text"
-              placeholder="Search by name, city, or email…"
-              value="${this.searchTerm}"
-              class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg
-                     focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-            />
-          </div>
-          <div class="flex gap-2">
-            <select id="sort-field"
-                    class="text-sm border border-gray-300 rounded-lg px-3 py-2
-                           focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
-              <option value="createdAt" ${this.sortField === 'createdAt' ? 'selected' : ''}>Date Added</option>
-              <option value="name"      ${this.sortField === 'name'      ? 'selected' : ''}>Name</option>
-              <option value="city"      ${this.sortField === 'city'      ? 'selected' : ''}>City</option>
-              <option value="status"    ${this.sortField === 'status'    ? 'selected' : ''}>Status</option>
-            </select>
-            <select id="sort-order"
-                    class="text-sm border border-gray-300 rounded-lg px-3 py-2
-                           focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
-              <option value="desc" ${this.sortOrder === 'desc' ? 'selected' : ''}>Newest first</option>
-              <option value="asc"  ${this.sortOrder === 'asc'  ? 'selected' : ''}>Oldest first</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Firms Table -->
-        <div class="bg-white border border-gray-200 rounded-xl shadow-xs overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Firm</th>
-                  <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
-                  <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Business</th>
-                  <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Created</th>
-                  <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                ${currentFirms.length === 0 ? `
-                  <tr>
-                    <td colspan="6" class="px-5 py-16 text-center">
-                      <div class="flex flex-col items-center text-gray-400">
-                        <svg class="w-12 h-12 mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/>
-                        </svg>
-                        <p class="font-medium text-gray-600">No firms found</p>
-                        <p class="text-sm mt-1">${this.searchTerm ? 'Try a different search term.' : 'Get started by creating your first firm.'}</p>
-                      </div>
-                    </td>
-                  </tr>
-                ` : currentFirms.map(firm => `
-                  <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-5 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600
-                                    flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <span class="text-white font-bold text-sm">${firm.name.charAt(0).toUpperCase()}</span>
-                        </div>
-                        <div>
-                          <p class="font-semibold text-gray-900 leading-tight">${firm.name}</p>
-                          ${firm.legal_name ? `<p class="text-xs text-gray-500 mt-0.5">${firm.legal_name}</p>` : ''}
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-5 py-4">
-                      <p class="text-gray-700">${firm.city ? `${firm.city}${firm.state ? `, ${firm.state}` : ''}` : '—'}</p>
-                      ${firm.email ? `<p class="text-xs text-gray-500 mt-0.5 truncate max-w-[160px]">${firm.email}</p>` : ''}
-                      ${firm.phone_number ? `<p class="text-xs text-gray-500">${firm.phone_number}</p>` : ''}
-                    </td>
-                    <td class="px-5 py-4">
-                      <p class="text-gray-700">${firm.business_type || '—'}</p>
-                      ${firm.industry_type ? `<p class="text-xs text-gray-500 mt-0.5">${firm.industry_type}</p>` : ''}
-                      ${firm.employee_count ? `<p class="text-xs text-gray-500">${firm.employee_count} employees</p>` : ''}
-                    </td>
-                    <td class="px-5 py-4">
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
-                                   ring-1 ring-inset ${statusBadge(firm.status)}">
-                        ${firm.status || 'N/A'}
-                      </span>
-                    </td>
-                    <td class="px-5 py-4 text-gray-500 whitespace-nowrap">
-                      ${firm.createdAt ? new Date(firm.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                    </td>
-                    <td class="px-5 py-4">
-                      <div class="flex items-center justify-end gap-1">
-                        <button title="View details"
-                                class="view-firm-btn p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50
-                                       rounded-md transition-colors" data-id="${firm._id}">
-                          <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                          </svg>
-                        </button>
-                        <button title="Edit firm"
-                                class="edit-firm-btn p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50
-                                       rounded-md transition-colors" data-id="${firm._id}">
-                          <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                          </svg>
-                        </button>
-                        <button title="Delete firm"
-                                class="delete-firm-btn p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50
-                                       rounded-md transition-colors" data-id="${firm._id}">
-                          <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Pagination -->
-          ${this.renderPagination()}
+        <!-- Firms Grid -->
+        <div class="bg-white border border-gray-200 rounded-xl shadow-xs overflow-hidden p-4">
+          <div id="firm-grid" style="height: 600px"></div>
         </div>
 
       </div>
     `;
 
-    // FIX: always re-attach event listeners after every render
+    await this.initGrid();
+
     this.attachEventListeners();
   }
 
-  renderPagination() {
-    if (this.totalPages <= 1) return '';
-
-    const pages = [];
-    const start = Math.max(1, this.currentPage - 2);
-    const end   = Math.min(this.totalPages, this.currentPage + 2);
-
-    if (start > 1) {
-      pages.push(`<button class="pagination-btn px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50" data-page="1">1</button>`);
-      if (start > 2) pages.push(`<span class="px-2 text-gray-400">…</span>`);
+  async initGrid() {
+    if (!window.agGrid) {
+      await new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = '/cdns/ag-grid-enterprise.min.js';
+        script.onload = resolve;
+        document.head.appendChild(script);
+      });
     }
 
-    for (let i = start; i <= end; i++) {
-      pages.push(`
-        <button class="pagination-btn px-3 py-1.5 text-xs font-medium border rounded transition-colors
-                       ${i === this.currentPage
-                           ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                           : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'}"
-                data-page="${i}">${i}</button>
-      `);
-    }
+    window.firmManager = this;
 
-    if (end < this.totalPages) {
-      if (end < this.totalPages - 1) pages.push(`<span class="px-2 text-gray-400">…</span>`);
-      pages.push(`<button class="pagination-btn px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50" data-page="${this.totalPages}">${this.totalPages}</button>`);
-    }
+    const columnDefs = [
+      { field: 'name', headerName: 'Name' },
+      { field: 'legal_name', headerName: 'Legal Name' },
+      { field: 'city', headerName: 'City' },
+      { field: 'state', headerName: 'State' },
+      { field: 'email', headerName: 'Email' },
+      { field: 'phone_number', headerName: 'Phone' },
+      { field: 'business_type', headerName: 'Business Type' },
+      { field: 'industry_type', headerName: 'Industry' },
+      { field: 'employee_count', headerName: 'Employees' },
+      { field: 'status', headerName: 'Status' },
+      { field: 'createdAt', headerName: 'Created', valueFormatter: params => params.value ? new Date(params.value).toLocaleDateString() : '' },
+      { headerName: 'Actions', cellRenderer: (params) => {
+        return `<div class="flex gap-1">
+          <button data-id="${params.data._id}" data-action="view" class="px-2 py-1 text-xs bg-blue-500 text-white rounded">View</button>
+          <button data-id="${params.data._id}" data-action="edit" class="px-2 py-1 text-xs bg-indigo-500 text-white rounded">Edit</button>
+          <button data-id="${params.data._id}" data-action="delete" class="px-2 py-1 text-xs bg-red-500 text-white rounded">Delete</button>
+        </div>`;
+      } }
+    ];
 
-    return `
-      <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-600 bg-gray-50">
-        <span>
-          Showing ${Math.min((this.currentPage - 1) * this.pageSize + 1, this.filteredFirms.length)}–${Math.min(this.currentPage * this.pageSize, this.filteredFirms.length)}
-          of ${this.filteredFirms.length}
-        </span>
-        <div class="flex items-center gap-1">
-          <button class="pagination-prev px-2.5 py-1.5 text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  ${this.currentPage <= 1 ? 'disabled' : ''}>‹</button>
-          ${pages.join('')}
-          <button class="pagination-next px-2.5 py-1.5 text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  ${this.currentPage >= this.totalPages ? 'disabled' : ''}>›</button>
-        </div>
-      </div>
-    `;
-  }
+    const gridOptions = {
+      columnDefs,
+      rowData: [],
+      defaultColDef: { sortable: true, filter: true, resizable: true },
+      pagination: true,
+      paginationPageSize: 10,
+      paginationPageSizeSelector: [10, 20, 50, 100]
+    };
 
-  /* ── EVENT LISTENERS ───────────────────────────────────────────────── */
-  // FIX: called at the end of every render() so fresh DOM always has listeners
+    const gridDiv = document.getElementById('firm-grid');
+    this.gridApi = agGrid.createGrid(gridDiv, gridOptions);
+    this.gridApi.setGridOption('rowData', this.firms);
 
-  attachEventListeners() {
-    // Create button
-    document.getElementById('create-firm-btn')?.addEventListener('click', () => this.showCreateFirmModal());
-
-    // Search
-    document.getElementById('firm-search')?.addEventListener('input', (e) => {
-      this.searchTerm = e.target.value;
-      this.currentPage = 1;
-      this.applyFilters();
-      this.render();
-    });
-
-    // Sort field
-    document.getElementById('sort-field')?.addEventListener('change', (e) => {
-      this.sortField = e.target.value;
-      this.currentPage = 1;
-      this.applyFilters();
-      this.render();
-    });
-
-    // Sort order
-    document.getElementById('sort-order')?.addEventListener('change', (e) => {
-      this.sortOrder = e.target.value;
-      this.currentPage = 1;
-      this.applyFilters();
-      this.render();
-    });
-
-    // Table row actions + pagination via event delegation
-    this.container.addEventListener('click', (e) => {
+    gridDiv.addEventListener('click', (e) => {
       const btn = e.target.closest('button');
-      if (!btn) return;
-
-      const firmId = btn.dataset.id;
-
-      if (btn.classList.contains('view-firm-btn')) {
-        e.preventDefault(); this.showFirmDetails(firmId);
-      } else if (btn.classList.contains('edit-firm-btn')) {
-        e.preventDefault(); this.showEditFirmModal(firmId);
-      } else if (btn.classList.contains('delete-firm-btn')) {
-        e.preventDefault(); this.deleteFirm(firmId);
-      } else if (btn.classList.contains('pagination-btn')) {
-        const page = parseInt(btn.dataset.page, 10);
-        if (page && page !== this.currentPage) { this.currentPage = page; this.render(); }
-      } else if (btn.classList.contains('pagination-prev')) {
-        if (this.currentPage > 1) { this.currentPage--; this.render(); }
-      } else if (btn.classList.contains('pagination-next')) {
-        if (this.currentPage < this.totalPages) { this.currentPage++; this.render(); }
+      if (btn && btn.dataset.id) {
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (action === 'view') this.showFirmDetails(id);
+        else if (action === 'edit') this.showEditFirmModal(id);
+        else if (action === 'delete') this.deleteFirm(id);
       }
     });
   }
 
-  /* ── MODAL HELPERS ─────────────────────────────────────────────────── */
+  attachEventListeners() {
+    document.getElementById('create-firm-btn')?.addEventListener('click', () => this.showCreateFirmModal());
+  }
 
   showCreateFirmModal() {
     if (window.firmModal) window.firmModal.showCreateMode();
