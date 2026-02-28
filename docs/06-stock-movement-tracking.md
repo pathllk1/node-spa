@@ -124,35 +124,34 @@ sortedMovements = [...filteredMovements].sort((a, b) => {
 
 ## Movement Record Structure
 
-### Database Schema
-```sql
--- stock_reg table contains movement records
-CREATE TABLE stock_reg (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  firm_id INTEGER NOT NULL,
-  type TEXT NOT NULL, -- 'SALE', 'PURCHASE', etc.
-  bno TEXT, -- Bill/Document number
-  bdate TEXT, -- Movement date
-  party TEXT, -- Party name
-  item TEXT NOT NULL,
-  narration TEXT,
-  batch TEXT,
-  hsn TEXT,
-  qty REAL NOT NULL,
-  uom TEXT,
-  rate REAL NOT NULL,
-  grate REAL DEFAULT 0,
-  disc REAL DEFAULT 0,
-  total REAL NOT NULL,
-  stock_id INTEGER,
-  bill_id INTEGER,
-  user TEXT,
-  firm TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (firm_id) REFERENCES firms(id),
-  FOREIGN KEY (stock_id) REFERENCES stocks(id),
-  FOREIGN KEY (bill_id) REFERENCES bills(id)
-);
+### Database Schema (Mongoose)
+```javascript
+// StockReg model contains movement records
+const stockRegSchema = new Schema({
+  firm_id:   { type: Schema.Types.ObjectId, ref: 'Firm', required: true },
+  type:      { type: String, required: true }, // 'SALE', 'PURCHASE', etc.
+  bno:       { type: String }, // Bill/Document number
+  bdate:     { type: String }, // Movement date
+  party:     { type: String }, // Party name
+  item:      { type: String, required: true },
+  narration: { type: String },
+  batch:     { type: String },
+  hsn:       { type: String },
+  qty:       { type: Number, required: true },
+  uom:       { type: String },
+  rate:      { type: Number, required: true },
+  grate:     { type: Number, default: 0 },
+  disc:      { type: Number, default: 0 },
+  total:     { type: Number, required: true },
+  stock_id:  { type: Schema.Types.ObjectId, ref: 'Stock' },
+  bill_id:   { type: Schema.Types.ObjectId, ref: 'Bill' },
+  user:      { type: String },
+  firm:      { type: String }
+}, { timestamps: true });
+
+// Indexes for fast querying
+stockRegSchema.index({ firm_id: 1, type: 1 });
+stockRegSchema.index({ firm_id: 1, stock_id: 1 });
 ```
 
 ### Frontend Display Format
