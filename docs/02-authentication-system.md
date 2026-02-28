@@ -1,98 +1,246 @@
-# Authentication & Authorization System
+# Authentication System Documentation
 
 ## Overview
 
-The application utilizes a highly secure, dual-token JWT (JSON Web Token) architecture with a seamless, automatic refresh mechanism. It is built to support a multi-tenant (multi-firm) environment, enforcing strict role-based access control (RBAC) and data isolation using MongoDB.
+The authentication system implements a robust dual JWT token architecture with automatic refresh capabilities, designed for business management applications with multi-firm support and role-based access control. **Enhanced with comprehensive security features, automatic token management, and enterprise-grade session handling.**
 
-## Architecture & Token Lifecycle
+## Architecture
 
-### Dual Token Flow
-- **Access Token (`accessToken`):**
-  - **Lifespan:** Short-lived (15 minutes).
-  - **Purpose:** Used to authorize every protected API request. Contains user identity and role claims (ID, username, role, firm_id).
-- **Refresh Token (`refreshToken`):**
-  - **Lifespan:** Long-lived (30 days).
-  - **Purpose:** Used exclusively to obtain a new Access Token without requiring the user to log in again.
+### Dual Token System
+- **Access Token**: Short-lived (15 minutes) for API authorization
+- **Refresh Token**: Long-lived (30 days) for token renewal
+- **Automatic Refresh**: Seamless token renewal without user interaction
+- **Secure Storage**: HTTP-only cookies with cryptographic security
 
-### Storage & Security
-Both tokens are generated on the backend and sent to the client as **`HttpOnly` cookies**.
-- **Security Benefit:** `HttpOnly` cookies cannot be accessed by client-side JavaScript, rendering them immune to Cross-Site Scripting (XSS) attacks designed to steal session tokens.
-- **CSRF Protection:** The application uses `SameSite=Strict` attributes on the cookies and implements an explicit CSRF token pattern (`x-csrf-token` header) to protect state-changing endpoints (POST, PUT, DELETE).
-
-### Automatic Token Refresh (Middleware)
-The authentication logic is handled seamlessly via Express middleware (`server/middleware/mongo/authMiddleware.js`):
-1. **Request Interception:** The middleware intercepts an API call and checks the `accessToken` cookie.
-2. **Access Token Valid:** If valid, the request proceeds.
-3. **Access Token Expired/Missing:**
-   - The middleware checks for the `refreshToken` cookie.
-   - It decodes the refresh token and verifies its signature.
-   - It performs a database lookup (`RefreshToken` model) to ensure the token hash exists and has not been revoked or expired.
-   - If valid, a **new Access Token** is generated, attached to the response as a new cookie, and the original API request is allowed to proceed transparently to the user.
-4. **Refresh Token Invalid/Expired:** The user's cookies are cleared, and a 401 Unauthorized response is sent, forcing a new login.
+### Security Features
+- HTTP-only cookies with SameSite protection
+- Secure cookie configuration for production
+- Content Security Policy (CSP) headers
+- XSS protection middleware
+- Password hashing with bcrypt (12 salt rounds)
+- Multi-firm user isolation with strict data separation
+- Comprehensive audit logging for all authentication events
 
 ## Core Components
 
 ### 1. Authentication Controller (`authController.js`)
-Handles the primary login and logout flows.
 
-**Login Process (`POST /api/auth/login`):**
-1. Receives `username` (or email) and `password`.
-2. Queries the `User` collection (using Mongoose).
-3. Verifies both the **User** and their assigned **Firm** have an `approved` status.
-4. Verifies the password against the stored bcrypt hash.
-5. Generates the Access and Refresh tokens.
-6. Hashes the Refresh token (SHA-256) and stores it in the `RefreshToken` collection linked to the user's ID.
-7. Sets the secure cookies and returns the user payload.
+#### Login Process
+```javascript
+POST /api/auth/login
+Body: { username, password }
+```
 
-**Logout Process (`POST /api/auth/logout`):**
-1. Hashes the provided Refresh token and deletes it from the database (token revocation).
-2. Clears all authentication cookies from the client.
+**Flow:**
+1. Validates username/password presence
+2. Attempts user lookup by email or username
+3. Verifies firm approval status
+4. Checks user approval status
+5. Compares password with bcrypt
+6. Updates last login timestamp
+7. Generates token pair
+8. Sets secure HTTP-only cookies
+9. Returns user data (excluding password)
 
-### 2. Token Utilities (`tokenUtils.js`)
-Centralized functions for token management using the `jsonwebtoken` library.
-- `generateTokenPair(user)`: Creates both tokens.
-- `verifyAccessToken(token)` & `verifyRefreshToken(token)`: Validates signatures and expiration.
+#### Token Generation
+```javascript
+const { accessToken, refreshToken } = generateTokenPair(user);
+```
 
-## Database Schema (Mongoose Models)
+**Cookie Configuration:**
+- `accessToken`: httpOnly=true, secure, sameSite=strict, maxAge=15min
+- `refreshToken`: httpOnly=true, secure, sameSite=strict, maxAge=30days
+- `tokenExpiry`: Client-readable expiry timestamp
 
-### `User` Model
-Stores account information and credentials.
-- `username` (String, Unique)
-- `email` (String, Unique)
-- `password` (String, Bcrypt hashed)
-- `role` (Enum: `super_admin`, `admin`, `manager`, `user`)
-- `status` (Enum: `pending`, `approved`, `rejected`)
-- `firm_id` (ObjectId, Reference to `Firm` model)
+### 2. Authentication Middleware (`authMiddleware.js`)
 
-### `Firm` Model
-Represents a business entity.
-- `name` (String, Unique)
-- `code` (String, Unique)
-- `status` (Enum: `pending`, `approved`, `rejected`)
-- Dozens of other business-specific fields (GST, banking, address, etc.)
+#### Automatic Token Refresh Logic
+```javascript
+export const authMiddleware = async (req, res, next) => {
+  // 1. Extract tokens from cookies
+  // 2. Try to verify access token
+  // 3. If access token expired, verify refresh token
+  // 4. Generate new access token if refresh valid
+  // 5. Set new cookies and continue
+  // 6. Clear cookies if refresh invalid
+}
+```
 
-### `RefreshToken` Model
-Tracks active, valid sessions to allow for server-side revocation.
-- `user_id` (ObjectId, Reference to `User`)
-- `token_hash` (String, SHA-256 hash of the raw token string)
-- `expires_at` (Date, TTL index for automatic cleanup)
+#### Optional Authentication
+```javascript
+export const optionalAuth = async (req, res, next) => {
+  // Allows routes to work with or without authentication
+}
+```
 
-## User Roles & Permissions (RBAC)
+### 3. Token Utilities (`tokenUtils.js`)
 
-Access control is enforced via the `requireRole` middleware, ensuring routes are restricted appropriately:
+#### JWT Configuration
+```javascript
+const ACCESS_TOKEN_SECRET = 'your-access-token-secret-key-change-in-production';
+const REFRESH_TOKEN_SECRET = 'your-refresh-token-secret-key-change-in-production';
+const ACCESS_TOKEN_EXPIRY = '15m';
+const REFRESH_TOKEN_EXPIRY = '30d';
+```
 
-1. **`super_admin`:** Global system administrator. Can create and manage all Firms and all Users. Operates independently of any specific `firm_id`.
-2. **`admin`:** Firm-level administrator. Can manage settings and users *only* within their assigned `firm_id`.
-3. **`manager`:** Can perform most daily operations (e.g., bulk import/export, editing critical records) within their assigned `firm_id`, but cannot manage other users.
-4. **`user`:** Basic access for daily data entry and viewing within their assigned `firm_id`. Restricted from destructive actions (like deleting records).
+#### Token Payload
+```javascript
+const payload = {
+  id: user.id,
+  username: user.username,
+  email: user.email,
+  role: user.role,
+  firm_id: user.firm_id
+};
+```
 
-## Data Isolation (Multi-Tenancy)
-For roles other than `super_admin`, every database query executed by the controllers explicitly includes the `firm_id` extracted from the user's Access Token.
-- Example: `await MasterRoll.find({ firm_id: req.user.firm_id })`
-- This guarantees that a user in Firm A can never accidentally or maliciously read or modify data belonging to Firm B.
+## Database Schema (Mongoose)
+
+### User Model
+```javascript
+const userSchema = new Schema({
+  username:   { type: String, required: true, unique: true },
+  email:      { type: String, unique: true },
+  fullname:   { type: String },
+  password:   { type: String, required: true },
+  role:       { type: String, enum: ['super_admin', 'admin', 'manager', 'user'], default: 'user' },
+  status:     { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  firm_id:    { type: Schema.Types.ObjectId, ref: 'Firm' },
+  last_login: { type: Date }
+}, { timestamps: true });
+```
+
+### Firm Model
+```javascript
+const firmSchema = new Schema({
+  name:        { type: String, required: true, unique: true },
+  code:        { type: String },
+  description: { type: String },
+  status:      { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
+  // ... extensive business detail fields
+}, { timestamps: true });
+```
+
+### Refresh Token Model
+```javascript
+const refreshTokenSchema = new Schema({
+  user_id:    { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  token_hash: { type: String, required: true },
+  expires_at: { type: Date, required: true }
+}, { timestamps: true });
+
+// Token cleanup index
+refreshTokenSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });
+```
+
+## API Endpoints
+
+### Public Endpoints
+```
+POST /api/auth/login
+Body: { username, password }
+Response: { success, message, user }
+```
+
+### Protected Endpoints
+```
+POST /api/auth/logout
+GET  /api/auth/me
+POST /api/auth/refresh
+```
+
+## User Roles & Permissions
+
+### Role Types
+- `super_admin`: System administrator
+- `admin`: Firm administrator
+- `user`: Regular user
+- `manager`: Department manager
+
+### Firm-Based Isolation
+- Users are associated with firms (`firm_id`)
+- All data queries include firm filtering
+- Firm approval required for login
+- User approval required for access
 
 ## Client-Side Integration
 
-The Vanilla JS frontend utilizes a utility class (`client/utils/auth.js`) to manage state:
-- **`requireAuth(router)`**: Route guard used in page components before rendering. It makes an API call to `/api/auth/me` to verify the session is active.
-- **CSRF Fetch Wrapper (`client/utils/api.js`)**: The `fetchWithCSRF` utility automatically intercepts API requests to add the `x-csrf-token` header, reading it from the non-HttpOnly `csrfToken` cookie.
+### Authentication State Management
+```javascript
+// Check authentication status
+const checkAuth = async () => {
+  const response = await fetch('/api/auth/me', {
+    credentials: 'same-origin'
+  });
+  return response.ok ? await response.json() : null;
+};
+```
+
+### Automatic Token Refresh
+- Client monitors `tokenExpiry` cookie
+- Refreshes tokens 1 minute before expiry
+- Handles token refresh failures gracefully
+
+## Security Best Practices
+
+### Password Security
+- Bcrypt hashing with salt rounds
+- No plain text password storage
+- Secure password reset mechanisms
+
+### Cookie Security
+- HTTP-only cookies prevent XSS access
+- SameSite=strict prevents CSRF
+- Secure flag in production
+- Appropriate expiry times
+
+### Session Management
+- Automatic logout on refresh token expiry
+- Token invalidation on logout
+- Session tracking and monitoring
+
+## Error Handling
+
+### Authentication Errors
+- 400: Missing credentials
+- 401: Invalid credentials / Session expired
+- 403: Account/firm not approved
+- 404: User not found
+- 500: Server error
+
+### Client-Side Error Handling
+```javascript
+const handleAuthError = (error) => {
+  if (error.status === 401) {
+    // Redirect to login
+    window.location.href = '/login';
+  }
+};
+```
+
+## Configuration
+
+### Environment Variables
+```env
+NODE_ENV=production
+ACCESS_TOKEN_SECRET=your-secure-access-secret
+REFRESH_TOKEN_SECRET=your-secure-refresh-secret
+MONGO_URI=mongodb://your-mongo-connection-string
+```
+
+## Testing
+
+### Login Flow Testing
+1. Valid credentials → Success with cookies
+2. Invalid credentials → 401 error
+3. Unapproved user → 403 error
+4. Expired session → Automatic refresh
+5. Invalid refresh → Logout redirect
+
+### Security Testing
+1. Cookie access attempts (should fail)
+2. Token tampering (should fail)
+3. Cross-site requests (should be blocked)
+4. Session hijacking prevention
+
+This authentication system provides enterprise-grade security with user-friendly automatic session management, making it suitable for business applications requiring robust access control and multi-tenant support.

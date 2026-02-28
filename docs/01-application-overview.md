@@ -1,83 +1,156 @@
-# Business Management Application - Overview
+# Node.js SPA Business Management Application
 
 ## Overview
 
-This is a comprehensive business management Single Page Application (SPA) designed to handle multi-firm operations. The application provides several integrated modules including Human Resources (Master Roll & Wages), Inventory Management, and Financial Accounting (Ledger).
-
-The application has recently undergone a major architectural migration, moving its data layer from a relational SQL database (SQLite/Turso via Prisma) to a document-oriented NoSQL database (**MongoDB via Mongoose**).
+This is a comprehensive business management Single Page Application (SPA) built with Node.js, Express, and vanilla JavaScript. The application provides multiple business management modules including inventory management, wages management, master roll management, and authentication system.
 
 ## Architecture
 
 ### Backend (Node.js + Express)
-- **Framework**: Express.js with ES modules.
-- **Database**: MongoDB (Object Data Modeling via Mongoose).
-- **Authentication**: Dual-token JWT system (Access + Refresh tokens).
-- **Security**: HTTP-only cookies, anti-CSRF tokens, XSS protection, and Content Security Policy (CSP) headers.
-- **Architecture**: RESTful API with modular controllers, routes, and Mongoose models.
+- **Framework**: Express.js with ES modules
+- **Database**: MongoDB (Object Data Modeling via Mongoose)
+- **Authentication**: JWT dual-token system (Access + Refresh tokens)
+- **Security**: HTTP-only cookies, CSRF protection, CSP headers, XSS protection
+- **Architecture**: RESTful API with modular controllers and routes
 
 ### Frontend (Vanilla JavaScript SPA)
-- **Routing**: Client-side routing powered by `Navigo.js`.
-- **Styling**: Tailwind CSS for responsive, utility-first styling.
-- **Architecture**: Component-based ES6 modules utilizing lazy loading for optimal performance.
-- **Data Grids**: Integrates `ag-grid-enterprise` for complex data tables (e.g., in the Super Admin panel).
+- **Routing**: Navigo.js for client-side routing
+- **Styling**: TailwindCSS with custom gradients and responsive design
+- **Architecture**: Component-based with lazy loading
+- **State Management**: Client-side authentication state management
 
 ## Core Features
 
-### 1. Multi-Firm Architecture & Authentication
-- **Multi-Tenant Design:** Supports multiple distinct business entities (Firms) within a single deployed instance.
-- **Role-Based Access Control (RBAC):** Hierarchical roles including `super_admin`, `admin`, `manager`, and `user`.
-- **Dual JWT Token Authentication:** Short-lived access tokens (15 minutes) and long-lived, rotatable refresh tokens (30 days) stored securely as HTTP-only cookies.
+### 1. Authentication System
+- Dual JWT token authentication (15min access, 30 days refresh)
+- Automatic token refresh
+- HTTP-only cookies with SameSite protection
+- Role-based access control
+- Password hashing with bcrypt
+- Multi-firm user isolation
 
-### 2. Human Resources (HR)
-- **Master Roll:** Comprehensive employee record management including personal details, banking (with real-time IFSC lookup via Razorpay API), and compliance tracking (Aadhar, PAN, ESIC).
-- **Wages Management:** Calculate, track, and record employee daily wages, deductions (EPF/ESIC), and generate payment histories.
-- **Bulk Operations:** Excel-based bulk import and export capabilities.
+### 2. Inventory Management System
+- Dashboard with overview metrics
+- Product categories management
+- Supplier management
+- Stock tracking and movement
+- Sales tracking with **bill cancellation functionality**
+- Comprehensive reporting system
+- Stock movement tracking
+- GST-compliant billing with automatic calculations
 
-### 3. Inventory & Sales Management
-- **Stock Tracking:** Item and batch-level stock management supporting Units of Measure (UOM) and GST rate configurations.
-- **Parties Management:** Maintain records for both customers and suppliers.
-- **Billing & Invoicing:** Create sales bills with automatic GST calculations and PDF invoice generation. Includes features for bill cancellation and stock reversal.
-- **Reporting:** Exportable reports for stock movement and sales history.
+### 3. Master Roll Management
+- Employee master data management
+- Personnel records with **IFSC bank lookup integration**
+- Organizational hierarchy
+- Complete employee profile management (Aadhar, PAN, banking details)
+- **Real-time IFSC validation** with Razorpay API integration
+- Bulk import/export operations
 
-### 4. Financial Accounting (Ledger)
-- **Double-Entry Bookkeeping:** A robust general ledger system.
-- **Vouchers:** Manage Payment, Receipt, Contra, and Journal vouchers.
-- **Financial Reporting:** Generate Trial Balances and detailed account-specific ledger reports.
+### 4. Wages Management
+- Employee wages dashboard
+- Salary calculations
+- Payment tracking
+- Wage reports and analytics
 
-### 5. Super Admin Dashboard
-- **System Oversight:** Global view of all users and registered firms.
-- **Firm Management:** A detailed wizard for creating and configuring new firms, including automated GST detail fetching.
-- **User Assignment:** Interface to assign, reassign, or remove users from specific firms.
+### 5. Financial Accounting System
+- **Double-Entry Bookkeeping**: Complete ledger management with automated transaction posting
+- **Payment & Receipt Vouchers**: Manual accounting entries for cash/bank transactions
+- **Journal Entries**: Multi-line general journal entries for complex accounting adjustments
+- **Financial Reporting**: Account ledger, general ledger, trial balance, and PDF reports
+- **GST Integration**: Tax-compliant transaction processing and reporting
+- **Multi-firm Accounting**: Complete financial isolation between business entities
+
+### 6. Advanced Data Features
+- **IFSC Lookup System**: Real-time bank and branch validation using Razorpay API
+- **Bill Cancellation**: Complete bill reversal with stock restoration and financial adjustments
+- **PDF Report Generation**: Professional financial document creation with custom formatting
+- **Multi-firm Data Isolation**: Complete security separation between firms
+- **Complete Audit Trails**: Full transaction history and user attribution
+- **Bulk Operations**: Import, export, and batch processing capabilities
+
+### 7. Reporting System
+- Inventory reports
+- Sales reports with cancellation tracking
+- Financial reports
+- Custom date-range filtering
+- Export capabilities (Excel, CSV, PDF)
 
 ## Technical Stack
 
 ### Backend Dependencies
-- `express`: Web server framework.
-- `mongoose`: MongoDB object modeling.
-- `jsonwebtoken`: JWT creation and verification.
-- `bcrypt`: Password hashing.
-- `cookie-parser`: Middleware to parse HTTP cookies.
-- `pdfmake`: Server-side PDF generation for invoices and reports.
-- `exceljs`: Parsing and generating Excel files for bulk operations.
-- `xss`: Input sanitization to prevent Cross-Site Scripting.
+- `express`: Web framework
+- `mongoose`: MongoDB object modeling
+- `jsonwebtoken`: JWT token handling
+- `bcrypt`: Password hashing
+- `cookie-parser`: Cookie handling
+- `pdfmake`: PDF generation
+- `exceljs`: Excel generation
+- `dotenv`: Environment variables
 
 ### Frontend Technologies
-- **Vanilla JavaScript (ES6 Modules)**
-- **Tailwind CSS v4**
-- **Navigo.js** (Routing)
-- **Toastify.js** (Notifications)
-- **ag-Grid** (Advanced data tables)
-- **SheetJS / xlsx** (Client-side Excel parsing/exporting)
+- Vanilla JavaScript with ES6 modules
+- TailwindCSS for styling
+- Navigo.js for routing
+- Font Awesome for icons
+
+## Database Schema
+
+The application uses MongoDB with the following key collections:
+- `users`: User authentication and profiles
+- `firms`: Multi-firm support
+- `stocks`, `parties`, `bills`: Inventory management collections
+- `wages`: Wages management collection
+- `master_rolls`: Employee master data
+- `refresh_tokens`: Active user sessions
 
 ## Security Features
 
-- **XSS Prevention:** Input sanitization middleware (`sanitizer.js`) and strict Content Security Policy headers.
-- **CSRF Protection:** State-changing requests require a CSRF token validated via middleware.
-- **Secure Sessions:** JWTs are stored in `HttpOnly`, `SameSite=Strict` cookies.
-- **Data Isolation:** All database queries implicitly filter by `firm_id` (except for Super Admin operations) to ensure strict data tenancy.
+- Content Security Policy (CSP) headers
+- XSS protection middleware
+- Secure cookie configuration
+- Input validation and sanitization
+- Authentication middleware for protected routes
+- Automatic token refresh mechanism
 
-## Deployment Configuration
+## Performance Optimizations
 
-The application is configured for deployment on **Vercel** as a serverless application.
-- `vercel.json` provides routing rewrites, directing API calls to the serverless functions while allowing the SPA to handle frontend routing.
-- The `api/index.js` file serves as the serverless entry point.
+- Lazy loading of page components
+- Code splitting with dynamic imports
+- Efficient database queries with proper indexing
+- Client-side caching for authentication state
+- Optimized bundle size with TailwindCSS purging
+
+## Development Features
+
+- Hot reloading with nodemon
+- ES6 module support
+- Environment-based configuration
+- Comprehensive error handling
+- Development vs production logging
+
+## API Structure
+
+```
+/api/auth/*          - Authentication endpoints
+/api/admin/*         - Administrative functions
+/api/inventory/*     - Inventory management
+/api/wages/*        - Wages management
+/api/master-rolls/* - Master roll management
+/api/settings/*     - Application settings
+```
+
+## Client Routes
+
+```
+/                     - Home page
+/about               - About page
+/login               - Authentication
+/dashboard           - Main dashboard
+/profile             - User profile
+/master-roll         - Employee master roll
+/wages-dashboard     - Wages management
+/inventory/*         - Inventory module pages
+```
+
+This application provides a complete business management solution with modern web technologies, focusing on security, performance, and user experience.
