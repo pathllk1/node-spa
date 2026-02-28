@@ -362,7 +362,9 @@ Response: { success: true, data: { gst_enabled: boolean } }
 ### Token Refresh Endpoint
 ```
 POST /api/auth/refresh
+Headers: { x-csrf-token: <token> }
 Response: { success: true, message: "Token refreshed", user: {...} }
+// Sets new HttpOnly accessToken and tokenExpiry cookies
 ```
 
 ## Error Handling

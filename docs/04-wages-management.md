@@ -13,35 +13,30 @@ The Wages Management System provides comprehensive payroll processing for employ
 - **Payment Tracking**: Cheque numbers, payment dates, and bank account tracking
 - **Audit Trail**: Full tracking of changes with user information
 
-### Database Schema
+### Database Schema (Mongoose)
 
-#### Wages Table
-```sql
-CREATE TABLE wages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  firm_id INTEGER NOT NULL,
-  master_roll_id INTEGER NOT NULL,
-  p_day_wage REAL NOT NULL DEFAULT 0,
-  wage_days INTEGER NOT NULL DEFAULT 26,
-  project TEXT,
-  site TEXT,
-  gross_salary REAL NOT NULL DEFAULT 0,
-  epf_deduction REAL DEFAULT 0,
-  esic_deduction REAL DEFAULT 0,
-  other_deduction REAL DEFAULT 0,
-  other_benefit REAL DEFAULT 0,
-  net_salary REAL NOT NULL DEFAULT 0,
-  salary_month TEXT NOT NULL, -- YYYY-MM format
-  paid_date TEXT,
-  cheque_no TEXT,
-  paid_from_bank_ac TEXT,
-  created_by INTEGER,
-  updated_by INTEGER,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (firm_id) REFERENCES firms(id),
-  FOREIGN KEY (master_roll_id) REFERENCES master_rolls(id)
-);
+#### Wages Model
+```javascript
+const wageSchema = new Schema({
+  firm_id:           { type: Schema.Types.ObjectId, ref: 'Firm', required: true },
+  master_roll_id:    { type: Schema.Types.ObjectId, ref: 'MasterRoll', required: true },
+  p_day_wage:        { type: Number, required: true, default: 0 },
+  wage_days:         { type: Number, required: true, default: 26 },
+  project:           { type: String },
+  site:              { type: String },
+  gross_salary:      { type: Number, required: true, default: 0 },
+  epf_deduction:     { type: Number, default: 0 },
+  esic_deduction:    { type: Number, default: 0 },
+  other_deduction:   { type: Number, default: 0 },
+  other_benefit:     { type: Number, default: 0 },
+  net_salary:        { type: Number, required: true, default: 0 },
+  salary_month:      { type: String, required: true }, // YYYY-MM format
+  paid_date:         { type: Date },
+  cheque_no:         { type: String },
+  paid_from_bank_ac: { type: String },
+  created_by:        { type: Schema.Types.ObjectId, ref: 'User' },
+  updated_by:        { type: Schema.Types.ObjectId, ref: 'User' }
+}, { timestamps: true });
 ```
 
 ## Wage Calculation Logic
@@ -234,7 +229,12 @@ function exportToExcel() {
 ### Duplicate Prevention
 ```javascript
 // Check for existing wages before creation
-const existingWage = checkWageExistsStmt.get(firmId, wage.master_roll_id, month);
+const existingWage = await Wage.findOne({
+  firm_id: firmId,
+  master_roll_id: wage.master_roll_id,
+  salary_month: month
+});
+
 if (existingWage) {
   return { success: false, message: 'Wage already exists for this employee' };
 }
@@ -267,21 +267,9 @@ if (existingWage) {
 
 ## Performance Optimizations
 
-### Prepared Statements
-```javascript
-const insertWageStmt = db.prepare(`
-  INSERT INTO wages (
-    firm_id, master_roll_id, p_day_wage, wage_days,
-    gross_salary, epf_deduction, esic_deduction,
-    net_salary, salary_month, paid_date, cheque_no,
-    paid_from_bank_ac, created_by, updated_by
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-```
-
 ### Bulk Operations
-- Single transaction for multiple records
-- Optimized database queries
+- Uses Mongoose `insertMany` for bulk creation
+- Optimized queries using `.lean()` where hydration is unnecessary
 - Client-side batching for large datasets
 
 ### Efficient Filtering
@@ -306,7 +294,12 @@ if (!wage.master_roll_id || wage.gross_salary === undefined || !wage.wage_days) 
 ### Duplicate Detection
 ```javascript
 // Check for existing wages
-const existingWage = Wage.getByFirmAndMonth.get(firmId, month, masterRollId);
+const existingWage = await Wage.findOne({
+  firm_id: firmId,
+  salary_month: month,
+  master_roll_id: masterRollId
+});
+
 if (existingWage) {
   return res.status(400).json({ 
     success: false, 

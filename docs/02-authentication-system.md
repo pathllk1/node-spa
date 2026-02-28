@@ -94,47 +94,43 @@ const payload = {
 };
 ```
 
-## Database Schema
+## Database Schema (Mongoose)
 
-### Users Table
-```sql
-CREATE TABLE users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE NOT NULL,
-  email TEXT UNIQUE,
-  fullname TEXT,
-  password TEXT NOT NULL,
-  role TEXT NOT NULL,
-  firm_id INTEGER,
-  status TEXT DEFAULT 'pending',
-  last_login TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (firm_id) REFERENCES firms(id)
-);
+### User Model
+```javascript
+const userSchema = new Schema({
+  username:   { type: String, required: true, unique: true },
+  email:      { type: String, unique: true },
+  fullname:   { type: String },
+  password:   { type: String, required: true },
+  role:       { type: String, enum: ['super_admin', 'admin', 'manager', 'user'], default: 'user' },
+  status:     { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  firm_id:    { type: Schema.Types.ObjectId, ref: 'Firm' },
+  last_login: { type: Date }
+}, { timestamps: true });
 ```
 
-### Firms Table
-```sql
-CREATE TABLE firms (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  code TEXT UNIQUE NOT NULL,
-  description TEXT,
-  status TEXT DEFAULT 'pending'
-);
+### Firm Model
+```javascript
+const firmSchema = new Schema({
+  name:        { type: String, required: true, unique: true },
+  code:        { type: String },
+  description: { type: String },
+  status:      { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
+  // ... extensive business detail fields
+}, { timestamps: true });
 ```
 
-### Refresh Tokens Table
-```sql
-CREATE TABLE refresh_tokens (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
-  token_hash TEXT NOT NULL,
-  expires_at TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+### Refresh Token Model
+```javascript
+const refreshTokenSchema = new Schema({
+  user_id:    { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  token_hash: { type: String, required: true },
+  expires_at: { type: Date, required: true }
+}, { timestamps: true });
+
+// Token cleanup index
+refreshTokenSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });
 ```
 
 ## API Endpoints
@@ -229,8 +225,7 @@ const handleAuthError = (error) => {
 NODE_ENV=production
 ACCESS_TOKEN_SECRET=your-secure-access-secret
 REFRESH_TOKEN_SECRET=your-secure-refresh-secret
-TURSO_DATABASE_URL=your-turso-url
-TURSO_AUTH_TOKEN=your-turso-token
+MONGO_URI=mongodb://your-mongo-connection-string
 ```
 
 ## Testing
