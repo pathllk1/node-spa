@@ -14,121 +14,98 @@ The Inventory Management System is a comprehensive business solution that handle
 - **Reporting**: Comprehensive inventory and sales reports
 - **PDF Generation**: Professional invoice and report generation
 
-### Database Schema
+### Database Schema (Mongoose)
 
-#### Stocks Table
-```sql
-CREATE TABLE stocks (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  firm_id INTEGER NOT NULL,
-  item TEXT NOT NULL,
-  pno TEXT,
-  oem TEXT,
-  hsn TEXT,
-  qty REAL NOT NULL DEFAULT 0,
-  uom TEXT DEFAULT 'PCS',
-  rate REAL NOT NULL DEFAULT 0,
-  grate REAL DEFAULT 0,
-  total REAL DEFAULT 0,
-  mrp REAL,
-  batches TEXT, -- JSON array of batch details
-  user TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (firm_id) REFERENCES firms(id)
-);
+#### Stock Model
+```javascript
+const stockSchema = new Schema({
+  firm_id: { type: Schema.Types.ObjectId, ref: 'Firm', required: true },
+  item:    { type: String, required: true },
+  pno:     { type: String },
+  oem:     { type: String },
+  hsn:     { type: String },
+  qty:     { type: Number, required: true, default: 0 },
+  uom:     { type: String, default: 'PCS' },
+  rate:    { type: Number, required: true, default: 0 },
+  grate:   { type: Number, default: 0 },
+  total:   { type: Number, default: 0 },
+  mrp:     { type: Number },
+  batches: [batchSchema], // Array of embedded subdocuments
+  user:    { type: String }
+}, { timestamps: true });
 ```
 
-#### Parties Table
-```sql
-CREATE TABLE parties (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  firm_id INTEGER NOT NULL,
-  firm TEXT NOT NULL,
-  gstin TEXT,
-  contact TEXT,
-  state TEXT,
-  state_code INTEGER,
-  addr TEXT,
-  pin TEXT,
-  pan TEXT,
-  user TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (firm_id) REFERENCES firms(id)
-);
+#### Party Model
+```javascript
+const partySchema = new Schema({
+  firm_id:    { type: Schema.Types.ObjectId, ref: 'Firm', required: true },
+  firm:       { type: String, required: true },
+  gstin:      { type: String },
+  contact:    { type: String },
+  state:      { type: String },
+  state_code: { type: Number },
+  addr:       { type: String },
+  pin:        { type: String },
+  pan:        { type: String },
+  user:       { type: String }
+}, { timestamps: true });
 ```
 
-#### Bills Table
-```sql
-CREATE TABLE bills (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  firm_id INTEGER NOT NULL,
-  bno TEXT NOT NULL,
-  bdate TEXT NOT NULL,
-  party TEXT NOT NULL,
-  addr TEXT,
-  gstin TEXT,
-  state TEXT,
-  pin TEXT,
-  state_code INTEGER,
-  gtot REAL NOT NULL, -- Taxable amount
-  ntot REAL NOT NULL, -- Grand total
-  rof REAL NOT NULL,  -- Rounding off
-  type TEXT DEFAULT 'SALES',
-  user TEXT,
-  firm TEXT,
-  party_id INTEGER,
-  other_charges TEXT, -- JSON array
-  ref_no TEXT,
-  vehicle_no TEXT,
-  dispatch_through TEXT,
-  narration TEXT,
-  reverse_charge INTEGER DEFAULT 0,
-  cgst REAL DEFAULT 0,
-  sgst REAL DEFAULT 0,
-  igst REAL DEFAULT 0,
-  consignee_name TEXT,
-  consignee_gstin TEXT,
-  consignee_address TEXT,
-  consignee_state TEXT,
-  consignee_pin TEXT,
-  consignee_state_code INTEGER,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (firm_id) REFERENCES firms(id),
-  FOREIGN KEY (party_id) REFERENCES parties(id)
-);
+#### Bill Model
+```javascript
+const billSchema = new Schema({
+  firm_id:          { type: Schema.Types.ObjectId, ref: 'Firm', required: true },
+  bno:              { type: String, required: true },
+  bdate:            { type: String, required: true },
+  party:            { type: String, required: true },
+  addr:             { type: String },
+  gstin:            { type: String },
+  state:            { type: String },
+  pin:              { type: String },
+  state_code:       { type: Number },
+  gtot:             { type: Number, required: true }, // Taxable amount
+  ntot:             { type: Number, required: true }, // Grand total
+  rof:              { type: Number, required: true }, // Rounding off
+  type:             { type: String, default: 'SALES' },
+  user:             { type: String },
+  firm:             { type: String },
+  party_id:         { type: Schema.Types.ObjectId, ref: 'Party' },
+  other_charges:    [{ /* Embedded schema */ }],
+  ref_no:           { type: String },
+  vehicle_no:       { type: String },
+  dispatch_through: { type: String },
+  narration:        { type: String },
+  reverse_charge:   { type: Number, default: 0 },
+  cgst:             { type: Number, default: 0 },
+  sgst:             { type: Number, default: 0 },
+  igst:             { type: Number, default: 0 },
+  // ... consignee fields ...
+}, { timestamps: true });
 ```
 
-#### Stock Register Table
-```sql
-CREATE TABLE stock_reg (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  firm_id INTEGER NOT NULL,
-  type TEXT NOT NULL, -- 'SALE', 'PURCHASE', etc.
-  bno TEXT,
-  bdate TEXT,
-  party TEXT,
-  item TEXT NOT NULL,
-  narration TEXT,
-  batch TEXT,
-  hsn TEXT,
-  qty REAL NOT NULL,
-  uom TEXT,
-  rate REAL NOT NULL,
-  grate REAL DEFAULT 0,
-  disc REAL DEFAULT 0,
-  total REAL NOT NULL,
-  stock_id INTEGER,
-  bill_id INTEGER,
-  user TEXT,
-  firm TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (firm_id) REFERENCES firms(id),
-  FOREIGN KEY (stock_id) REFERENCES stocks(id),
-  FOREIGN KEY (bill_id) REFERENCES bills(id)
-);
+#### Stock Register Model
+```javascript
+const stockRegSchema = new Schema({
+  firm_id:   { type: Schema.Types.ObjectId, ref: 'Firm', required: true },
+  type:      { type: String, required: true }, // 'SALE', 'PURCHASE', etc.
+  bno:       { type: String },
+  bdate:     { type: String },
+  party:     { type: String },
+  item:      { type: String, required: true },
+  narration: { type: String },
+  batch:     { type: String },
+  hsn:       { type: String },
+  qty:       { type: Number, required: true },
+  uom:       { type: String },
+  rate:      { type: Number, required: true },
+  grate:     { type: Number, default: 0 },
+  disc:      { type: Number, default: 0 },
+  total:     { type: Number, required: true },
+  stock_id:  { type: Schema.Types.ObjectId, ref: 'Stock' },
+  bill_id:   { type: Schema.Types.ObjectId, ref: 'Bill' },
+  user:      { type: String },
+  firm:      { type: String }
+}, { timestamps: true });
 ```
 
 ## Stock Management
@@ -242,7 +219,8 @@ for (const item of cart) {
 #### 4. Ledger Integration
 ```javascript
 // Party Debtor entry
-Ledger.create.run({
+await Ledger.create({
+  firm_id: req.user.firm_id,
   account_head: party.firm,
   account_type: 'DEBTOR',
   debit_amount: ntot,
@@ -252,7 +230,8 @@ Ledger.create.run({
 
 // GST Liability entries
 if (cgst > 0) {
-  Ledger.create.run({
+  await Ledger.create({
+    firm_id: req.user.firm_id,
     account_head: 'CGST Payable',
     account_type: 'LIABILITY',
     debit_amount: 0,
@@ -383,19 +362,19 @@ POST   /api/inventory/sales/gst-lookup                # GST validation
 ## Performance Optimizations
 
 ### Database Queries
-- Prepared statements for repeated queries
+- Mongoose lean() queries for read-only endpoints
 - Indexed columns for fast lookups
-- Efficient JOIN operations
+- Efficient populate() operations
 
 ### Batch Processing
-- Bulk stock updates
-- Transaction batching
+- Bulk stock updates using insertMany/bulkWrite
+- Transaction batching (Mongoose transactions where replica sets allow)
 - Memory-efficient processing
 
 ### Caching Strategy
 - Firm settings caching
 - Frequently accessed data optimization
-- Connection pooling with Turso
+- Connection pooling with MongoDB
 
 ## Integration Points
 
