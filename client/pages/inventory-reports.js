@@ -421,8 +421,11 @@ export async function renderInventoryReports(router) {
             </svg>
             Download PDF
           </button>
-          <button id="close-modal-bottom" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-            Close
+          <button id="download-excel" class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Download Excel
           </button>
         </div>
       </div>
@@ -445,6 +448,8 @@ function initializeBillsPage(router) {
   let itemsPerPage = 10;
   let sortColumn = '';
   let sortDirection = 'asc'; // 'asc' or 'desc'
+
+  let excelListenerAdded = false;
 
   // Modal elements
   const modal = document.getElementById('bill-modal');
@@ -824,6 +829,22 @@ function initializeBillsPage(router) {
       modal.classList.remove('hidden');
       modal.setAttribute('data-current-bill-id', billId);
 
+      // Add Excel button event listener if not already added
+      if (!excelListenerAdded) {
+        const downloadExcelBtn = document.getElementById('download-excel');
+        if (downloadExcelBtn) {
+          downloadExcelBtn.addEventListener('click', () => {
+            const billId = modal.getAttribute('data-current-bill-id');
+            if (billId) {
+              downloadExcel(billId);
+            } else {
+              alert('No bill selected for Excel download.');
+            }
+          });
+          excelListenerAdded = true;
+        }
+      }
+
       // Handle cancel button visibility based on bill status
       if (bill.status === 'CANCELLED') {
         cancelBillBtn.disabled = true;
@@ -894,6 +915,47 @@ function initializeBillsPage(router) {
     } catch (error) {
       console.error('PDF download error:', error);
       alert('Failed to download PDF. Please try again.');
+    }
+  }
+
+  // Download Excel (calls the server endpoint)
+  function downloadExcel(billId) {
+    try {
+      // Create a temporary link to trigger download
+      const link = document.createElement('a');
+      link.href = `/api/inventory/sales/bills/${billId}/excel`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+
+      // Add authorization header by using fetch first
+      fetch(`/api/inventory/sales/bills/${billId}/excel`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      }).then(response => {
+        if (response.ok) {
+          // Create blob URL for download
+          response.blob().then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            link.href = url;
+            link.download = `Invoice_${billId}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          });
+        } else {
+          console.error('Excel download failed:', response.status, response.statusText);
+          alert('Failed to download Excel. Please try again.');
+        }
+      }).catch(error => {
+        console.error('Excel download error:', error);
+        alert('Failed to download Excel. Please check your connection and try again.');
+      });
+    } catch (error) {
+      console.error('Excel download error:', error);
+      alert('Failed to download Excel. Please try again.');
     }
   }
 
@@ -1232,19 +1294,19 @@ function initializeBillsPage(router) {
   });
 
   // Modal close event listeners
-  closeModalBtn.addEventListener('click', closeModal);
-  closeModalBottomBtn.addEventListener('click', closeModal);
+  if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+  if (closeModalBottomBtn) closeModalBottomBtn.addEventListener('click', closeModal);
 
   // Close modal when clicking outside
-  modal.addEventListener('click', (e) => {
+  if (modal) modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       closeModal();
     }
   });
 
   // Modal action buttons
-  printBillBtn.addEventListener('click', () => printBill());
-  downloadPdfBtn.addEventListener('click', () => {
+  if (printBillBtn) printBillBtn.addEventListener('click', () => printBill());
+  if (downloadPdfBtn) downloadPdfBtn.addEventListener('click', () => {
     // Get current bill ID from modal data attribute
     const billId = modal.getAttribute('data-current-bill-id');
     if (billId) {
@@ -1253,7 +1315,7 @@ function initializeBillsPage(router) {
       alert('No bill selected for PDF download.');
     }
   });
-  editBillBtn.addEventListener('click', () => {
+  if (editBillBtn) editBillBtn.addEventListener('click', () => {
     const billId = modal.getAttribute('data-current-bill-id');
     if (billId) {
       sessionStorage.setItem('editBillId', billId);
@@ -1264,7 +1326,7 @@ function initializeBillsPage(router) {
   });
 
   // Cancel bill event listeners
-  cancelBillBtn.addEventListener('click', () => {
+  if (cancelBillBtn) cancelBillBtn.addEventListener('click', () => {
     const billId = modal.getAttribute('data-current-bill-id');
     if (billId) {
       cancelBillSection.classList.remove('hidden');
@@ -1272,16 +1334,16 @@ function initializeBillsPage(router) {
     }
   });
 
-  cancelSectionToggle.addEventListener('click', toggleCancelSection);
+  if (cancelSectionToggle) cancelSectionToggle.addEventListener('click', toggleCancelSection);
 
-  confirmCancelBtn.addEventListener('click', () => {
+  if (confirmCancelBtn) confirmCancelBtn.addEventListener('click', () => {
     const billId = modal.getAttribute('data-current-bill-id');
     if (billId) {
       cancelBill(billId);
     }
   });
 
-  cancelCancelBtn.addEventListener('click', () => {
+  if (cancelCancelBtn) cancelCancelBtn.addEventListener('click', () => {
     cancelBillSection.classList.add('hidden');
     resetCancelForm();
   });

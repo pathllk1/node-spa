@@ -284,6 +284,20 @@ export function initSalesSystem(router) {
             <div id="sub-modal-content" class="bg-white rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-300 animate-scale-in">
             </div>
         </div>
+
+        <!-- Save Confirmation Modal -->
+        <div id="save-confirmation-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+            <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                <h3 class="text-lg font-semibold mb-4">Invoice Saved Successfully</h3>
+                <p class="text-gray-600 mb-6">Bill No: <span id="modal-bill-no" class="font-semibold"></span></p>
+                <p class="mb-6">Would you like to download the PDF or Excel?</p>
+                <div class="flex justify-end gap-3">
+                    <button id="download-pdf-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Download PDF</button>
+                    <button id="download-excel-btn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Download Excel</button>
+                    <button id="close-modal-btn" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">Close</button>
+                </div>
+            </div>
+        </div>
         `;
 
         // Update party display
@@ -577,21 +591,7 @@ export function initSalesSystem(router) {
                     
                     showToast(successMessage, 'success');
                     
-                    if (isEditMode) {
-                        // For edit mode, redirect back to sales report after short delay
-                        setTimeout(() => {
-                            router.navigate('/inventory/reports');
-                        }, 1500);
-                    } else {
-                        // For create mode, export PDF and reset form
-                        console.log('Calling exportInvoiceToPDF with billId:', result.id);
-                        exportInvoiceToPDF(state, formatCurrency, result.id);
-                        
-                        // Reset form
-                        clearCart(state);
-                        await fetchData(state);
-                        renderMainLayout(isEditMode);
-                    }
+                    showSaveConfirmationModal(result.id, result.billNo, isEditMode);
 
                     // Hide spinner and re-enable button
                     hideSaveSpinner();
@@ -805,4 +805,122 @@ export function initSalesSystem(router) {
             if (chargesBtn) chargesBtn.click();
         }
     });
+
+    // Modal functions
+    function showSaveConfirmationModal(billId, billNo, isEditMode) {
+        const modal = document.getElementById('save-confirmation-modal');
+        const billNoSpan = document.getElementById('modal-bill-no');
+        billNoSpan.textContent = billNo;
+        modal.classList.remove('hidden');
+
+        // Set up buttons
+        const downloadBtn = document.getElementById('download-pdf-btn');
+        const downloadExcelBtn = document.getElementById('download-excel-btn');
+        const closeBtn = document.getElementById('close-modal-btn');
+
+        const handleAfterModal = () => {
+            if (isEditMode) {
+                setTimeout(() => router.navigate('/inventory/reports'), 500);
+            } else {
+                clearCart(state);
+                fetchData(state).then(() => renderMainLayout(isEditMode));
+            }
+        };
+
+        downloadBtn.onclick = () => {
+            downloadPdf(billId, closeModal, handleAfterModal);
+        };
+
+        downloadExcelBtn.onclick = () => {
+            downloadExcel(billId, closeModal, handleAfterModal);
+        };
+
+        closeBtn.onclick = () => {
+            closeModal();
+            handleAfterModal();
+        };
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('save-confirmation-modal');
+        modal.classList.add('hidden');
+    }
+
+    function downloadPdf(billId, closeModal, handleAfterModal) {
+        try {
+            const link = document.createElement('a');
+            link.href = `/api/inventory/sales/bills/${billId}/pdf`;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+
+            fetch(`/api/inventory/sales/bills/${billId}/pdf`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            }).then(response => {
+                if (response.ok) {
+                    response.blob().then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        link.href = url;
+                        link.download = `Invoice_${billId}.pdf`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+                        closeModal();
+                        handleAfterModal();
+                    });
+                } else {
+                    console.error('PDF download failed:', response.status, response.statusText);
+                    alert('Failed to download PDF. Please try again.');
+                }
+            }).catch(error => {
+                console.error('PDF download error:', error);
+                alert('Failed to download PDF. Please check your connection and try again.');
+            });
+        } catch (error) {
+            console.error('PDF download error:', error);
+            alert('Failed to download PDF. Please try again.');
+        }
+    }
+
+    function downloadExcel(billId, closeModal, handleAfterModal) {
+        try {
+            const link = document.createElement('a');
+            link.href = `/api/inventory/sales/bills/${billId}/excel`;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+
+            fetch(`/api/inventory/sales/bills/${billId}/excel`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            }).then(response => {
+                if (response.ok) {
+                    response.blob().then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        link.href = url;
+                        link.download = `Invoice_${billId}.xlsx`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+                        closeModal();
+                        handleAfterModal();
+                    });
+                } else {
+                    console.error('Excel download failed:', response.status, response.statusText);
+                    alert('Failed to download Excel. Please try again.');
+                }
+            }).catch(error => {
+                console.error('Excel download error:', error);
+                alert('Failed to download Excel. Please check your connection and try again.');
+            });
+        } catch (error) {
+            console.error('Excel download error:', error);
+            alert('Failed to download Excel. Please try again.');
+        }
+    }
 }

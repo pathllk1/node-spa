@@ -1,6 +1,7 @@
 import express from 'express';
 import * as inventoryController from '../../../controllers/mongo/inventory/sls/inventory.js';
 import { generateInvoicePDF } from '../../../controllers/mongo/inventory/pdfMakeController.js';
+import { generateInvoiceExcel } from '../../../controllers/mongo/inventory/exportUtils.js';
 import * as firmManagementController from "../../../controllers/mongo/firmManagementController.js";
 import { authMiddleware } from '../../../middleware/mongo/authMiddleware.js';
 
@@ -24,6 +25,7 @@ router.post('/parties', inventoryController.createParty);
 router.post('/bills', inventoryController.createBill);
 router.get('/bills/export', inventoryController.exportBillsExcel);
 router.get('/bills/:id/pdf', generateInvoicePDF);
+router.get('/bills/:id/excel', generateInvoiceExcel);
 router.get('/bills/:id', inventoryController.getBillById);
 router.get('/bills', inventoryController.getAllBills);
 router.put('/bills/:id', inventoryController.updateBill);
