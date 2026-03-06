@@ -23,6 +23,7 @@ import { securityMiddleware } from './middleware/securityMiddleware.js';
 import sanitizer from './middleware/sanitizer.js';
 import { csrfGenerateToken, csrfValidateToken } from './middleware/csrfMiddleware.js';
 import authRoutes from './routes/mongo/authRoutes.js';
+import sessionRoutes from './routes/mongo/sessionRoutes.js';
 import pageRoutes from './routes/pageRoutes.js';
 
 import masterRollRoutes from './routes/mongo/masterRoll.routes.js';
@@ -31,6 +32,9 @@ import settingsRoutes from './routes/mongo/settings.routes.js';
 import inventorySalesRoutes from './routes/mongo/inventory/sls.js';
 import ledgerRoutes from './routes/mongo/ledger.routes.js';
 import adminRoutes from './routes/mongo/admin.js';
+
+import { cleanupExpiredTokens } from './utils/mongo/tokenRevocationUtils.js';
+import { cleanupRateLimitEntries } from './middleware/mongo/rateLimitMiddleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,6 +65,7 @@ app.use(express.static(join(__dirname, '../client'), {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/sessions', sessionRoutes);
 app.use('/api/pages', pageRoutes);
 
 app.use('/api/master-rolls', masterRollRoutes);
@@ -115,8 +120,27 @@ process.on('uncaughtException', (error) => {
 
 // Only listen if not running on Vercel (Vercel handles the server)
 if (!isVercel) {
+  // Run token and blacklist cleanup every hour
+  setInterval(async () => {
+    try {
+      await cleanupExpiredTokens();
+    } catch (error) {
+      console.error('❌ Token cleanup job failed:', error.message);
+    }
+  }, 60 * 60 * 1000); // 1 hour
+
+  // Run rate limit cleanup every 30 minutes
+  setInterval(() => {
+    try {
+      cleanupRateLimitEntries();
+    } catch (error) {
+      console.error('❌ Rate limit cleanup job failed:', error.message);
+    }
+  }, 30 * 60 * 1000); // 30 minutes
+
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log('🔐 Security jobs initialized: token cleanup, rate limit maintenance');
   });
 }
 

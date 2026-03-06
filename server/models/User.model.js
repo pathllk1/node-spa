@@ -25,6 +25,33 @@ const userSchema = new Schema(
     },
     last_mail_sent: { type: Date, default: null },
     last_login:     { type: Date, default: null },
+    
+    // Security tracking fields
+    failed_login_attempts: {
+      type: Number,
+      default: 0,
+    },
+    account_locked_until: {
+      type: Date,
+      default: null,
+    },
+    login_history: [
+      {
+        ip_address: String,
+        device_id: String,
+        timestamp: { type: Date, default: Date.now },
+        user_agent: String,
+      }
+    ],
+    device_fingerprints: [
+      {
+        device_id: String,
+        fingerprint: String,
+        is_trusted: { type: Boolean, default: false },
+        added_at: { type: Date, default: Date.now },
+        last_used_at: { type: Date, default: Date.now },
+      }
+    ],
   },
   { timestamps: true }
 );

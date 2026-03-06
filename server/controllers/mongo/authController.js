@@ -1,6 +1,18 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 import { generateTokenPair } from '../../utils/mongo/tokenUtils.js';
+import {
+  addTokenToBlacklist,
+  logLoginAttempt,
+  registerDevice,
+  revokeAllUserTokens,
+} from '../../utils/mongo/tokenRevocationUtils.js';
+import {
+  checkAccountLockout,
+  recordFailedAttempt,
+  resetFailedAttempts,
+} from '../../middleware/mongo/rateLimitMiddleware.js';
 import { User, RefreshToken } from '../../models/index.js';
 
 const ACCESS_LIFE_MS   = 15 * 60 * 1000;       // 15 minutes
@@ -11,28 +23,73 @@ function hashToken(raw) {
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
+/**
+ * Get client IP from request
+ */
+function getClientIP(req) {
+  return (
+    req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+    req.headers['x-real-ip'] ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    'unknown'
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    LOGIN
 ───────────────────────────────────────────────────────────────────────── */
 
 export const login = async (req, res) => {
+  let user;
+  const ip = getClientIP(req);
+  const userAgent = req.headers['user-agent'] || null;
+  const { username, password, device_id: clientDeviceId } = req.body;
+
   try {
-    const { username, password } = req.body;
-
-    console.log(`🔐 Login attempt: ${username}`);
-
     if (!username || !password) {
+      await logLoginAttempt({
+        user_id: null,
+        status: 'failed',
+        ip_address: ip,
+        user_agent: userAgent,
+        failure_reason: 'missing_credentials',
+      });
       return res.status(400).json({ success: false, error: 'Email/username and password are required' });
     }
 
+    console.log(`🔐 Login attempt: ${username} from ${ip}`);
+
     // Find by email OR username, and populate firm details
-    const user = await User.findOne({
+    user = await User.findOne({
       $or: [{ email: username }, { username }],
-    }).populate('firm_id', 'name code status');  // only pull the fields we need
+    }).populate('firm_id', 'name code status');
 
     if (!user) {
       console.log(`❌ User not found: ${username}`);
+      await logLoginAttempt({
+        user_id: null,
+        status: 'failed',
+        ip_address: ip,
+        user_agent: userAgent,
+        failure_reason: 'user_not_found',
+      });
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
+    }
+
+    // Check for account lockout
+    try {
+      await checkAccountLockout(User, user);
+    } catch (lockError) {
+      await logLoginAttempt({
+        user_id: user._id,
+        status: 'locked',
+        ip_address: ip,
+        user_agent: userAgent,
+        device_id: clientDeviceId,
+        failure_reason: 'account_locked',
+      });
+      return res.status(423).json({ success: false, error: lockError.message });
     }
 
     console.log(`✅ User found: ${user.username} (role: ${user.role}, status: ${user.status})`);
@@ -41,70 +98,163 @@ export const login = async (req, res) => {
     const firm = user.firm_id; // populated doc or null
     if (firm && firm.status !== 'approved') {
       console.log(`❌ Firm not approved: ${firm.status}`);
+      await logLoginAttempt({
+        user_id: user._id,
+        status: 'failed',
+        ip_address: ip,
+        user_agent: userAgent,
+        device_id: clientDeviceId,
+        failure_reason: 'firm_not_approved',
+      });
       return res.status(403).json({ success: false, error: 'Your firm is not approved yet. Please contact support.' });
     }
 
     // Check user approval
     if (user.status !== 'approved') {
       console.log(`❌ User not approved: ${user.status}`);
+      await logLoginAttempt({
+        user_id: user._id,
+        status: 'failed',
+        ip_address: ip,
+        user_agent: userAgent,
+        device_id: clientDeviceId,
+        failure_reason: 'user_not_approved',
+      });
       return res.status(403).json({ success: false, error: 'Your account is pending approval. Please contact your administrator.' });
     }
 
     // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log(`❌ Password mismatch`);
+      console.log(`❌ Password mismatch for user ${user.username}`);
+      
+      // Record failed attempt and check for lockout
+      await recordFailedAttempt(User, user);
+      
+      await logLoginAttempt({
+        user_id: user._id,
+        status: 'failed',
+        ip_address: ip,
+        user_agent: userAgent,
+        device_id: clientDeviceId,
+        failure_reason: 'invalid_password',
+      });
+
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
-    console.log(`✅ Password verified`);
+    console.log(`✅ Password verified for ${user.username}`);
+
+    // Reset failed attempts on successful login
+    await resetFailedAttempts(user);
 
     // Update last login
     user.last_login = new Date();
+    
+    // Track login history (keep last 5)
+    const loginEntry = {
+      ip_address: ip,
+      device_id: clientDeviceId || null,
+      timestamp: new Date(),
+      user_agent: userAgent,
+    };
+    
+    if (!user.login_history) user.login_history = [];
+    user.login_history.unshift(loginEntry);
+    if (user.login_history.length > 5) {
+      user.login_history.pop();
+    }
+    
     await user.save();
 
-    // Generate token pair
-    const { accessToken, refreshToken } = generateTokenPair({
-      ...user.toObject(), // Convert to plain object
-      firm_id: firm?._id ?? null, // Use firm ID string, not populated object
-    });
+    // Generate token family ID for refresh chain tracking
+    const tokenFamilyId = uuidv4();
 
-    // Persist hashed refresh token
+    // Generate token pair with device and family info
+    const { accessToken, refreshToken } = generateTokenPair(
+      {
+        ...user.toObject(),
+        firm_id: firm?._id ?? null,
+      },
+      {
+        device_id: clientDeviceId || 'unknown',
+        family_id: tokenFamilyId,
+      }
+    );
+
+    // Persist hashed refresh token with device and family tracking
     const expiresAt = new Date(Date.now() + REFRESH_LIFE_MS);
     await RefreshToken.create({
-      user_id:    user._id,
+      user_id: user._id,
       token_hash: hashToken(refreshToken),
+      device_id: clientDeviceId || null,
+      ip_address: ip,
+      token_family_id: tokenFamilyId,
       expires_at: expiresAt,
     });
 
+    // Register device
+    if (clientDeviceId) {
+      try {
+        await registerDevice({
+          user_id: user._id,
+          device_id: clientDeviceId,
+          device_type: 'unknown',
+          ip_address: ip,
+          token_family_id: tokenFamilyId,
+        });
+      } catch (deviceError) {
+        console.warn('⚠️ Failed to register device:', deviceError.message);
+        // Don't fail auth if device registration fails
+      }
+    }
+
     // Set cookies
     const cookieBase = {
-      secure:   process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
     };
 
-    res.cookie('accessToken',  accessToken,  { ...cookieBase, httpOnly: true,  maxAge: ACCESS_LIFE_MS });
-    res.cookie('refreshToken', refreshToken, { ...cookieBase, httpOnly: true,  maxAge: REFRESH_LIFE_MS });
-    res.cookie('tokenExpiry',  String(Date.now() + ACCESS_LIFE_MS), { ...cookieBase, httpOnly: false, maxAge: ACCESS_LIFE_MS });
+    res.cookie('accessToken', accessToken, { ...cookieBase, httpOnly: true, maxAge: ACCESS_LIFE_MS });
+    res.cookie('refreshToken', refreshToken, { ...cookieBase, httpOnly: true, maxAge: REFRESH_LIFE_MS });
+    res.cookie('tokenExpiry', String(Date.now() + ACCESS_LIFE_MS), { ...cookieBase, httpOnly: false, maxAge: ACCESS_LIFE_MS });
+
+    // Log successful login
+    await logLoginAttempt({
+      user_id: user._id,
+      status: 'success',
+      ip_address: ip,
+      user_agent: userAgent,
+      device_id: clientDeviceId || null,
+    });
+
+    console.log(`✅ Login successful for ${user.username} from ${ip}`);
 
     res.json({
       success: true,
       message: 'Login successful',
       user: {
-        id:         user._id,
-        username:   user.username,
-        email:      user.email,
-        fullname:   user.fullname,
-        role:       user.role,
-        firm_id:    firm?._id ?? null,
-        firm_name:  firm?.name ?? null,
-        firm_code:  firm?.code ?? null,
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        fullname: user.fullname,
+        role: user.role,
+        firm_id: firm?._id ?? null,
+        firm_name: firm?.name ?? null,
+        firm_code: firm?.code ?? null,
         last_login: user.last_login,
       },
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
+    if (user) {
+      try {
+        await recordFailedAttempt(User, user);
+      } catch (_) {
+        // Ignore error
+      }
+    }
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -115,15 +265,49 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    // Delete the specific refresh token from DB (clean rotation)
     const rawRefresh = req.cookies.refreshToken;
+    const ip = getClientIP(req);
+
     if (rawRefresh && req.user?.id) {
-      await RefreshToken.deleteOne({
-        user_id:    req.user.id,
-        token_hash: hashToken(rawRefresh),
-      });
+      // Hash and add to blacklist
+      const tokenHash = hashToken(rawRefresh);
+      
+      try {
+        // Find the token to get its expiry
+        const storedToken = await RefreshToken.findOne({
+          user_id: req.user.id,
+          token_hash: tokenHash,
+        });
+
+        if (storedToken) {
+          // Revoke in DB
+          await RefreshToken.updateOne(
+            { _id: storedToken._id },
+            {
+              $set: {
+                is_revoked: true,
+                revoked_reason: 'logout',
+                revoked_at: new Date(),
+              },
+            }
+          );
+
+          // Add to blacklist
+          await addTokenToBlacklist(
+            req.user.id,
+            rawRefresh,
+            storedToken.expires_at,
+            'logout'
+          );
+        }
+      } catch (error) {
+        console.error('⚠️ Error blacklisting refresh token:', error.message);
+      }
+
+      console.log(`👋 Logout: user ${req.user.id} from ${ip}`);
     }
-  } catch (_) {
+  } catch (error) {
+    console.error('❌ Logout error:', error);
     // Non-fatal — still clear cookies
   }
 
@@ -152,30 +336,31 @@ export const getCurrentUser = async (req, res) => {
     // Return consistent user object format like login
     const firm = user.firm_id;
     res.json({
-      success:       true,
+      success: true,
       user: {
-        id:         user._id,
-        username:   user.username,
-        email:      user.email,
-        fullname:   user.fullname,
-        role:       user.role,
-        firm_id:    firm?._id ?? null,
-        firm_name:  firm?.name ?? null,
-        firm_code:  firm?.code ?? null,
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        fullname: user.fullname,
+        role: user.role,
+        firm_id: firm?._id ?? null,
+        firm_name: firm?.name ?? null,
+        firm_code: firm?.code ?? null,
         last_login: user.last_login,
       },
       tokenRefreshed: req.tokenRefreshed || false,
     });
   } catch (error) {
-    console.error('getCurrentUser error:', error);
+    console.error('❌ getCurrentUser error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
-   REFRESH TOKEN  (explicit endpoint — middleware already handles silent refresh)
+   REFRESH TOKEN (explicit endpoint — middleware already handles silent refresh)
 ───────────────────────────────────────────────────────────────────────── */
 
 export const refreshToken = (req, res) => {
   res.json({ success: true, message: 'Token refreshed', user: req.user });
 };
+

@@ -55,6 +55,7 @@
     "mongoose": "^8.0.0",
     "pdfmake": "^0.3.3",
     "tailwindcss": "^4.1.18",
+    "uuid": "^9.0.0",
     "xss": "^1.0.15"
   },
   "devDependencies": {
