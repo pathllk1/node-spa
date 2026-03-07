@@ -4,8 +4,8 @@ import {
   getProtectedData, 
   getDashboardData,
   getProfileData
-} from '../controllers/pageController.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+} from '../../controllers/pageController.js';
+import { authMiddleware } from '../../middleware/mongo/authMiddleware.js';
 
 const router = express.Router();
 

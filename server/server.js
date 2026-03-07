@@ -16,12 +16,12 @@ import 'dotenv/config.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-import { securityMiddleware } from './middleware/securityMiddleware.js';
+import { securityMiddleware } from './middleware/mongo/securityMiddleware.js';
 import sanitizer from './middleware/sanitizer.js';
 import { csrfGenerateToken, csrfValidateToken } from './middleware/csrfMiddleware.js';
 import authRoutes from './routes/mongo/authRoutes.js';
 import sessionRoutes from './routes/mongo/sessionRoutes.js';
-import pageRoutes from './routes/pageRoutes.js';
+import pageRoutes from './routes/mongo/pageRoutes.js';
 
 import masterRollRoutes from './routes/mongo/masterRoll.routes.js';
 import wagesRoutes from './routes/mongo/wages.routes.js';

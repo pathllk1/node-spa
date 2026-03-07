@@ -36,7 +36,7 @@ export function renderNavbar(router) {
   `;
 
   const navbarHTML = `
-    <nav class="fixed top-0 left-0 w-full h-16 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-md flex items-center px-6 z-20">
+    <nav class="fixed top-0 left-0 w-full h-12 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-md flex items-center px-6 z-20">
       <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
           

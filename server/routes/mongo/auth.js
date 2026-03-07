@@ -224,7 +224,6 @@ router.post("/auth/login", async (req, res) => {
       });
     }
 
-    console.log(`✅ User found: ${user.username} (role: ${user.role}, status: ${user.status})`);
 
     // Check if firm is approved
     if (user.firm_id && user.firm_status !== 'approved') {
@@ -254,7 +253,6 @@ router.post("/auth/login", async (req, res) => {
       });
     }
 
-    console.log(`✅ Password verified`);
 
     User.updateLastLogin.run(user.id);
     

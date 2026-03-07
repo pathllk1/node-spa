@@ -84,7 +84,6 @@ export const login = async (req, res) => {
       return res.status(423).json({ success: false, error: lockError.message });
     }
 
-    console.log(`✅ User found: ${user.username} (role: ${user.role}, status: ${user.status})`);
 
     // Check firm approval
     const firm = user.firm_id; // populated doc or null
@@ -131,7 +130,6 @@ export const login = async (req, res) => {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
-    console.log(`✅ Password verified for ${user.username}`);
 
     // Reset failed attempts on successful login
     await resetFailedAttempts(user);

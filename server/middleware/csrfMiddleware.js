@@ -47,13 +47,6 @@ export const csrfValidateToken = (req, res, next) => {
       return next();
     }
 
-    console.log('[CSRF_VALIDATE] 🔐 Validating CSRF token for:', {
-      method: req.method,
-      path: req.path,
-      hasXCsrfToken: !!req.headers['x-csrf-token'],
-      hasCsrfInBody: !!(req.body && req.body._csrf),
-    });
-
     // Skip validation for login/register endpoints (user doesn't have CSRF token yet)
     if (req.path === '/api/auth/login' || req.path === '/api/auth/register') {
       return next();
@@ -80,12 +73,6 @@ export const csrfValidateToken = (req, res, next) => {
         message: 'CSRF token not found in session'
       });
     }
-
-    console.log('[CSRF_VALIDATE] 🔑 Token comparison:', {
-      clientTokenLen: clientToken.length,
-      storedTokenLen: storedToken.length,
-      match: clientToken === storedToken
-    });
     
     // Verify token with timing-safe comparison to prevent timing attacks
     try {
@@ -110,7 +97,6 @@ export const csrfValidateToken = (req, res, next) => {
       });
     }
 
-    console.log('[CSRF_VALIDATE] ✅ CSRF token valid');
     next();
   } catch (error) {
     console.error('[CSRF_VALIDATION_ERROR]', error);

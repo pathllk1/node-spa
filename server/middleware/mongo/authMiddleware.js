@@ -52,13 +52,6 @@ export const authMiddleware = async (req, res, next) => {
     const accessToken  = req.cookies.accessToken;
     const refreshToken = req.cookies.refreshToken;
 
-    console.log('[authMiddleware DEBUG]', {
-      accessTokenExists:  !!accessToken,
-      refreshTokenExists: !!refreshToken,
-      path:   req.path,
-      method: req.method,
-    });
-
     // ── No tokens at all ──────────────────────────────────────────────
     if (!accessToken && !refreshToken) {
       return res.status(401).json({ success: false, message: 'Authentication required' });
@@ -75,12 +68,6 @@ export const authMiddleware = async (req, res, next) => {
 
         const decoded = verifyAccessToken(accessToken);
 
-        console.log('[authMiddleware] Access token valid, decoded user:', {
-          id:       decoded.id,
-          username: decoded.username,
-          role:     decoded.role,
-        });
-
         // Token type validation — prevents token substitution attack
         // (verifyAccessToken already checks this, but belt-and-braces)
         if (decoded.type !== 'access') {
@@ -89,7 +76,6 @@ export const authMiddleware = async (req, res, next) => {
         }
 
         req.user = decoded;
-        console.log('[authMiddleware] req.user.role:', req.user.role);
         return next();
       } catch (error) {
         // Access token missing, invalid, or expired — fall through to refresh flow
@@ -194,8 +180,7 @@ export const authMiddleware = async (req, res, next) => {
       return clearAndReject(res, 'Session invalidated. Please login again.');
     }
 
-    // ── Issue new access token ────────────────────────────────────────
-    console.log('[authMiddleware] Refresh token validated, issuing new access token. Role:', refreshDecoded.role);
+    // ── Issue new access token ────────────────────────────────────────;
 
     const newAccessToken = generateAccessToken({
       id:        refreshDecoded.id,
@@ -211,8 +196,6 @@ export const authMiddleware = async (req, res, next) => {
 
     req.user           = refreshDecoded;
     req.tokenRefreshed = true;
-
-    console.log(`[authMiddleware] Token refreshed for user ${refreshDecoded.id}, role: ${req.user.role}`);
 
     return next();
 
