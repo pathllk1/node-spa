@@ -47,6 +47,13 @@ export const csrfValidateToken = (req, res, next) => {
       return next();
     }
 
+    console.log('[CSRF_VALIDATE] 🔐 Validating CSRF token for:', {
+      method: req.method,
+      path: req.path,
+      hasXCsrfToken: !!req.headers['x-csrf-token'],
+      hasCsrfInBody: !!(req.body && req.body._csrf),
+    });
+
     // Skip validation for login/register endpoints (user doesn't have CSRF token yet)
     if (req.path === '/api/auth/login' || req.path === '/api/auth/register') {
       return next();
@@ -56,6 +63,7 @@ export const csrfValidateToken = (req, res, next) => {
     const clientToken = getCSRFTokenFromRequest(req);
     
     if (!clientToken) {
+      console.warn('[CSRF_VALIDATE] ❌ CSRF token missing for', req.path);
       return res.status(403).json({
         success: false,
         message: 'CSRF token missing'
@@ -66,11 +74,18 @@ export const csrfValidateToken = (req, res, next) => {
     const storedToken = req.cookies.csrfToken;
     
     if (!storedToken) {
+      console.warn('[CSRF_VALIDATE] ❌ CSRF token not found in session');
       return res.status(403).json({
         success: false,
         message: 'CSRF token not found in session'
       });
     }
+
+    console.log('[CSRF_VALIDATE] 🔑 Token comparison:', {
+      clientTokenLen: clientToken.length,
+      storedTokenLen: storedToken.length,
+      match: clientToken === storedToken
+    });
     
     // Verify token with timing-safe comparison to prevent timing attacks
     try {
@@ -80,6 +95,7 @@ export const csrfValidateToken = (req, res, next) => {
       );
       
       if (!isValid) {
+        console.warn('[CSRF_VALIDATE] ❌ CSRF token mismatch');
         return res.status(403).json({
           success: false,
           message: 'Invalid CSRF token'
@@ -87,12 +103,14 @@ export const csrfValidateToken = (req, res, next) => {
       }
     } catch (error) {
       // timingSafeEqual throws if buffer lengths differ
+      console.warn('[CSRF_VALIDATE] ❌ CSRF token comparison error:', error.message);
       return res.status(403).json({
         success: false,
         message: 'Invalid CSRF token'
       });
     }
-    
+
+    console.log('[CSRF_VALIDATE] ✅ CSRF token valid');
     next();
   } catch (error) {
     console.error('[CSRF_VALIDATION_ERROR]', error);

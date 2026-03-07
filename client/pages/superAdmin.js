@@ -62,14 +62,18 @@ export async function renderSuperAdmin(router) {
 
         <!-- Tabs -->
         <div class="border-b border-gray-200 bg-gray-50">
-          <nav class="flex px-1">
+          <nav class="flex px-1 overflow-x-auto">
             <button id="firm-management-tab"
-                    class="admin-tab px-5 py-3 text-sm font-semibold border-b-2 border-blue-500 text-blue-600">
+                    class="admin-tab px-5 py-3 text-sm font-semibold border-b-2 border-blue-500 text-blue-600 whitespace-nowrap">
               Firm Management
             </button>
             <button id="user-assignment-tab"
-                    class="admin-tab px-5 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">
+                    class="admin-tab px-5 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap">
               User Assignment
+            </button>
+            <button id="password-management-tab"
+                    class="admin-tab px-5 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap">
+              Update Passwords
             </button>
           </nav>
         </div>
@@ -78,6 +82,7 @@ export async function renderSuperAdmin(router) {
         <div class="p-6">
           <div id="firm-management-content" class="admin-content"></div>
           <div id="user-assignment-content" class="admin-content hidden"></div>
+          <div id="password-management-content" class="admin-content hidden"></div>
         </div>
       </div>
     </div>
@@ -110,11 +115,12 @@ export async function renderSuperAdmin(router) {
 
 async function initializeAdminComponents() {
   try {
-    const [fmMod, ufaMod, modalMod, detailsMod] = await Promise.all([
+    const [fmMod, ufaMod, modalMod, detailsMod, pwdMgmtMod] = await Promise.all([
       import('../components/admin/firmManager.js'),
       import('../components/admin/userFirmAssignment.js'),
       import('../components/admin/firmModal.js'),
       import('../components/admin/firmDetails.js'),
+      import('../components/admin/userPasswordManager.js'),
     ]);
 
     // Modal must be created first (it appends to body)
@@ -129,6 +135,9 @@ async function initializeAdminComponents() {
 
     // UserFirmAssignment renders into user-assignment-content
     new ufaMod.UserFirmAssignment('user-assignment-content');
+
+    // UserPasswordManager renders into password-management-content
+    new pwdMgmtMod.UserPasswordManager('password-management-content');
 
   } catch (error) {
     console.error('Error initializing admin components:', error);

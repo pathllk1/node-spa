@@ -13,15 +13,21 @@ export async function authenticateJWT(req, res, next) {
   const accessToken = req.cookies.accessToken;
   const refreshToken = req.cookies.refreshToken;
 
-  console.log('authenticateJWT called, cookies received:', {
-    accessToken: !!req.cookies.accessToken,
-    refreshToken: !!req.cookies.refreshToken
+  console.log('[authenticateJWT DEBUG]', {
+    accessTokenExists: !!accessToken,
+    refreshTokenExists: !!refreshToken,
+    path: req.path,
+    method: req.method,
   });
 
   if (req.cookies.accessToken) {
     try {
       const decoded = verifyAccessToken(accessToken);
-      console.log('Access token valid, proceeding');
+      console.log('[authenticateJWT] Access token valid, decoded user:', {
+        id: decoded.id,
+        username: decoded.username,
+        role: decoded.role,
+      });
       
       // If firm_id is missing from token, fetch from database
       if (!decoded.firm_id) {
@@ -34,15 +40,16 @@ export async function authenticateJWT(req, res, next) {
       }
       
       req.user = decoded;
+      console.log('[authenticateJWT] Setting req.user, now req.user is:', { id: req.user.id, role: req.user.role });
       return next();
     } catch (accessErr) {
-      console.log('Access token invalid, trying refresh');
+      console.log('[authenticateJWT] Access token invalid, trying refresh:', accessErr.message);
     }
   }
 
   // 2️⃣ ACCESS INVALID/MISSING → TRY REFRESH
   if (!req.cookies.refreshToken) {
-    console.log('No refresh token, unauthorized');
+    console.log('[authenticateJWT] No refresh token, unauthorized');
     return res.status(401).json({ error: "Unauthorized" });
   }
 
@@ -52,7 +59,7 @@ export async function authenticateJWT(req, res, next) {
     const user = await User.findById(refreshPayload.id).populate('firm_id');
 
     if (!user) {
-      console.log('User not found for refresh');
+      console.log('[authenticateJWT] User not found for refresh');
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -78,11 +85,11 @@ export async function authenticateJWT(req, res, next) {
     ).catch(() => false);
 
     if (!isValidRefresh) {
-      console.log('Refresh token invalid');
+      console.log('[authenticateJWT] Refresh token invalid');
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    console.log('Refresh successful, generating new access token');
+    console.log('[authenticateJWT] Refresh successful, generating new access token with user role:', user.role);
 
     // 4️⃣ ACCESS INVALID + REFRESH VALID → ISSUE NEW ACCESS TOKEN
     const payload = { 
@@ -94,6 +101,8 @@ export async function authenticateJWT(req, res, next) {
       firm_id: user.firm_id?._id?.toString(),
       firm_code: user.firm_id?.code
     };
+    
+    console.log('[authenticateJWT] Refresh token payload created:', { id: payload.id, role: payload.role });
     
     // Sign the new access token
     const newAccessToken = generateAccessToken(payload);
@@ -110,14 +119,28 @@ export async function authenticateJWT(req, res, next) {
 
 /**
  * Middleware to check if user has specific role
- * @param {string[]} roles - Array of allowed roles
+ * @param {string|string[]} requiredRoles - Role(s) required to access this endpoint
  */
 export function requireRole(requiredRoles) {
   if (!Array.isArray(requiredRoles)) requiredRoles = [requiredRoles];
   return (req, res, next) => {
-    if (!req.user || !requiredRoles.includes(req.user.role)) {
+    console.log('[requireRole DEBUG]', {
+      hasReqUser: !!req.user,
+      userObj: req.user ? { id: req.user.id, username: req.user.username, role: req.user.role } : null,
+      requiredRoles: requiredRoles,
+      roleMatch: req.user ? requiredRoles.includes(req.user.role) : false,
+    });
+    
+    if (!req.user) {
+      console.warn('⚠️ [requireRole] No req.user found!');
       return res.status(403).json({ error: 'You are not permitted to perform this action' });
     }
+    
+    if (!requiredRoles.includes(req.user.role)) {
+      console.warn(`⚠️ [requireRole] Role mismatch! User role="${req.user.role}" not in required=[${requiredRoles.join(', ')}]`);
+      return res.status(403).json({ error: 'You are not permitted to perform this action' });
+    }
+    
     next();
   };
 }
