@@ -4,858 +4,781 @@ import { Bill, StockReg, Firm, FirmSettings, Settings } from '../../../models/in
 function formatDate(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-const formatCurrency = (amount) => {
-    return '₹ ' + new Intl.NumberFormat('en-IN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(amount || 0);
-};
+const formatCurrency = (amount) =>
+    '₹ ' + new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
 
-const formatQuantity = (qty) => {
-    return parseFloat(qty || 0).toFixed(2);
-};
-
-const formatPercentage = (percent) => {
-    return parseFloat(percent || 0).toFixed(2) + '%';
-};
+const formatQuantity = (qty) => parseFloat(qty || 0).toFixed(2);
+const formatPercentage = (percent) => parseFloat(percent || 0).toFixed(2) + '%';
 
 const numberToWords = (num) => {
-    if (!num || isNaN(num)) return "Rupees Zero Only";
-
-    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    if (!num || isNaN(num)) return 'Rupees Zero Only';
+    const ones  = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
     const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-    const convertHundreds = (n) => {
-        let str = '';
-        const numVal = Math.floor(n);
-        if (numVal > 99) {
-            str += ones[Math.floor(numVal / 100)] + ' Hundred ';
-            return str + convertTens(numVal % 100);
-        }
-        return convertTens(numVal);
-    };
-
+    const tens  = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
     const convertTens = (n) => {
-        let str = '';
-        const numVal = Math.floor(n);
-        if (numVal < 20) {
-            return ones[numVal] || teens[numVal - 10] || '';
-        }
-        str += tens[Math.floor(numVal / 10)];
-        if (numVal % 10 > 0) {
-            str += ' ' + ones[numVal % 10];
-        }
-        return str;
+        const v = Math.floor(n);
+        if (v < 10) return ones[v];
+        if (v < 20) return teens[v - 10];
+        return tens[Math.floor(v / 10)] + (v % 10 > 0 ? ' ' + ones[v % 10] : '');
     };
-
-    const absNum = Math.abs(Number(num));
-    const wholePart = Math.floor(absNum);
-    const decimalPart = Math.round((absNum - wholePart) * 100);
-
-    if (wholePart === 0 && decimalPart === 0) return "Rupees Zero Only";
-
-    let result = "Rupees ";
-    let tempWhole = wholePart;
-
-    if (tempWhole >= 10000000) {
-        const crores = Math.floor(tempWhole / 10000000);
-        result += convertHundreds(crores) + ' Crore ';
-        tempWhole %= 10000000;
-    }
-
-    if (tempWhole >= 100000) {
-        const lakhs = Math.floor(tempWhole / 100000);
-        result += convertHundreds(lakhs) + ' Lakh ';
-        tempWhole %= 100000;
-    }
-
-    if (tempWhole >= 1000) {
-        const thousands = Math.floor(tempWhole / 1000);
-        result += convertHundreds(thousands) + ' Thousand ';
-        tempWhole %= 1000;
-    }
-
-    if (tempWhole > 0) {
-        result += convertHundreds(tempWhole);
-    }
-
-    if (decimalPart > 0) {
-        result += " and " + convertTens(decimalPart) + " Paise ";
-    }
-
-    return result.trim() + " Only";
+    const convertHundreds = (n) => {
+        const v = Math.floor(n);
+        return v > 99 ? ones[Math.floor(v / 100)] + ' Hundred ' + convertTens(v % 100) : convertTens(v);
+    };
+    const abs  = Math.abs(Number(num));
+    const whole = Math.floor(abs);
+    const paise = Math.round((abs - whole) * 100);
+    if (whole === 0 && paise === 0) return 'Rupees Zero Only';
+    let result = 'Rupees ';
+    let t = whole;
+    if (t >= 10000000) { result += convertHundreds(Math.floor(t / 10000000)) + ' Crore '; t %= 10000000; }
+    if (t >= 100000)   { result += convertHundreds(Math.floor(t / 100000))   + ' Lakh ';  t %= 100000;   }
+    if (t >= 1000)     { result += convertHundreds(Math.floor(t / 1000))     + ' Thousand '; t %= 1000;  }
+    if (t > 0)         { result += convertHundreds(t); }
+    if (paise > 0)     { result += ' and ' + convertTens(paise) + ' Paise'; }
+    return result.trim() + ' Only';
 };
 
 const getInvoiceTypeLabel = (bill) => {
     if (bill.type) {
-        const billType = bill.type.toUpperCase();
-        switch (billType) {
-            case 'SALES': return 'SALES INVOICE';
-            case 'PURCHASE': return 'PURCHASE INVOICE';
-            case 'CREDIT NOTE': return 'CREDIT NOTE';
-            case 'DEBIT NOTE': return 'DEBIT NOTE';
+        switch (bill.type.toUpperCase()) {
+            case 'SALES':         return 'SALES INVOICE';
+            case 'PURCHASE':      return 'PURCHASE INVOICE';
+            case 'CREDIT NOTE':   return 'CREDIT NOTE';
+            case 'DEBIT NOTE':    return 'DEBIT NOTE';
             case 'DELIVERY NOTE': return 'DELIVERY NOTE';
-            default: return billType;
+            default:              return bill.type.toUpperCase();
         }
     }
     return 'SALES INVOICE';
 };
 
 const getPartyLabels = (bill) => {
-    const type = bill.type?.toUpperCase() || 'SALES';
-    switch (type) {
-        case 'SALES': return { billTo: 'Bill To (Buyer)', shipTo: 'Ship To (Consignee)' };
-        case 'PURCHASE': return { billTo: 'Bill From (Supplier)', shipTo: 'Bill To (Receiver)' };
-        case 'CREDIT NOTE': return { billTo: 'Bill To (Recipient)', shipTo: 'Ship To (Consignee)' };
-        case 'DEBIT NOTE': return { billTo: 'Bill From (Supplier)', shipTo: 'Bill To (Recipient)' };
+    switch ((bill.type || 'SALES').toUpperCase()) {
+        case 'PURCHASE':      return { billTo: 'Bill From (Supplier)', shipTo: 'Bill To (Receiver)' };
+        case 'CREDIT NOTE':   return { billTo: 'Bill To (Recipient)', shipTo: 'Ship To (Consignee)' };
+        case 'DEBIT NOTE':    return { billTo: 'Bill From (Supplier)', shipTo: 'Bill To (Recipient)' };
         case 'DELIVERY NOTE': return { billTo: 'Deliver From (Supplier)', shipTo: 'Deliver To (Recipient)' };
-        default: return { billTo: 'Bill To (Buyer)', shipTo: 'Ship To (Consignee)' };
+        default:              return { billTo: 'Bill To (Buyer)', shipTo: 'Ship To (Consignee)' };
     }
 };
 
 const getBillType = (bill) => {
-    const billTypeSource = (bill.type || '').toString().toLowerCase();
-    if (billTypeSource.includes('intra')) return 'intra-state';
-    if (billTypeSource.includes('inter')) return 'inter-state';
-    const cgst = Number(bill.cgst) || 0;
-    const sgst = Number(bill.sgst) || 0;
-    return (cgst > 0 || sgst > 0) ? 'intra-state' : 'inter-state';
+    const src = (bill.type || '').toString().toLowerCase();
+    if (src.includes('intra')) return 'intra-state';
+    if (src.includes('inter')) return 'inter-state';
+    return (Number(bill.cgst) > 0 || Number(bill.sgst) > 0) ? 'intra-state' : 'inter-state';
 };
 
 const buildHsnSummary = (bill, items, otherCharges, gstEnabled) => {
-    const hsnMap = new Map();
+    const hsnMap  = new Map();
     const billType = getBillType(bill);
-
-    items.forEach(item => {
+    [...items].forEach(item => {
         const hsn = item.hsn || 'NA';
-        const taxableValue = (item.qty || 0) * (item.rate || 0) * (1 - (item.disc || 0) / 100);
-        const taxAmount = taxableValue * (item.grate || 0) / 100;
-
-        if (!hsnMap.has(hsn)) {
-            hsnMap.set(hsn, { hsn, taxableValue: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 });
-        }
-
-        const row = hsnMap.get(hsn);
-        row.taxableValue += taxableValue;
+        const tv  = (item.qty || 0) * (item.rate || 0) * (1 - (item.disc || 0) / 100);
+        const tax = tv * (item.grate || 0) / 100;
+        if (!hsnMap.has(hsn)) hsnMap.set(hsn, { hsn, taxableValue: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 });
+        const r = hsnMap.get(hsn);
+        r.taxableValue += tv;
         if (gstEnabled) {
-            row.totalTax += taxAmount;
-            if (billType === 'intra-state') {
-                row.cgst += taxAmount / 2;
-                row.sgst += taxAmount / 2;
-            } else {
-                row.igst += taxAmount;
-            }
+            r.totalTax += tax;
+            if (billType === 'intra-state') { r.cgst += tax / 2; r.sgst += tax / 2; } else { r.igst += tax; }
         }
     });
-
-    otherCharges.forEach(charge => {
-        const hsn = charge.hsnSac || '9999';
-        const taxableValue = charge.amount || 0;
-        const taxAmount = charge.gstAmount || 0;
-
-        if (!hsnMap.has(hsn)) {
-            hsnMap.set(hsn, { hsn, taxableValue: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 });
-        }
-
-        const row = hsnMap.get(hsn);
-        row.taxableValue += taxableValue;
+    [...otherCharges].forEach(ch => {
+        const hsn = ch.hsnSac || '9999';
+        const tv  = ch.amount || 0;
+        const tax = ch.gstAmount || 0;
+        if (!hsnMap.has(hsn)) hsnMap.set(hsn, { hsn, taxableValue: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 });
+        const r = hsnMap.get(hsn);
+        r.taxableValue += tv;
         if (gstEnabled) {
-            row.totalTax += taxAmount;
-            if (billType === 'intra-state') {
-                row.cgst += taxAmount / 2;
-                row.sgst += taxAmount / 2;
-            } else {
-                row.igst += taxAmount;
-            }
+            r.totalTax += tax;
+            if (billType === 'intra-state') { r.cgst += tax / 2; r.sgst += tax / 2; } else { r.igst += tax; }
         }
     });
-
     return Array.from(hsnMap.values()).sort((a, b) => a.hsn.localeCompare(b.hsn));
 };
 
-// GST setting helper for MongoDB
 const isGstEnabled = async (firmId) => {
     try {
-        const firmSetting = await FirmSettings.findOne({ firm_id: firmId, setting_key: 'gst_enabled' }).lean();
-        if (firmSetting) return firmSetting.setting_value === 'true';
-        const globalSetting = await Settings.findOne({ setting_key: 'gst_enabled' }).lean();
-        return globalSetting ? globalSetting.setting_value === 'true' : true;
-    } catch {
-        return true; // default to enabled on error
-    }
+        const fs = await FirmSettings.findOne({ firm_id: firmId, setting_key: 'gst_enabled' }).lean();
+        if (fs) return fs.setting_value === 'true';
+        const gs = await Settings.findOne({ setting_key: 'gst_enabled' }).lean();
+        return gs ? gs.setting_value === 'true' : true;
+    } catch { return true; }
 };
 
+/* ─────────────────────────────────────────────────────────────────────────
+   exportBillsToExcel  (list view — unchanged)
+───────────────────────────────────────────────────────────────────────── */
 export async function exportBillsToExcel(bills) {
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet('Bills');
-
-  // Add header row
-  worksheet.addRow(['Bill No', 'Date', 'Party', 'Type', 'Taxable Amount', 'Tax Amount', 'Total Amount', 'Status']);
-
-  // Style header
-  const headerRow = worksheet.getRow(1);
-  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F81BD' } };
-  headerRow.eachCell(cell => {
-    cell.border = {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' }
-    };
-  });
-
-  // Add data rows
-  bills.forEach(bill => {
-    const row = worksheet.addRow([
-      bill.bno || '',
-      formatDate(bill.bdate),
-      bill.firm || '',
-      bill.btype || 'SALES',
-      (bill.gtot || 0).toFixed(2),
-      ((bill.cgst || 0) + (bill.sgst || 0) + (bill.igst || 0)).toFixed(2),
-      (bill.ntot || 0).toFixed(2),
-      bill.status || 'ACTIVE'
-    ]);
-
-    row.eachCell(cell => {
-      cell.border = {
-        top: { style: 'thin' },
-        left: { style: 'thin' },
-        bottom: { style: 'thin' },
-        right: { style: 'thin' }
-      };
+    const workbook  = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Bills');
+    worksheet.addRow(['Bill No', 'Date', 'Party', 'Type', 'Taxable Amount', 'Tax Amount', 'Total Amount', 'Status']);
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F81BD' } };
+    headerRow.eachCell(cell => {
+        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
     });
-  });
-
-  // Auto fit columns
-  worksheet.columns.forEach(column => {
-    column.width = 15;
-  });
-
-  return workbook.xlsx.writeBuffer();
+    bills.forEach(bill => {
+        const row = worksheet.addRow([
+            bill.bno || '', formatDate(bill.bdate), bill.firm || '', bill.btype || 'SALES',
+            (bill.gtot || 0).toFixed(2),
+            ((bill.cgst || 0) + (bill.sgst || 0) + (bill.igst || 0)).toFixed(2),
+            (bill.ntot || 0).toFixed(2), bill.status || 'ACTIVE',
+        ]);
+        row.eachCell(cell => {
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        });
+    });
+    worksheet.columns.forEach(col => { col.width = 15; });
+    return workbook.xlsx.writeBuffer();
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   generateInvoiceExcel — fixed version
+   
+   BUGS FIXED:
+   1. alignment was set as a string ('center') not an object ({ horizontal: 'center' })
+      → all text alignment silently failed causing visual overlap
+   2. alignment was placed inside font property in signature cells → ignored
+   3. Vehicle No label was immediately overwritten by its own value → lost label
+   4. 9-col border loop set cell.font = { size: 8.5 } AFTER per-cell font was set
+      → wiped bold/color on every item row cell
+   5. Items table last row had thin bottom border instead of medium → table unclosed
+   6. HSN table only used columns A:F, leaving G:H:I empty → broken layout
+   7. HSN table last row had thin bottom border instead of medium → table unclosed
+   8. Totals section was placed in columns E:F → should align with Amount col (I)
+      → moved to G:H (label merged) + I (value)
+   9. totalsStartRow calculation was fragile and off-by-one
+      → replaced with explicit tracking variable
+   10. Firm signature section right-alignment never applied → now uses .alignment
+───────────────────────────────────────────────────────────────────────── */
 export const generateInvoiceExcel = async (req, res) => {
     try {
         const billId = req.params.id;
-        console.log('Excel Request - billId:', billId, 'Type:', typeof billId);
         if (!billId) return res.status(400).json({ error: 'Bill ID is required' });
 
-        // Get firm_id from authenticated user
         const firmId = req.user?.firm_id;
-        console.log('Excel Request - firmId:', firmId, 'Type:', typeof firmId);
-
-        console.log('Excel Request - firmId:', firmId);
         if (!firmId) return res.status(401).json({ error: 'Unauthorized - No firm associated' });
 
         const bill = await Bill.findOne({ _id: billId, firm_id: firmId }).lean();
-        console.log('Excel Request - bill found:', !!bill, 'Bill data:', bill);
         if (!bill) return res.status(404).json({ error: 'Bill not found' });
 
         const items = await StockReg.find({ bill_id: billId, firm_id: firmId }).lean();
-        console.log('Excel Request - items found:', items.length, 'Items:', items);
 
         let otherCharges = [];
         if (bill.other_charges) {
-            try { otherCharges = Array.isArray(bill.other_charges) ? bill.other_charges : []; } catch (e) { otherCharges = []; }
+            try { otherCharges = Array.isArray(bill.other_charges) ? bill.other_charges : []; } catch { otherCharges = []; }
         }
 
-        // Check GST setting from MongoDB
         const gstEnabled = await isGstEnabled(firmId);
 
-        // Seller info - using firm from MongoDB
         let firmAddress = '';
-        let firmGstin = '';
-
+        let firmGstin   = '';
         try {
             const firm = await Firm.findById(firmId).select('name address gst_number').lean();
-
-            if (!firm) {
-                return res.status(404).json({ error: 'Firm not found' });
-            }
-
+            if (!firm) return res.status(404).json({ error: 'Firm not found' });
             firmAddress = firm.address || '';
-            firmGstin = firm.gst_number || '';
+            firmGstin   = firm.gst_number || '';
         } catch (err) {
             console.error('Error fetching firm:', err.message);
-            res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json({ error: 'Internal server error' });
         }
 
-        const seller = { name: bill.firm || firm.name || 'Company Name', address: firmAddress, gstin: firmGstin || '' };
-
-        console.log('Excel Request - seller info:', seller);
-        console.log('Excel Request - bill type:', getBillType(bill));
-        console.log('Excel Request - gstEnabled:', gstEnabled);
-
-        const billType = getBillType(bill);
+        const seller     = { name: bill.firm || 'Company Name', address: firmAddress, gstin: firmGstin };
+        const billType   = getBillType(bill);
         const partyLabels = getPartyLabels(bill);
         const hsnSummary = buildHsnSummary(bill, items, otherCharges, gstEnabled);
 
-        console.log('Excel Request - about to create Excel docDefinition');
+        const formattedBuyerAddress = bill.addr
+            ? (bill.pin ? `${bill.addr}, PIN: ${bill.pin}` : bill.addr)
+            : (bill.pin ? `PIN: ${bill.pin}` : '');
+        const consAddr = bill.consignee_address || bill.addr || '';
+        const consPin  = bill.consignee_pin  || bill.pin  || '';
+        const formattedConsigneeAddress = consAddr
+            ? (consPin ? `${consAddr}, PIN: ${consPin}` : consAddr)
+            : (consPin ? `PIN: ${consPin}` : '');
 
-        const formattedBuyerAddress = bill.addr && bill.pin ? `${bill.addr}, PIN: ${bill.pin}` : (bill.addr || `PIN: ${bill.pin}`);
-        const formattedConsigneeAddress = (bill.consignee_address || bill.addr) && (bill.consignee_pin || bill.pin) ?
-            `${bill.consignee_address || bill.addr}, PIN: ${bill.consignee_pin || bill.pin}` :
-            ((bill.consignee_address || bill.addr) || `PIN: ${bill.consignee_pin || bill.pin}`);
-
-        const taxableValue = bill.gtot || 0;
-        const totalTax = gstEnabled ? ((bill.cgst || 0) + (bill.sgst || 0) + (bill.igst || 0)) : 0;
-        // bill.ntot is already the rounded grand total (rounded in calcBillTotals before saving).
-        // bill.rof is the stored round-off amount (string from .toFixed(2)) — read it directly.
-        // Recalculating Math.round(bill.ntot) - bill.ntot always gives 0 because ntot is already an integer.
+        const taxableValue    = bill.gtot || 0;
+        const totalTax        = gstEnabled ? ((bill.cgst || 0) + (bill.sgst || 0) + (bill.igst || 0)) : 0;
         const roundedGrandTotal = gstEnabled ? (bill.ntot || 0) : Math.round(taxableValue);
-        const roundOff = parseFloat(bill.rof || 0);
+        const roundOff        = parseFloat(bill.rof || 0);
 
-        // ── Design Tokens ─────────────────────────────────────────────────────
-        // Same as PDF
+        // ── Design tokens ──────────────────────────────────────────────
         const C = {
-            primary: '1B3A6B',   // navy — text accents & borders only
-            border: 'A0B4CC',   // medium grey border
-            borderDark: '1B3A6B',   // navy border for outer frames & thick rules
-            textDark: '1A1A2E',   // near-black body text
-            textMid: '3D4D6A',   // mid-grey secondary text
-            textLight: '6B7A99',   // light grey hints / labels
-            red: '991B1B',   // error / reverse-charge notice
+            primary:    '1B3A6B',
+            border:     'A0B4CC',
+            borderDark: '1B3A6B',
+            textDark:   '1A1A2E',
+            textMid:    '3D4D6A',
+            textLight:  '6B7A99',
+            red:        '991B1B',
+            hdrFill:    'EEF2F7',
         };
 
-        // Create workbook and worksheet
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Invoice');
+        // ── Shorthand border builders ──────────────────────────────────
+        // FIX 1/7: border helpers — 'm' = medium (dark), 't' = thin (light), null = none
+        const bSide = (style, dark) => ({
+            style: style === 'm' ? 'medium' : 'thin',
+            color: { argb: 'FF' + (dark ? C.borderDark : C.border) },
+        });
+        const mkBorder = (top, right, bottom, left) => ({
+            top:    top    ? bSide(top,    top    === 'm') : undefined,
+            right:  right  ? bSide(right,  right  === 'm') : undefined,
+            bottom: bottom ? bSide(bottom, bottom === 'm') : undefined,
+            left:   left   ? bSide(left,   left   === 'm') : undefined,
+        });
 
-        // Set column widths
-        worksheet.columns = [
-            { width: 5 }, // #
-            { width: 40 }, // Description
-            { width: 10 }, // HSN/SAC
-            { width: 7 }, // Qty
-            { width: 5 }, // UOM
-            { width: 12 }, // Rate (₹)
-            { width: 8 }, // Disc%
-            { width: 8 }, // GST%
-            { width: 15 }  // Amount (₹)
+        // ── Workbook / sheet ──────────────────────────────────────────
+        const workbook  = new ExcelJS.Workbook();
+        const ws        = workbook.addWorksheet('Invoice');
+
+        // 9 columns: A=# B=Description C=HSN D=Qty E=UOM F=Rate G=Disc H=GST I=Amount
+        ws.columns = [
+            { width: 5  }, // A
+            { width: 40 }, // B
+            { width: 10 }, // C
+            { width: 7  }, // D
+            { width: 5  }, // E
+            { width: 12 }, // F
+            { width: 8  }, // G
+            { width: 8  }, // H
+            { width: 15 }, // I
         ];
 
-        // Start building the Excel content
-        let currentRow = 1;
+        let row = 1; // current row pointer
 
-        // ── Header: company info (left) + invoice meta (right) ────────────
-        worksheet.getCell(`A${currentRow}`).value = getInvoiceTypeLabel(bill);
-        worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 17, bold: true, color: { argb: 'FF' + C.primary } };
-        worksheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center' };
+        /* ═══════════════════════════════════════════════════════════════
+           SECTION 1 — HEADER  (rows 1-5)
+           Left  A:F  = Invoice type / seller info
+           Right G:H  = meta labels, I = meta values
+           FIX 3: vehicle_no label no longer overwrites itself
+        ═══════════════════════════════════════════════════════════════ */
+        const headerStartRow = row;
 
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = gstEnabled ? 'TAX INVOICE UNDER GST' : 'INVOICE (GST DISABLED)';
-        worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 7.5, color: { argb: 'FF' + C.textLight } };
-        worksheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center' };
+        // Left-side content
+        const leftHeader = [
+            { value: getInvoiceTypeLabel(bill), font: { size: 13, bold: true, color: { argb: 'FF' + C.primary } },
+              align: { horizontal: 'center' } },
+            { value: gstEnabled ? 'TAX INVOICE UNDER GST' : 'INVOICE (GST DISABLED)',
+              font: { size: 7.5, color: { argb: 'FF' + C.textLight } }, align: { horizontal: 'center' } },
+            { value: seller.name,    font: { size: 12, bold: true, color: { argb: 'FF' + C.textDark } } },
+            { value: seller.address, font: { size: 8,  color: { argb: 'FF' + C.textMid  } } },
+            { value: seller.gstin ? `GSTIN: ${seller.gstin}` : '',
+              font: { size: 8, bold: true, color: { argb: 'FF' + C.textDark } } },
+        ];
+        leftHeader.forEach((item, i) => {
+            const r = headerStartRow + i;
+            ws.getCell(`A${r}`).value     = item.value;
+            ws.getCell(`A${r}`).font      = item.font;
+            ws.getCell(`A${r}`).alignment = item.align || {};  // FIX 1
+            ws.mergeCells(`A${r}:F${r}`);
+        });
 
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = seller.name;
-        worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 12, bold: true, color: { argb: 'FF' + C.textDark } };
+        // Right-side meta table: G = label, H:I merged = value
+        // FIX 3: vehicle_no properly placed in its own row (G label, H:I value)
+        const metaRows = [
+            { label: 'Invoice No',   value: bill.bno          || '' },
+            { label: 'Date',         value: formatDate(bill.bdate) || '' },
+            { label: 'PO No',        value: bill.order_no     || '', skip: !bill.order_no },
+            { label: 'Vehicle No',   value: bill.vehicle_no   || '', skip: !bill.vehicle_no },
+            { label: 'Dispatch Via', value: bill.dispatch_through || '', skip: !bill.dispatch_through },
+        ];
+        let metaRowIdx = headerStartRow;
+        metaRows.forEach(meta => {
+            if (meta.skip) return;
+            if (metaRowIdx > headerStartRow + 4) return; // max 5 rows
+            ws.getCell(`G${metaRowIdx}`).value     = meta.label;
+            ws.getCell(`G${metaRowIdx}`).font      = { size: 8, color: { argb: 'FF' + C.textLight } };
+            ws.getCell(`G${metaRowIdx}`).alignment = { horizontal: 'left' };  // FIX 1
 
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = seller.address;
-        worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 8, color: { argb: 'FF' + C.textMid } };
+            ws.getCell(`H${metaRowIdx}`).value     = meta.value;
+            ws.getCell(`H${metaRowIdx}`).font      = { size: 8.5, bold: true, color: { argb: 'FF' + C.textDark } };
+            ws.mergeCells(`H${metaRowIdx}:I${metaRowIdx}`);
+            ws.getCell(`H${metaRowIdx}`).alignment = { horizontal: 'left' };  // FIX 1
 
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = seller.gstin ? `GSTIN: ${seller.gstin}` : '';
-        worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 8, bold: true, color: { argb: 'FF' + C.textDark } };
+            metaRowIdx++;
+        });
 
-        // Right side: invoice details — table in G-I
-        worksheet.getCell(`G${currentRow - 4}`).value = 'Invoice No';
-        worksheet.getCell(`H${currentRow - 4}`).value = bill.bno || '';
-        worksheet.getCell(`G${currentRow - 4}`).font = { size: 8, color: { argb: 'FF' + C.textLight } };
-        worksheet.getCell(`H${currentRow - 4}`).font = { size: 8.5, bold: true, color: { argb: 'FF' + C.textDark } };
-
-        worksheet.getCell(`G${currentRow - 3}`).value = 'Date';
-        worksheet.getCell(`H${currentRow - 3}`).value = formatDate(bill.bdate) || '';
-        worksheet.getCell(`G${currentRow - 3}`).font = { size: 8, color: { argb: 'FF' + C.textLight } };
-        worksheet.getCell(`H${currentRow - 3}`).font = { size: 8.5, bold: true, color: { argb: 'FF' + C.textDark } };
-
-        if (bill.order_no) {
-            worksheet.getCell(`G${currentRow - 2}`).value = 'PO No';
-            worksheet.getCell(`H${currentRow - 2}`).value = bill.order_no;
-            worksheet.getCell(`G${currentRow - 2}`).font = { size: 8, color: { argb: 'FF' + C.textLight } };
-            worksheet.getCell(`H${currentRow - 2}`).font = { size: 8.5, bold: true, color: { argb: 'FF' + C.textDark } };
+        // Borders on meta table (G:I, rows 1-5)
+        for (let r = headerStartRow; r <= headerStartRow + 4; r++) {
+            const isFirst = r === headerStartRow;
+            const isLast  = r === headerStartRow + 4;
+            ws.getCell(`G${r}`).border = mkBorder(
+                isFirst ? 'm' : 't', 't', isLast ? 'm' : 't', 'm'
+            );
+            ws.getCell(`H${r}`).border = mkBorder(
+                isFirst ? 'm' : 't', null, isLast ? 'm' : 't', null
+            );
+            ws.getCell(`I${r}`).border = mkBorder(
+                isFirst ? 'm' : 't', 'm', isLast ? 'm' : 't', null
+            );
         }
 
-        if (bill.vehicle_no) {
-            worksheet.getCell(`I${currentRow - 1}`).value = 'Vehicle No';
-            worksheet.getCell(`I${currentRow - 1}`).value = bill.vehicle_no;
-            worksheet.getCell(`I${currentRow - 1}`).font = { size: 8.5, bold: true, color: { argb: 'FF' + C.textDark } };
-        }
+        row = headerStartRow + 5; // past header
 
-        if (bill.dispatch_through) {
-            worksheet.getCell(`G${currentRow}`).value = 'Dispatch Via';
-            worksheet.getCell(`H${currentRow}`).value = bill.dispatch_through;
-            worksheet.getCell(`G${currentRow}`).font = { size: 8, color: { argb: 'FF' + C.textLight } };
-            worksheet.getCell(`H${currentRow}`).font = { size: 8.5, bold: true, color: { argb: 'FF' + C.textDark } };
-        }
+        /* ═══════════════════════════════════════════════════════════════
+           SECTION 2 — PARTY DETAILS  (5 rows)
+           Left  A:D = Bill To
+           Right E:I = Ship To
+        ═══════════════════════════════════════════════════════════════ */
+        const partyStart = row;
 
-        // Borders for meta table
-        for (let r = currentRow - 4; r <= currentRow; r++) {
-            worksheet.getCell(`G${r}`).border = {
-                top: { style: 'thin', color: { argb: 'FF' + C.border } },
-                left: { style: 'thin', color: { argb: 'FF' + C.border } },
-                bottom: { style: 'thin', color: { argb: 'FF' + C.border } },
-                right: { style: 'thin', color: { argb: 'FF' + C.border } }
-            };
-            worksheet.getCell(`H${r}`).border = {
-                top: { style: 'thin', color: { argb: 'FF' + C.border } },
-                left: { style: 'thin', color: { argb: 'FF' + C.border } },
-                bottom: { style: 'thin', color: { argb: 'FF' + C.border } },
-                right: { style: 'thin', color: { argb: 'FF' + C.border } }
-            };
-            if (bill.vehicle_no && r === currentRow - 1) {
-                worksheet.getCell(`I${r}`).border = {
-                    top: { style: 'thin', color: { argb: 'FF' + C.border } },
-                    left: { style: 'thin', color: { argb: 'FF' + C.border } },
-                    bottom: { style: 'thin', color: { argb: 'FF' + C.border } },
-                    right: { style: 'thin', color: { argb: 'FF' + C.border } }
-                };
-            }
-        }
+        const partyLeft = [
+            { value: partyLabels.billTo.toUpperCase(), font: { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } } },
+            { value: bill.supply || '', font: { size: 9.5, bold: true, color: { argb: 'FF' + C.textDark } } },
+            { value: formattedBuyerAddress, font: { size: 8, color: { argb: 'FF' + C.textMid } } },
+            { value: bill.state ? `State: ${bill.state}` : '', font: { size: 8, color: { argb: 'FF' + C.textMid } } },
+            { value: bill.gstin ? `GSTIN: ${bill.gstin}` : '', font: { size: 8, bold: true, color: { argb: 'FF' + C.textDark } } },
+        ];
+        const partyRight = [
+            { value: partyLabels.shipTo.toUpperCase(), font: { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } } },
+            { value: bill.consignee_name || bill.party_id || '', font: { size: 9.5, bold: true, color: { argb: 'FF' + C.textDark } } },
+            { value: formattedConsigneeAddress, font: { size: 8, color: { argb: 'FF' + C.textMid } } },
+            { value: (bill.consignee_state || bill.state) ? `State: ${bill.consignee_state || bill.state}` : '', font: { size: 8, color: { argb: 'FF' + C.textMid } } },
+            { value: (bill.consignee_gstin || bill.gstin) ? `GSTIN: ${bill.consignee_gstin || bill.gstin}` : '', font: { size: 8, bold: true, color: { argb: 'FF' + C.textDark } } },
+        ];
 
-        currentRow++;
+        partyLeft.forEach((item, i) => {
+            const r = partyStart + i;
+            ws.getCell(`A${r}`).value     = item.value;
+            ws.getCell(`A${r}`).font      = item.font;
+            ws.getCell(`A${r}`).alignment = { wrapText: true };
+            ws.mergeCells(`A${r}:D${r}`);
+        });
+        partyRight.forEach((item, i) => {
+            const r = partyStart + i;
+            ws.getCell(`E${r}`).value     = item.value;
+            ws.getCell(`E${r}`).font      = item.font;
+            ws.getCell(`E${r}`).alignment = { wrapText: true };
+            ws.mergeCells(`E${r}:I${r}`);
+        });
 
-        // ── Party Details ─────────────────────────────────────────────
-        let partyStartRow = currentRow;
-        worksheet.getCell(`A${currentRow}`).value = partyLabels.billTo.toUpperCase();
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } };
-
-        worksheet.getCell(`E${currentRow}`).value = partyLabels.shipTo.toUpperCase();
-        worksheet.mergeCells(`E${currentRow}:I${currentRow}`);
-        worksheet.getCell(`E${currentRow}`).font = { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } };
-
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = bill.supply || '';
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 9.5, bold: true, color: { argb: 'FF' + C.textDark } };
-        worksheet.getCell(`A${currentRow}`).alignment = { vertical: 'top' };
-
-        worksheet.getCell(`E${currentRow}`).value = bill.consignee_name || bill.party_id || '';
-        worksheet.mergeCells(`E${currentRow}:I${currentRow}`);
-        worksheet.getCell(`E${currentRow}`).font = { size: 9.5, bold: true, color: { argb: 'FF' + C.textDark } };
-        worksheet.getCell(`E${currentRow}`).alignment = { vertical: 'top' };
-
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = formattedBuyerAddress;
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 8, color: { argb: 'FF' + C.textMid } };
-
-        worksheet.getCell(`E${currentRow}`).value = formattedConsigneeAddress;
-        worksheet.mergeCells(`E${currentRow}:I${currentRow}`);
-        worksheet.getCell(`E${currentRow}`).font = { size: 8, color: { argb: 'FF' + C.textMid } };
-
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = bill.state ? `State: ${bill.state}` : '';
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 8, color: { argb: 'FF' + C.textMid } };
-
-        worksheet.getCell(`E${currentRow}`).value = (bill.consignee_state || bill.state) ? `State: ${bill.consignee_state || bill.state}` : '';
-        worksheet.mergeCells(`E${currentRow}:I${currentRow}`);
-        worksheet.getCell(`E${currentRow}`).font = { size: 8, color: { argb: 'FF' + C.textMid } };
-
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = bill.gstin ? `GSTIN: ${bill.gstin}` : '';
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 8, bold: true, color: { argb: 'FF' + C.textDark } };
-
-        worksheet.getCell(`E${currentRow}`).value = (bill.consignee_gstin || bill.gstin) ? `GSTIN: ${bill.consignee_gstin || bill.gstin}` : '';
-        worksheet.mergeCells(`E${currentRow}:I${currentRow}`);
-        worksheet.getCell(`E${currentRow}`).font = { size: 8, bold: true, color: { argb: 'FF' + C.textDark } };
-
-        // Borders for party boxes
-        for (let r = partyStartRow; r <= currentRow; r++) {
-            // Left box (Bill To): columns A-D
+        const partyEnd = partyStart + 4;
+        for (let r = partyStart; r <= partyEnd; r++) {
+            const isFirst = r === partyStart;
+            const isLast  = r === partyEnd;
+            // Left box: A-D
             for (let c = 0; c < 4; c++) {
                 const col = String.fromCharCode(65 + c);
-                worksheet.getCell(`${col}${r}`).border = {
-                    top: r === partyStartRow ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : r === currentRow ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                    left: c === 0 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                    bottom: r === currentRow ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                    right: c === 3 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } }
-                };
+                ws.getCell(`${col}${r}`).border = mkBorder(
+                    isFirst ? 'm' : 't',
+                    c === 3 ? 'm' : 't',
+                    isLast  ? 'm' : 't',
+                    c === 0 ? 'm' : 't'
+                );
             }
-            // Right box (Ship To): columns E-I
+            // Right box: E-I
             for (let c = 4; c < 9; c++) {
                 const col = String.fromCharCode(65 + c);
-                worksheet.getCell(`${col}${r}`).border = {
-                    top: r === partyStartRow ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : r === currentRow ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                    left: c === 4 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                    bottom: r === currentRow ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                    right: c === 8 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } }
-                };
+                ws.getCell(`${col}${r}`).border = mkBorder(
+                    isFirst ? 'm' : 't',
+                    c === 8 ? 'm' : 't',
+                    isLast  ? 'm' : 't',
+                    c === 4 ? 'm' : 't'
+                );
             }
         }
+        row = partyEnd + 2; // one blank spacer row
 
-        currentRow += 2; // space
+        /* ═══════════════════════════════════════════════════════════════
+           SECTION 3 — ITEMS TABLE
+           FIX 4: font is set once per cell in a combined pass (no overwrite)
+           FIX 5: last data row gets medium bottom border
+        ═══════════════════════════════════════════════════════════════ */
+        const itemsHeaderRow = row;
 
-        // ── Items Table ───────────────────────────────────────────────
-        const headerRow = currentRow;
-        worksheet.getCell(`A${headerRow}`).value = '#';
-        worksheet.getCell(`B${headerRow}`).value = 'Description of Goods / Services';
-        worksheet.getCell(`C${headerRow}`).value = 'HSN/SAC';
-        worksheet.getCell(`D${headerRow}`).value = 'Qty';
-        worksheet.getCell(`E${headerRow}`).value = 'UOM';
-        worksheet.getCell(`F${headerRow}`).value = 'Rate (₹)';
-        worksheet.getCell(`G${headerRow}`).value = 'Disc%';
-        worksheet.getCell(`H${headerRow}`).value = 'GST%';
-        worksheet.getCell(`I${headerRow}`).value = 'Amount (₹)';
-
-        for (let c = 0; c < 9; c++) {
-            const col = String.fromCharCode(65 + c);
-            worksheet.getCell(`${col}${headerRow}`).font = { size: 8, bold: true, color: { argb: 'FF' + C.primary } };
-            worksheet.getCell(`${col}${headerRow}`).alignment = c === 0 || c === 2 || c === 3 || c === 4 ? 'center' : c === 5 || c === 6 || c === 7 || c === 8 ? 'right' : 'left';
-            worksheet.getCell(`${col}${headerRow}`).border = {
-                top: { style: 'medium', color: { argb: 'FF' + C.borderDark } },
-                left: c === 0 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                bottom: { style: 'medium', color: { argb: 'FF' + C.borderDark } },
-                right: c === 8 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } }
-            };
-        }
-
-        currentRow++;
-
-        // Item rows
-        items.forEach((it, idx) => {
-            worksheet.getCell(`A${currentRow}`).value = idx + 1;
-            worksheet.getCell(`A${currentRow}`).alignment = 'center';
-
-            worksheet.getCell(`B${currentRow}`).value = it.item || '';
-            worksheet.getCell(`B${currentRow}`).font = { bold: true };
-
-            worksheet.getCell(`C${currentRow}`).value = it.hsn || '';
-            worksheet.getCell(`C${currentRow}`).alignment = 'center';
-
-            worksheet.getCell(`D${currentRow}`).value = formatQuantity(it.qty);
-            worksheet.getCell(`D${currentRow}`).alignment = 'center';
-
-            worksheet.getCell(`E${currentRow}`).value = it.uom || '';
-            worksheet.getCell(`E${currentRow}`).alignment = 'center';
-
-            worksheet.getCell(`F${currentRow}`).value = formatCurrency(it.rate);
-            worksheet.getCell(`F${currentRow}`).alignment = 'right';
-
-            worksheet.getCell(`G${currentRow}`).value = formatPercentage(it.disc);
-            worksheet.getCell(`G${currentRow}`).alignment = 'right';
-
-            worksheet.getCell(`H${currentRow}`).value = gstEnabled ? formatPercentage(it.grate) : '-';
-            worksheet.getCell(`H${currentRow}`).alignment = 'right';
-
-            worksheet.getCell(`I${currentRow}`).value = formatCurrency(it.total);
-            worksheet.getCell(`I${currentRow}`).alignment = 'right';
-            worksheet.getCell(`I${currentRow}`).font = { bold: true };
-
-            for (let c = 0; c < 9; c++) {
-                const col = String.fromCharCode(65 + c);
-                worksheet.getCell(`${col}${currentRow}`).font = { size: 8.5 };
-                worksheet.getCell(`${col}${currentRow}`).border = {
-                    top: { style: 'thin', color: { argb: 'FF' + C.border } },
-                    left: c === 0 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                    bottom: { style: 'thin', color: { argb: 'FF' + C.border } },
-                    right: c === 8 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } }
-                };
-            }
-
-            currentRow++;
+        // Column headers
+        const itemColDefs = [
+            { col: 'A', label: '#',                          align: 'center' },
+            { col: 'B', label: 'Description of Goods / Services', align: 'left'   },
+            { col: 'C', label: 'HSN/SAC',                    align: 'center' },
+            { col: 'D', label: 'Qty',                        align: 'center' },
+            { col: 'E', label: 'UOM',                        align: 'center' },
+            { col: 'F', label: 'Rate (₹)',                   align: 'right'  },
+            { col: 'G', label: 'Disc%',                      align: 'right'  },
+            { col: 'H', label: 'GST%',                       align: 'right'  },
+            { col: 'I', label: 'Amount (₹)',                 align: 'right'  },
+        ];
+        itemColDefs.forEach(({ col, label, align }, idx) => {
+            const cell = ws.getCell(`${col}${itemsHeaderRow}`);
+            cell.value     = label;
+            cell.font      = { size: 8, bold: true, color: { argb: 'FF' + C.primary } };
+            cell.alignment = { horizontal: align };  // FIX 1
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C.hdrFill } };
+            cell.border    = mkBorder('m', idx === 8 ? 'm' : 't', 'm', idx === 0 ? 'm' : 't');
         });
+        row++;
 
-        // Other charges rows
-        otherCharges.forEach((ch, idx) => {
-            worksheet.getCell(`A${currentRow}`).value = items.length + idx + 1;
-            worksheet.getCell(`A${currentRow}`).alignment = 'center';
-
-            worksheet.getCell(`B${currentRow}`).value = ch.name || ch.type || 'Other Charge';
-            worksheet.getCell(`B${currentRow}`).font = { bold: true };
-
-            worksheet.getCell(`C${currentRow}`).value = ch.hsnSac || '';
-            worksheet.getCell(`C${currentRow}`).alignment = 'center';
-
-            worksheet.getCell(`D${currentRow}`).value = '1';
-            worksheet.getCell(`D${currentRow}`).alignment = 'center';
-
-            worksheet.getCell(`E${currentRow}`).value = 'NOS';
-            worksheet.getCell(`E${currentRow}`).alignment = 'center';
-
-            worksheet.getCell(`F${currentRow}`).value = formatCurrency(ch.amount);
-            worksheet.getCell(`F${currentRow}`).alignment = 'right';
-
-            worksheet.getCell(`G${currentRow}`).value = '0.00%';
-            worksheet.getCell(`G${currentRow}`).alignment = 'right';
-
-            worksheet.getCell(`H${currentRow}`).value = gstEnabled ? formatPercentage(ch.gstRate) : '-';
-            worksheet.getCell(`H${currentRow}`).alignment = 'right';
-
-            worksheet.getCell(`I${currentRow}`).value = formatCurrency(ch.amount);
-            worksheet.getCell(`I${currentRow}`).alignment = 'right';
-            worksheet.getCell(`I${currentRow}`).font = { bold: true };
-
-            for (let c = 0; c < 9; c++) {
-                const col = String.fromCharCode(65 + c);
-                worksheet.getCell(`${col}${currentRow}`).font = { size: 8.5 };
-                worksheet.getCell(`${col}${currentRow}`).border = {
-                    top: { style: 'thin', color: { argb: 'FF' + C.border } },
-                    left: c === 0 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                    bottom: { style: 'thin', color: { argb: 'FF' + C.border } },
-                    right: c === 8 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } }
-                };
-            }
-
-            currentRow++;
-        });
-
-        // ── HSN / SAC Summary ─────────────────────────────────────────
-        if (hsnSummary.length > 0 && gstEnabled) {
-            currentRow += 2; // space
-
-            const hsnHeaderRow = currentRow;
-            worksheet.getCell(`A${hsnHeaderRow}`).value = 'HSN/SAC';
-            worksheet.getCell(`B${hsnHeaderRow}`).value = 'Taxable Value';
-            worksheet.getCell(`C${hsnHeaderRow}`).value = 'CGST (₹)';
-            worksheet.getCell(`D${hsnHeaderRow}`).value = 'SGST (₹)';
-            worksheet.getCell(`E${hsnHeaderRow}`).value = 'IGST (₹)';
-            worksheet.getCell(`F${hsnHeaderRow}`).value = 'Total Tax (₹)';
-
-            for (let c = 0; c < 6; c++) {
-                const col = String.fromCharCode(65 + c);
-                worksheet.getCell(`${col}${hsnHeaderRow}`).font = { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } };
-                worksheet.getCell(`${col}${hsnHeaderRow}`).alignment = c === 0 ? 'center' : 'right';
-                worksheet.getCell(`${col}${hsnHeaderRow}`).border = {
-                    top: { style: 'medium', color: { argb: 'FF' + C.borderDark } },
-                    left: c === 0 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                    bottom: { style: 'medium', color: { argb: 'FF' + C.borderDark } },
-                    right: c === 5 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } }
-                };
-            }
-
-            currentRow++;
-
-            hsnSummary.forEach((row) => {
-                worksheet.getCell(`A${currentRow}`).value = row.hsn;
-                worksheet.getCell(`A${currentRow}`).alignment = 'center';
-
-                worksheet.getCell(`B${currentRow}`).value = formatCurrency(row.taxableValue);
-                worksheet.getCell(`B${currentRow}`).alignment = 'right';
-
-                worksheet.getCell(`C${currentRow}`).value = billType === 'intra-state' ? formatCurrency(row.cgst) : '—';
-                worksheet.getCell(`C${currentRow}`).alignment = 'right';
-
-                worksheet.getCell(`D${currentRow}`).value = billType === 'intra-state' ? formatCurrency(row.sgst) : '—';
-                worksheet.getCell(`D${currentRow}`).alignment = 'right';
-
-                worksheet.getCell(`E${currentRow}`).value = billType === 'inter-state' ? formatCurrency(row.igst) : '—';
-                worksheet.getCell(`E${currentRow}`).alignment = 'right';
-
-                worksheet.getCell(`F${currentRow}`).value = formatCurrency(row.totalTax);
-                worksheet.getCell(`F${currentRow}`).alignment = 'right';
-                worksheet.getCell(`F${currentRow}`).font = { bold: true };
-
-                for (let c = 0; c < 6; c++) {
-                    const col = String.fromCharCode(65 + c);
-                    worksheet.getCell(`${col}${currentRow}`).font = { size: 8 };
-                    worksheet.getCell(`${col}${currentRow}`).border = {
-                        top: { style: 'thin', color: { argb: 'FF' + C.border } },
-                        left: c === 0 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                        bottom: { style: 'thin', color: { argb: 'FF' + C.border } },
-                        right: c === 5 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } }
+        // Helper: write + style a single item row
+        // FIX 4: font properties set once per cell — no second loop that overwrites them
+        const writeItemRow = (rowNum, cells, isLastRow) => {
+            cells.forEach(({ col, value, align, bold, fontSize, color }, idx) => {
+                const cell = ws.getCell(`${col}${rowNum}`);
+                cell.value     = value;
+                // Skip cell-level font for richText values — each run carries its own font
+                if (!value || typeof value !== 'object' || !value.richText) {
+                    cell.font  = {
+                        size:  fontSize || 8.5,
+                        bold:  bold     || false,
+                        color: { argb: 'FF' + (color || C.textDark) },
                     };
                 }
+                cell.alignment = { horizontal: align || 'left', wrapText: col === 'B' };  // FIX 1
+                cell.border    = mkBorder(
+                    't',
+                    idx === cells.length - 1 ? 'm' : 't',
+                    isLastRow ? 'm' : 't',   // FIX 5: medium bottom on last row
+                    idx === 0 ? 'm' : 't'
+                );
+            });
+        };
 
-                currentRow++;
+        const allDataRows = [
+            ...items.map((it, idx) => ({
+                key: `item-${idx}`,
+                cells: [
+                    { col: 'A', value: idx + 1,                     align: 'center' },
+                    { col: 'B', value: (() => {
+                        const parts = [{ text: it.item || '', font: { bold: true, size: 8.5, color: { argb: 'FF' + C.textDark } } }];
+                        if (it.batch)          parts.push({ text: '  Batch: ' + it.batch,    font: { size: 7.5, color: { argb: 'FF' + C.textLight } } });
+                        if (it.item_narration) parts.push({ text: '  ' + it.item_narration,  font: { size: 7.5, color: { argb: 'FF' + C.textLight } } });
+                        return parts.length > 1 ? { richText: parts } : (it.item || '');
+                    })(), align: 'left', bold: true },
+                    { col: 'C', value: it.hsn  || '',               align: 'center' },
+                    { col: 'D', value: formatQuantity(it.qty),      align: 'center' },
+                    { col: 'E', value: it.uom  || '',               align: 'center' },
+                    { col: 'F', value: formatCurrency(it.rate),     align: 'right'  },
+                    { col: 'G', value: formatPercentage(it.disc),   align: 'right'  },
+                    { col: 'H', value: gstEnabled ? formatPercentage(it.grate) : '-', align: 'right' },
+                    { col: 'I', value: formatCurrency(it.total),    align: 'right', bold: true },
+                ],
+            })),
+            ...otherCharges.map((ch, idx) => ({
+                key: `charge-${idx}`,
+                cells: [
+                    { col: 'A', value: items.length + idx + 1,       align: 'center' },
+                    { col: 'B', value: ch.name || ch.type || 'Other Charge', align: 'left', bold: true },
+                    { col: 'C', value: ch.hsnSac || '',              align: 'center' },
+                    { col: 'D', value: '1',                          align: 'center' },
+                    { col: 'E', value: 'NOS',                        align: 'center' },
+                    { col: 'F', value: formatCurrency(ch.amount),    align: 'right'  },
+                    { col: 'G', value: '0.00%',                      align: 'right'  },
+                    { col: 'H', value: gstEnabled ? formatPercentage(ch.gstRate) : '-', align: 'right' },
+                    { col: 'I', value: formatCurrency(ch.amount),    align: 'right', bold: true },
+                ],
+            })),
+        ];
+
+        allDataRows.forEach(({ cells }, idx) => {
+            const isLast = idx === allDataRows.length - 1;
+            writeItemRow(row, cells, isLast);  // FIX 5
+            row++;
+        });
+
+        /* ═══════════════════════════════════════════════════════════════
+           SECTION 4 — HSN / SAC SUMMARY
+           FIX 6: Table now spans all 9 columns (A-I) to match items table
+           FIX 7: Last row gets medium bottom border
+
+           Column mapping (9 cols):
+             A        = HSN/SAC code
+             B:C mer  = Taxable Value
+             D:E mer  = CGST (₹)
+             F:G mer  = SGST (₹)
+             H        = IGST (₹)
+             I        = Total Tax (₹)
+        ═══════════════════════════════════════════════════════════════ */
+        if (hsnSummary.length > 0 && gstEnabled) {
+            row += 1; // one spacer row
+
+            const hsnHdrRow = row;
+
+            // HSN header: merge FIRST, then style master only.
+            // Styling slave cells after merge proxies to master and wipes values — that was the bug.
+            const hsnHdrFont = { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } };
+            const hsnHdrFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C.hdrFill } };
+
+            const styleHsnMaster = (col, label, align, leftBorder, rightBorder) => {
+                const c = ws.getCell(`${col}${hsnHdrRow}`);
+                c.value     = label;
+                c.font      = { ...hsnHdrFont };
+                c.alignment = { horizontal: align };
+                c.fill      = hsnHdrFill;
+                c.border    = mkBorder('m', rightBorder, 'm', leftBorder);
+            };
+
+            // Step 1: merge all paired columns first
+            ws.mergeCells(`B${hsnHdrRow}:C${hsnHdrRow}`);
+            ws.mergeCells(`D${hsnHdrRow}:E${hsnHdrRow}`);
+            ws.mergeCells(`F${hsnHdrRow}:G${hsnHdrRow}`);
+
+            // Step 2: style masters only (slaves are proxies — never touch after merge)
+            styleHsnMaster('A', 'HSN/SAC',       'center', 'm', 't');
+            styleHsnMaster('B', 'Taxable Value',  'right',  't', 't');
+            styleHsnMaster('D', 'CGST (₹)',        'right',  't', 't');
+            styleHsnMaster('F', 'SGST (₹)',        'right',  't', 't');
+            styleHsnMaster('H', 'IGST (₹)',        'right',  't', 't');
+            styleHsnMaster('I', 'Total Tax (₹)',   'right',  't', 'm');
+
+            // Step 3: fill + right-border on slave cells (safe: only border/fill, not value)
+            ['C', 'E', 'G'].forEach(col => {
+                ws.getCell(`${col}${hsnHdrRow}`).fill   = hsnHdrFill;
+                ws.getCell(`${col}${hsnHdrRow}`).border = mkBorder('m', 't', 'm', null);
+            });
+            row++;
+
+            hsnSummary.forEach((hsn, idx) => {
+                const isLast = idx === hsnSummary.length - 1;
+                const bot    = isLast ? 'm' : 't';  // FIX 7
+
+                // A: HSN code
+                ws.getCell(`A${row}`).value     = hsn.hsn;
+                ws.getCell(`A${row}`).font      = { size: 8 };
+                ws.getCell(`A${row}`).alignment = { horizontal: 'center' };  // FIX 1
+                ws.getCell(`A${row}`).border    = mkBorder('t', 't', bot, 'm');
+
+                // B:C merged: Taxable Value
+                ws.getCell(`B${row}`).value     = formatCurrency(hsn.taxableValue);
+                ws.getCell(`B${row}`).font      = { size: 8 };
+                ws.getCell(`B${row}`).alignment = { horizontal: 'right' };  // FIX 1
+                ws.getCell(`B${row}`).border    = mkBorder('t', 't', bot, 't');
+                ws.mergeCells(`B${row}:C${row}`);
+                ws.getCell(`C${row}`).border    = mkBorder('t', 't', bot, 't');
+
+                // D:E merged: CGST
+                ws.getCell(`D${row}`).value     = billType === 'intra-state' ? formatCurrency(hsn.cgst) : '—';
+                ws.getCell(`D${row}`).font      = { size: 8 };
+                ws.getCell(`D${row}`).alignment = { horizontal: 'right' };  // FIX 1
+                ws.getCell(`D${row}`).border    = mkBorder('t', 't', bot, 't');
+                ws.mergeCells(`D${row}:E${row}`);
+                ws.getCell(`E${row}`).border    = mkBorder('t', 't', bot, 't');
+
+                // F:G merged: SGST
+                ws.getCell(`F${row}`).value     = billType === 'intra-state' ? formatCurrency(hsn.sgst) : '—';
+                ws.getCell(`F${row}`).font      = { size: 8 };
+                ws.getCell(`F${row}`).alignment = { horizontal: 'right' };  // FIX 1
+                ws.getCell(`F${row}`).border    = mkBorder('t', 't', bot, 't');
+                ws.mergeCells(`F${row}:G${row}`);
+                ws.getCell(`G${row}`).border    = mkBorder('t', 't', bot, 't');
+
+                // H: IGST
+                ws.getCell(`H${row}`).value     = billType === 'inter-state' ? formatCurrency(hsn.igst) : '—';
+                ws.getCell(`H${row}`).font      = { size: 8 };
+                ws.getCell(`H${row}`).alignment = { horizontal: 'right' };  // FIX 1
+                ws.getCell(`H${row}`).border    = mkBorder('t', 't', bot, 't');
+
+                // I: Total Tax
+                ws.getCell(`I${row}`).value     = formatCurrency(hsn.totalTax);
+                ws.getCell(`I${row}`).font      = { size: 8, bold: true };
+                ws.getCell(`I${row}`).alignment = { horizontal: 'right' };  // FIX 1
+                ws.getCell(`I${row}`).border    = mkBorder('t', 'm', bot, 't');
+
+                row++;
             });
         }
 
-        // ── Footer: Amount Words + Totals ─────────────────────────────
-        currentRow += 2; // space
+        /* ═══════════════════════════════════════════════════════════════
+           SECTION 5 — FOOTER: AMOUNT IN WORDS + TOTALS
+           FIX 8: Totals moved to G:I — label G:H merged, value I — 
+                  so the amount column aligns with items Amount (₹)
+           FIX 9: totalsRow tracked explicitly, not computed from currentRow offset
+        ═══════════════════════════════════════════════════════════════ */
+        row += 1; // spacer
 
-        worksheet.getCell(`A${currentRow}`).value = 'AMOUNT IN WORDS';
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } };
+        const footerStartRow = row; // FIX 9: explicit anchor
 
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = numberToWords(roundedGrandTotal);
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 9, bold: true };
+        // Amount in Words (left side A:F)
+        ws.getCell(`A${row}`).value     = 'AMOUNT IN WORDS';
+        ws.getCell(`A${row}`).font      = { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } };
+        ws.getCell(`A${row}`).alignment = { horizontal: 'left' };
+        ws.mergeCells(`A${row}:F${row}`);
+        row++;
+
+        ws.getCell(`A${row}`).value     = numberToWords(roundedGrandTotal);
+        ws.getCell(`A${row}`).font      = { size: 9, bold: true };
+        ws.getCell(`A${row}`).alignment = { wrapText: true };
+        ws.mergeCells(`A${row}:F${row}`);
+        row++;
 
         if (bill.narration) {
-            currentRow++;
-            worksheet.getCell(`A${currentRow}`).value = 'NARRATION';
-            worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-            worksheet.getCell(`A${currentRow}`).font = { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } };
+            ws.getCell(`A${row}`).value     = 'NARRATION';
+            ws.getCell(`A${row}`).font      = { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } };
+            ws.getCell(`A${row}`).alignment = { horizontal: 'left' };
+            ws.mergeCells(`A${row}:F${row}`);
+            row++;
 
-            currentRow++;
-            worksheet.getCell(`A${currentRow}`).value = bill.narration;
-            worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-            worksheet.getCell(`A${currentRow}`).font = { size: 8.5, color: { argb: 'FF' + C.textMid } };
+            ws.getCell(`A${row}`).value     = bill.narration;
+            ws.getCell(`A${row}`).font      = { size: 8.5, color: { argb: 'FF' + C.textMid } };
+            ws.getCell(`A${row}`).alignment = { wrapText: true };
+            ws.mergeCells(`A${row}:F${row}`);
+            row++;
         }
 
-        // Totals table on right
-        let totalsStartRow = currentRow - (bill.narration ? 3 : 1);
-
-        worksheet.getCell(`E${totalsStartRow}`).value = 'Taxable Value';
-        worksheet.getCell(`F${totalsStartRow}`).value = formatCurrency(taxableValue);
-        worksheet.getCell(`F${totalsStartRow}`).alignment = 'right';
-
-        totalsStartRow++;
+        // FIX 8/9: Totals on right (G:H=label, I=value)
+        // Build the totals rows list
+        const totalsLines = [];
+        totalsLines.push({ label: 'Taxable Value', value: formatCurrency(taxableValue) });
         if (gstEnabled) {
             if (billType === 'intra-state') {
-                worksheet.getCell(`E${totalsStartRow}`).value = 'Add: CGST';
-                worksheet.getCell(`F${totalsStartRow}`).value = formatCurrency(bill.cgst);
-                worksheet.getCell(`F${totalsStartRow}`).alignment = 'right';
-                totalsStartRow++;
-
-                worksheet.getCell(`E${totalsStartRow}`).value = 'Add: SGST';
-                worksheet.getCell(`F${totalsStartRow}`).value = formatCurrency(bill.sgst);
-                worksheet.getCell(`F${totalsStartRow}`).alignment = 'right';
-                totalsStartRow++;
+                totalsLines.push({ label: 'Add: CGST', value: formatCurrency(bill.cgst) });
+                totalsLines.push({ label: 'Add: SGST', value: formatCurrency(bill.sgst) });
             } else {
-                worksheet.getCell(`E${totalsStartRow}`).value = 'Add: IGST';
-                worksheet.getCell(`F${totalsStartRow}`).value = formatCurrency(bill.igst);
-                worksheet.getCell(`F${totalsStartRow}`).alignment = 'right';
-                totalsStartRow++;
+                totalsLines.push({ label: 'Add: IGST', value: formatCurrency(bill.igst) });
             }
         }
+        totalsLines.push({ label: 'Total Tax',  value: formatCurrency(totalTax) });
+        totalsLines.push({ label: 'Round Off',  value: formatCurrency(roundOff) });
+        totalsLines.push({ label: 'GRAND TOTAL', value: formatCurrency(roundedGrandTotal), isGrand: true });
 
-        worksheet.getCell(`E${totalsStartRow}`).value = 'Total Tax';
-        worksheet.getCell(`F${totalsStartRow}`).value = formatCurrency(totalTax);
-        worksheet.getCell(`F${totalsStartRow}`).alignment = 'right';
-        totalsStartRow++;
+        let totalsRow = footerStartRow; // FIX 9: start at the same row as Amount in Words
 
-        worksheet.getCell(`E${totalsStartRow}`).value = 'Round Off';
-        worksheet.getCell(`F${totalsStartRow}`).value = formatCurrency(roundOff);
-        worksheet.getCell(`F${totalsStartRow}`).alignment = 'right';
-        totalsStartRow++;
+        totalsLines.forEach((line, idx) => {
+            const isFirst = idx === 0;
+            const isLast  = idx === totalsLines.length - 1;
+            const isAboveGrand = idx === totalsLines.length - 2;
 
-        worksheet.getCell(`E${totalsStartRow}`).value = 'GRAND TOTAL';
-        worksheet.getCell(`F${totalsStartRow}`).value = formatCurrency(roundedGrandTotal);
-        worksheet.getCell(`F${totalsStartRow}`).alignment = 'right';
-        worksheet.getCell(`E${totalsStartRow}`).font = { size: 10, bold: true, color: { argb: 'FF' + C.primary } };
-        worksheet.getCell(`F${totalsStartRow}`).font = { size: 11, bold: true, color: { argb: 'FF' + C.primary } };
+            // Label spans G:H merged.
+            // IMPORTANT: set full border on G BEFORE calling mergeCells.
+            // After merge, ws.getCell('H') proxies to master G — any H.border call
+            // would overwrite G.border (destroying the left:'m' we set here).
+            ws.getCell(`G${totalsRow}`).value     = line.label;
+            ws.getCell(`G${totalsRow}`).font      = line.isGrand
+                ? { size: 9.5, bold: true, color: { argb: 'FF' + C.primary } }
+                : { size: 8, color: { argb: 'FF' + C.textMid } };
+            ws.getCell(`G${totalsRow}`).alignment = { horizontal: 'left' };
+            ws.getCell(`G${totalsRow}`).border    = mkBorder(
+                isFirst || isAboveGrand ? 'm' : 't',
+                't',                                    // inner right (between G and H span)
+                isLast  || isAboveGrand ? 'm' : 't',
+                'm'                                     // outer left — preserved because set before merge
+            );
+            ws.mergeCells(`G${totalsRow}:H${totalsRow}`);
+            // Do NOT set H.border after merge — slave proxy would overwrite G's left border.
 
-        // Borders for totals table
-        let totalsEndRow = totalsStartRow;
-        totalsStartRow = currentRow - (bill.narration ? 3 : 1);
-        for (let r = totalsStartRow; r <= totalsEndRow; r++) {
-            worksheet.getCell(`E${r}`).border = {
-                top: r === totalsStartRow ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : r === totalsEndRow - 1 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                left: { style: 'medium', color: { argb: 'FF' + C.borderDark } },
-                bottom: r === totalsEndRow ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                right: { style: 'thin', color: { argb: 'FF' + C.border } }
-            };
-            worksheet.getCell(`F${r}`).border = {
-                top: r === totalsStartRow ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : r === totalsEndRow - 1 ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                left: { style: 'thin', color: { argb: 'FF' + C.border } },
-                bottom: r === totalsEndRow ? { style: 'medium', color: { argb: 'FF' + C.borderDark } } : { style: 'thin', color: { argb: 'FF' + C.border } },
-                right: { style: 'medium', color: { argb: 'FF' + C.borderDark } }
-            };
-        }
+            // Value in I (aligned with items Amount column)
+            ws.getCell(`I${totalsRow}`).value     = line.value;
+            ws.getCell(`I${totalsRow}`).font      = line.isGrand
+                ? { size: 10, bold: true, color: { argb: 'FF' + C.primary } }
+                : { size: 8.5 };
+            ws.getCell(`I${totalsRow}`).alignment = { horizontal: 'right' };  // FIX 1
+            ws.getCell(`I${totalsRow}`).border    = mkBorder(
+                isFirst || isAboveGrand ? 'm' : 't', 'm',
+                isLast  || isAboveGrand ? 'm' : 't', 't'
+            );
 
-        if (bill.reverse_charge && gstEnabled) {
-            totalsEndRow++;
-            worksheet.getCell(`E${totalsEndRow}`).value = '* Reverse charge applicable. Tax liability on recipient.';
-            worksheet.mergeCells(`E${totalsEndRow}:F${totalsEndRow}`);
-            worksheet.getCell(`E${totalsEndRow}`).font = { size: 7.5, color: { argb: 'FF' + C.red } };
-            worksheet.getCell(`E${totalsEndRow}`).alignment = { horizontal: 'right' };
-        }
-
-        // ── Signatures ────────────────────────────────────────────────
-        currentRow = totalsEndRow + 2;
-
-        worksheet.getCell(`A${currentRow}`).value = 'TERMS & CONDITIONS';
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } };
-
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = '1. Goods once sold will not be taken back.';
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 7.5, color: { argb: 'FF' + C.textLight } };
-
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = '2. Subject to local jurisdiction only.';
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 7.5, color: { argb: 'FF' + C.textLight } };
-
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = '3. E. & O.E.';
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 7.5, color: { argb: 'FF' + C.textLight } };
-
-        currentRow += 2;
-        worksheet.getCell(`A${currentRow}`).value = "Receiver's Signature";
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 8, color: { argb: 'FF' + C.textMid } };
-
-        currentRow++;
-        worksheet.getCell(`A${currentRow}`).value = '(Authorised Signatory)';
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        worksheet.getCell(`A${currentRow}`).font = { size: 7.5, color: { argb: 'FF' + C.textLight } };
-
-        // Right signatures
-        currentRow = totalsEndRow + 2;
-        worksheet.getCell(`E${currentRow}`).value = `For ${seller.name}`;
-        worksheet.mergeCells(`E${currentRow}:I${currentRow}`);
-        worksheet.getCell(`E${currentRow}`).font = { size: 9, bold: true, alignment: { horizontal: 'right' } };
-
-        currentRow++;
-        worksheet.getCell(`E${currentRow}`).value = gstEnabled ? `GSTIN: ${seller.gstin}` : '';
-        worksheet.mergeCells(`E${currentRow}:I${currentRow}`);
-        worksheet.getCell(`E${currentRow}`).font = { size: 7.5, color: { argb: 'FF' + C.textLight }, alignment: { horizontal: 'right' } };
-
-        currentRow += 3;
-        worksheet.getCell(`E${currentRow}`).value = 'Authorised Signatory';
-        worksheet.mergeCells(`E${currentRow}:I${currentRow}`);
-        worksheet.getCell(`E${currentRow}`).font = { size: 8, color: { argb: 'FF' + C.textMid }, alignment: { horizontal: 'right' } };
-
-        currentRow++;
-        worksheet.getCell(`E${currentRow}`).value = 'This is a computer generated invoice';
-        worksheet.mergeCells(`E${currentRow}:I${currentRow}`);
-        worksheet.getCell(`E${currentRow}`).font = { size: 7, color: { argb: 'FF' + C.textLight }, alignment: { horizontal: 'right' }, italic: true };
-
-        // Add borders for signatures
-        // This is simplified, as Excel borders are not as complex as PDF canvas
-
-        const safeBillNo = String(bill.bno || `BILL-${bill._id}`).replace(/[^a-zA-Z0-9._-]/g, '_');
-        const filename = `Invoice_${safeBillNo}.xlsx`;
-        console.log('Excel filename:', filename);
-
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-
-        workbook.xlsx.writeBuffer().then(buffer => {
-            res.send(buffer);
-            console.log('Excel generation completed');
-        }).catch(err => {
-            console.error('Excel generation error:', err);
-            if (!res.headersSent) {
-                res.status(500).json({ error: err.message });
-            } else {
-                res.end();
-            }
+            totalsRow++;
         });
 
-        console.log('Excel sent to client');
+        if (bill.reverse_charge && gstEnabled) {
+            ws.getCell(`G${totalsRow}`).value     = '* Reverse charge applicable. Tax liability on recipient.';
+            ws.getCell(`G${totalsRow}`).font      = { size: 7.5, color: { argb: 'FF' + C.red } };
+            ws.getCell(`G${totalsRow}`).alignment = { horizontal: 'right' };
+            ws.mergeCells(`G${totalsRow}:I${totalsRow}`);
+            totalsRow++;
+        }
+
+        const footerEndRow = Math.max(row, totalsRow);
+        row = footerEndRow + 1;
+
+        /* ═══════════════════════════════════════════════════════════════
+           SECTION 6 — SIGNATURES
+           FIX 2/10: alignment set as .alignment property, NOT inside .font
+        ═══════════════════════════════════════════════════════════════ */
+        // Terms & Conditions (left A:F)
+        ws.getCell(`A${row}`).value     = 'TERMS & CONDITIONS';
+        ws.getCell(`A${row}`).font      = { size: 7.5, bold: true, color: { argb: 'FF' + C.primary } };
+        ws.getCell(`A${row}`).alignment = { horizontal: 'left' };
+        ws.mergeCells(`A${row}:F${row}`);
+        row++;
+
+        const terms = [
+            '1. Goods once sold will not be taken back.',
+            '2. Subject to local jurisdiction only.',
+            '3. E. & O.E.',
+        ];
+        terms.forEach(t => {
+            ws.getCell(`A${row}`).value     = t;
+            ws.getCell(`A${row}`).font      = { size: 7.5, color: { argb: 'FF' + C.textLight } };
+            ws.getCell(`A${row}`).alignment = { horizontal: 'left' };
+            ws.mergeCells(`A${row}:F${row}`);
+            row++;
+        });
+
+        row += 2; // space for signature
+
+        ws.getCell(`A${row}`).value     = "Receiver's Signature";
+        ws.getCell(`A${row}`).font      = { size: 8, color: { argb: 'FF' + C.textMid } };
+        ws.getCell(`A${row}`).alignment = { horizontal: 'left' };
+        ws.mergeCells(`A${row}:F${row}`);
+        row++;
+
+        ws.getCell(`A${row}`).value     = '(Authorised Signatory)';
+        ws.getCell(`A${row}`).font      = { size: 7.5, color: { argb: 'FF' + C.textLight } };
+        ws.getCell(`A${row}`).alignment = { horizontal: 'left' };
+        ws.mergeCells(`A${row}:F${row}`);
+
+        // Right signatures (G:I)  FIX 2/10: alignment is a separate property
+        const sigStartRow = footerEndRow + 1;
+
+        ws.getCell(`G${sigStartRow}`).value     = `For ${seller.name}`;
+        ws.getCell(`G${sigStartRow}`).font      = { size: 9, bold: true, color: { argb: 'FF' + C.textDark } };
+        ws.getCell(`G${sigStartRow}`).alignment = { horizontal: 'right' };  // FIX 2: separate from font
+        ws.mergeCells(`G${sigStartRow}:I${sigStartRow}`);
+
+        ws.getCell(`G${sigStartRow + 1}`).value     = gstEnabled ? `GSTIN: ${seller.gstin}` : '';
+        ws.getCell(`G${sigStartRow + 1}`).font      = { size: 7.5, color: { argb: 'FF' + C.textLight } };
+        ws.getCell(`G${sigStartRow + 1}`).alignment = { horizontal: 'right' };  // FIX 2
+        ws.mergeCells(`G${sigStartRow + 1}:I${sigStartRow + 1}`);
+
+        ws.getCell(`G${sigStartRow + 4}`).value     = 'Authorised Signatory';
+        ws.getCell(`G${sigStartRow + 4}`).font      = { size: 8, color: { argb: 'FF' + C.textMid } };
+        ws.getCell(`G${sigStartRow + 4}`).alignment = { horizontal: 'right' };  // FIX 2
+        ws.mergeCells(`G${sigStartRow + 4}:I${sigStartRow + 4}`);
+
+        ws.getCell(`G${sigStartRow + 5}`).value     = 'This is a computer generated invoice';
+        ws.getCell(`G${sigStartRow + 5}`).font      = { size: 7, italic: true, color: { argb: 'FF' + C.textLight } };
+        ws.getCell(`G${sigStartRow + 5}`).alignment = { horizontal: 'right' };  // FIX 2
+        ws.mergeCells(`G${sigStartRow + 5}:I${sigStartRow + 5}`);
+
+        // ── Page setup: A4, narrow margins, fit to 1 page wide ──────────
+        ws.pageSetup.paperSize      = 9;     // 9 = A4
+        ws.pageSetup.orientation    = 'portrait';
+        ws.pageSetup.fitToPage      = true;
+        ws.pageSetup.fitToWidth     = 1;     // force all columns into one page width
+        ws.pageSetup.fitToHeight    = 0;     // unlimited height
+        ws.pageSetup.scale          = 100;
+        ws.pageMargins = {
+            left:   0.25,   // inches — was 0.7, reduced so 9 cols fit on A4
+            right:  0.25,
+            top:    0.4,
+            bottom: 0.4,
+            header: 0.2,
+            footer: 0.2,
+        };
+
+        // ── Send response ─────────────────────────────────────────────
+        const safeBillNo = String(bill.bno || `BILL-${bill._id}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filename   = `Invoice_${safeBillNo}.xlsx`;
+
+        res.setHeader('Content-Type',        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Cache-Control',       'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma',              'no-cache');
+        res.setHeader('Expires',             '0');
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        res.send(buffer);
+        console.log('Excel generation completed:', filename);
 
     } catch (err) {
         console.error('Excel export error:', err);
-        console.error('Error stack:', err.stack);
         if (!res.headersSent) {
             res.status(500).json({ error: err.message });
         } else {

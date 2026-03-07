@@ -5,43 +5,55 @@ const { Schema } = mongoose;
 const loginAuditSchema = new Schema(
   {
     user_id: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type:     Schema.Types.ObjectId,
+      ref:      'User',
       required: true,
-      index: true,
+      index:    true,
     },
+
+    /**
+     * FIX: The original schema had default: 'attempt', but 'attempt' was NOT in
+     * the enum. This caused Mongoose validation to throw on every document created
+     * without an explicit status, silently swallowed by logLoginAttempt's try/catch,
+     * meaning many audit records were never written at all.
+     *
+     * Fixed: default changed to 'failed' (a valid enum value).
+     * logLoginAttempt always supplies status explicitly anyway, so this default
+     * only fires as a safety net.
+     */
     status: {
-      type: String,
-      enum: ['success', 'failed', 'locked', 'suspicious'],
-      default: 'attempt',
+      type:    String,
+      enum:    ['success', 'failed', 'locked', 'suspicious'],
+      default: 'failed',
     },
+
     ip_address: {
-      type: String,
+      type:     String,
       required: true,
     },
     user_agent: {
-      type: String,
+      type:    String,
       default: null,
     },
     device_id: {
-      type: String,
+      type:    String,
       default: null,
-      index: true,
+      index:   true,
     },
     device_fingerprint: {
-      type: String,
+      type:    String,
       default: null,
     },
     failure_reason: {
-      type: String,
+      type:    String,
       default: null,
     },
     location: {
-      type: String,
+      type:    String,
       default: null,
     },
     is_known_device: {
-      type: Boolean,
+      type:    Boolean,
       default: false,
     },
   },

@@ -3,6 +3,7 @@
  * Handles multi-device session management
  */
 
+import mongoose from 'mongoose';
 import {
   getUserSessions,
   revokeDevice,
@@ -11,7 +12,7 @@ import {
   getSuspiciousAttempts,
   revokeAllUserTokens,
 } from '../../utils/mongo/tokenRevocationUtils.js';
-import { User, LoginAudit } from '../../models/index.js';
+import { RefreshToken, TokenSessionDevice } from '../../models/index.js';
 
 /**
  * GET /api/auth/sessions
@@ -19,22 +20,20 @@ import { User, LoginAudit } from '../../models/index.js';
  */
 export const getSessions = async (req, res) => {
   try {
-    const userId = req.user.id;
-    
-    const sessions = await getUserSessions(userId);
+    const sessions = await getUserSessions(req.user.id);
 
     res.json({
       success: true,
       sessions: sessions.map(session => ({
-        device_id: session.device_id,
-        device_name: session.device_name,
-        device_type: session.device_type,
-        browser: session.browser,
-        os: session.os,
-        ip_address: session.ip_address,
-        is_trusted: session.is_trusted,
+        device_id:    session.device_id,
+        device_name:  session.device_name,
+        device_type:  session.device_type,
+        browser:      session.browser,
+        os:           session.os,
+        ip_address:   session.ip_address,
+        is_trusted:   session.is_trusted,
         last_used_at: session.last_used_at,
-        created_at: session.createdAt,
+        created_at:   session.createdAt,
       })),
     });
   } catch (error) {
@@ -50,7 +49,7 @@ export const getSessions = async (req, res) => {
 export const revokeSession = async (req, res) => {
   try {
     const { device_id } = req.params;
-    const userId = req.user.id;
+    const userId        = req.user.id;
 
     if (!device_id) {
       return res.status(400).json({ success: false, error: 'device_id is required' });
@@ -59,8 +58,8 @@ export const revokeSession = async (req, res) => {
     const revokedCount = await revokeDevice(userId, device_id);
 
     res.json({
-      success: true,
-      message: `Revoked ${revokedCount} token(s) for device ${device_id}`,
+      success:           true,
+      message:           `Revoked ${revokedCount} token(s) for device ${device_id}`,
       revokedTokenCount: revokedCount,
     });
   } catch (error) {
@@ -71,25 +70,43 @@ export const revokeSession = async (req, res) => {
 
 /**
  * POST /api/auth/sessions/revoke-others
- * Revoke all sessions except the current one
+ * Revoke all sessions except the current device.
+ *
+ * FIX: The original implementation called revokeDevice() in a for-loop,
+ * causing N separate DB round-trips (one updateMany + one deleteOne per device).
+ * Now handled with two bulk operations regardless of session count.
  */
 export const revokeOtherSessions = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const currentDeviceId = req.user.device_id || 'unknown';
+    const userId          = req.user.id;
+    const currentDeviceId = req.user.device_id || null;
 
-    const sessions = await getUserSessions(userId);
-    let revokedCount = 0;
-
-    for (const session of sessions) {
-      if (session.device_id !== currentDeviceId) {
-        revokedCount += await revokeDevice(userId, session.device_id);
-      }
+    // ── Bulk-revoke all refresh tokens except current device ──────────
+    const tokenFilter = {
+      user_id:    new mongoose.Types.ObjectId(userId),
+      is_revoked: false,
+    };
+    if (currentDeviceId) {
+      tokenFilter.device_id = { $ne: currentDeviceId };
     }
 
+    const tokenResult = await RefreshToken.updateMany(tokenFilter, {
+      $set: { is_revoked: true, revoked_reason: 'revoke-others', revoked_at: new Date() },
+    });
+
+    // ── Bulk-delete session records except current device ─────────────
+    const sessionFilter = { user_id: new mongoose.Types.ObjectId(userId) };
+    if (currentDeviceId) {
+      sessionFilter.device_id = { $ne: currentDeviceId };
+    }
+    await TokenSessionDevice.deleteMany(sessionFilter);
+
+    const revokedCount = tokenResult.modifiedCount;
+    console.log(`✅ Revoked ${revokedCount} token(s) from other devices for user ${userId}`);
+
     res.json({
-      success: true,
-      message: `Revoked ${revokedCount} token(s) from other devices`,
+      success:           true,
+      message:           `Revoked ${revokedCount} token(s) from other devices`,
       revokedTokenCount: revokedCount,
     });
   } catch (error) {
@@ -105,7 +122,7 @@ export const revokeOtherSessions = async (req, res) => {
 export const markDeviceTrusted = async (req, res) => {
   try {
     const { device_id } = req.params;
-    const userId = req.user.id;
+    const userId        = req.user.id;
 
     if (!device_id) {
       return res.status(400).json({ success: false, error: 'device_id is required' });
@@ -117,10 +134,7 @@ export const markDeviceTrusted = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Device not found' });
     }
 
-    res.json({
-      success: true,
-      message: `Device ${device_id} marked as trusted`,
-    });
+    res.json({ success: true, message: `Device ${device_id} marked as trusted` });
   } catch (error) {
     console.error('❌ Error marking device as trusted:', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -134,19 +148,19 @@ export const markDeviceTrusted = async (req, res) => {
 export const getLoginHistoryEndpoint = async (req, res) => {
   try {
     const userId = req.user.id;
-    const limit = parseInt(req.query.limit || '10', 10);
+    const limit  = Math.min(parseInt(req.query.limit || '10', 10), 50);
 
-    const history = await getLoginHistory(userId, Math.min(limit, 50));
+    const history = await getLoginHistory(userId, limit);
 
     res.json({
       success: true,
       history: history.map(entry => ({
-        status: entry.status,
-        ip_address: entry.ip_address,
-        device_id: entry.device_id,
-        user_agent: entry.user_agent,
+        status:         entry.status,
+        ip_address:     entry.ip_address,
+        device_id:      entry.device_id,
+        user_agent:     entry.user_agent,
         failure_reason: entry.failure_reason,
-        timestamp: entry.createdAt,
+        timestamp:      entry.createdAt,
       })),
     });
   } catch (error) {
@@ -161,20 +175,20 @@ export const getLoginHistoryEndpoint = async (req, res) => {
  */
 export const getSuspiciousActivityEndpoint = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const minutes = parseInt(req.query.minutes || '60', 10);
+    const userId  = req.user.id;
+    const minutes = Math.min(parseInt(req.query.minutes || '60', 10), 1440);
 
-    const suspicious = await getSuspiciousAttempts(userId, Math.min(minutes, 1440));
+    const suspicious = await getSuspiciousAttempts(userId, minutes);
 
     res.json({
       success: true,
       suspiciousAttempts: suspicious.map(entry => ({
-        status: entry.status,
-        ip_address: entry.ip_address,
-        device_id: entry.device_id,
-        user_agent: entry.user_agent,
+        status:         entry.status,
+        ip_address:     entry.ip_address,
+        device_id:      entry.device_id,
+        user_agent:     entry.user_agent,
         failure_reason: entry.failure_reason,
-        timestamp: entry.createdAt,
+        timestamp:      entry.createdAt,
       })),
     });
   } catch (error) {
@@ -189,13 +203,12 @@ export const getSuspiciousActivityEndpoint = async (req, res) => {
  */
 export const logoutAllDevices = async (req, res) => {
   try {
-    const userId = req.user.id;
-
+    const userId       = req.user.id;
     const revokedCount = await revokeAllUserTokens(userId, 'manual-logout-all');
 
     res.json({
-      success: true,
-      message: `Revoked ${revokedCount} token(s) from all devices`,
+      success:           true,
+      message:           `Revoked ${revokedCount} token(s) from all devices`,
       revokedTokenCount: revokedCount,
     });
   } catch (error) {

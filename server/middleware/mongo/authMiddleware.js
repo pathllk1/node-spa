@@ -1,10 +1,9 @@
-
-
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { verifyAccessToken, verifyRefreshToken, generateAccessToken } from '../../utils/mongo/tokenUtils.js';
 import { isTokenBlacklisted } from '../../utils/mongo/tokenRevocationUtils.js';
 import { RefreshToken } from '../../models/index.js';
+import User from '../../models/User.model.js';  // FIX: added for tokens_invalidated_at check
 
 const ACCESS_LIFE_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -40,6 +39,7 @@ function setAccessCookies(res, newAccessToken) {
 function clearAndReject(res, message = 'Session expired, please login again') {
   res.clearCookie('accessToken');
   res.clearCookie('refreshToken');
+  res.clearCookie('tokenExpiry');
   return res.status(401).json({ success: false, message });
 }
 
@@ -53,9 +53,9 @@ export const authMiddleware = async (req, res, next) => {
     const refreshToken = req.cookies.refreshToken;
 
     console.log('[authMiddleware DEBUG]', {
-      accessTokenExists: !!accessToken,
+      accessTokenExists:  !!accessToken,
       refreshTokenExists: !!refreshToken,
-      path: req.path,
+      path:   req.path,
       method: req.method,
     });
 
@@ -65,33 +65,36 @@ export const authMiddleware = async (req, res, next) => {
     }
 
     // ── Try access token first ────────────────────────────────────────
-    try {
-      // Check if access token is blacklisted (revoked)
-      if (accessToken && await isTokenBlacklisted(accessToken)) {
-        console.warn('🚫 Access token is blacklisted');
-        return clearAndReject(res, 'Your session has been invalidated. Please login again.');
-      }
+    if (accessToken) {
+      try {
+        // Check if access token is blacklisted (covers logout + logout-all)
+        if (await isTokenBlacklisted(accessToken)) {
+          console.warn('🚫 Access token is blacklisted');
+          return clearAndReject(res, 'Your session has been invalidated. Please login again.');
+        }
 
-      const decoded = verifyAccessToken(accessToken);
-      
-      console.log('[authMiddleware] Access token valid, decoded user:', {
-        id: decoded.id,
-        username: decoded.username,
-        role: decoded.role,
-      });
-      
-      // Token type validation (prevents token substitution)
-      if (decoded.type !== 'access') {
-        console.warn('⚠️ Invalid token type in access token');
-        return clearAndReject(res, 'Invalid token');
-      }
+        const decoded = verifyAccessToken(accessToken);
 
-      req.user = decoded;
-      console.log('[authMiddleware] Setting req.user, now req.user.role is:', req.user.role);
-      return next();
-    } catch (error) {
-      // Access token missing, invalid, or expired — fall through to refresh flow
-      console.log('ℹ️ Access token invalid/expired, attempting refresh...');
+        console.log('[authMiddleware] Access token valid, decoded user:', {
+          id:       decoded.id,
+          username: decoded.username,
+          role:     decoded.role,
+        });
+
+        // Token type validation — prevents token substitution attack
+        // (verifyAccessToken already checks this, but belt-and-braces)
+        if (decoded.type !== 'access') {
+          console.warn('⚠️ Invalid token type in access token');
+          return clearAndReject(res, 'Invalid token');
+        }
+
+        req.user = decoded;
+        console.log('[authMiddleware] req.user.role:', req.user.role);
+        return next();
+      } catch (error) {
+        // Access token missing, invalid, or expired — fall through to refresh flow
+        console.log('ℹ️ Access token invalid/expired, attempting refresh...');
+      }
     }
 
     // ── No refresh token to fall back on ─────────────────────────────
@@ -109,7 +112,7 @@ export const authMiddleware = async (req, res, next) => {
     let refreshDecoded;
     try {
       refreshDecoded = verifyRefreshToken(refreshToken);
-      
+
       // Token type validation
       if (refreshDecoded.type !== 'refresh') {
         console.warn('⚠️ Invalid token type in refresh token');
@@ -128,8 +131,8 @@ export const authMiddleware = async (req, res, next) => {
     }).lean();
 
     if (!storedToken) {
-      // Token was rotated, deleted, or never stored — possible replay attack
-      console.warn(`🚫 Refresh token not found in DB (possible replay attack)`);
+      // Token was rotated, deleted, or never stored — likely a replay attack
+      console.warn('🚫 Refresh token not found in DB (possible replay attack)');
       return clearAndReject(res, 'Invalid session, please login again');
     }
 
@@ -141,29 +144,20 @@ export const authMiddleware = async (req, res, next) => {
 
     // Check token expiration
     if (new Date(storedToken.expires_at) < new Date()) {
-      // Token in DB but has passed its expiry date
       console.log('ℹ️ Refresh token has expired in DB');
       return clearAndReject(res);
     }
 
-    // ── Token Family Validation (detect compromised refresh chains) ──
-    // If the token family has changed, it could indicate a stolen token
+    // ── Token Family Validation (detect compromised refresh chains) ───
     if (storedToken.token_family_id && storedToken.token_family_id !== refreshDecoded.family_id) {
       console.warn(
         `🚨 SECURITY: Token family mismatch! Expected ${storedToken.token_family_id}, ` +
         `got ${refreshDecoded.family_id}. Possible token theft detected.`
       );
-      // Revoke the entire family as a security measure
       try {
         await RefreshToken.updateMany(
           { token_family_id: storedToken.token_family_id },
-          {
-            $set: {
-              is_revoked: true,
-              revoked_reason: 'security_family_mismatch',
-              revoked_at: new Date(),
-            },
-          }
+          { $set: { is_revoked: true, revoked_reason: 'security_family_mismatch', revoked_at: new Date() } }
         );
         console.warn('🔒 Entire token family revoked due to security breach');
       } catch (error) {
@@ -172,15 +166,43 @@ export const authMiddleware = async (req, res, next) => {
       return clearAndReject(res, 'Security violation detected. Please login again.');
     }
 
+    // ── FIX: Check global token invalidation timestamp ────────────────
+    // revokeAllUserTokens() (logout-all-devices) sets tokens_invalidated_at on the User.
+    // Any refresh token issued BEFORE that timestamp must be rejected, even if the
+    // DB record hasn't been marked revoked yet (race condition protection).
+    const userDoc = await User.findById(refreshDecoded.id)
+      .select('status tokens_invalidated_at')
+      .lean();
+
+    if (!userDoc) {
+      console.warn('🚫 User not found during token refresh');
+      return clearAndReject(res, 'User not found. Please login again.');
+    }
+
+    // Check if account is still active
+    if (userDoc.status !== 'approved') {
+      console.warn(`🚫 User ${refreshDecoded.id} account is no longer approved`);
+      return clearAndReject(res, 'Account access revoked. Please contact your administrator.');
+    }
+
+    // Check global invalidation: token was issued before the revoke-all timestamp
+    if (
+      userDoc.tokens_invalidated_at &&
+      new Date(storedToken.createdAt) < new Date(userDoc.tokens_invalidated_at)
+    ) {
+      console.warn(`🚫 Token issued before global invalidation for user ${refreshDecoded.id}`);
+      return clearAndReject(res, 'Session invalidated. Please login again.');
+    }
+
     // ── Issue new access token ────────────────────────────────────────
-    console.log('[authMiddleware] Refresh token validated, creating new access token with role:', refreshDecoded.role);
-    
+    console.log('[authMiddleware] Refresh token validated, issuing new access token. Role:', refreshDecoded.role);
+
     const newAccessToken = generateAccessToken({
-      id:       refreshDecoded.id,
-      username: refreshDecoded.username,
-      email:    refreshDecoded.email,
-      role:     refreshDecoded.role,
-      firm_id:  refreshDecoded.firm_id,
+      id:        refreshDecoded.id,
+      username:  refreshDecoded.username,
+      email:     refreshDecoded.email,
+      role:      refreshDecoded.role,
+      firm_id:   refreshDecoded.firm_id,
       device_id: refreshDecoded.device_id,
       family_id: refreshDecoded.family_id,
     });
@@ -188,9 +210,9 @@ export const authMiddleware = async (req, res, next) => {
     setAccessCookies(res, newAccessToken);
 
     req.user           = refreshDecoded;
-    req.tokenRefreshed = true; // useful for logging / debugging
+    req.tokenRefreshed = true;
 
-    console.log(`[authMiddleware] Token refreshed for user ${refreshDecoded.id}, role is now:`, req.user.role);
+    console.log(`[authMiddleware] Token refreshed for user ${refreshDecoded.id}, role: ${req.user.role}`);
 
     return next();
 
@@ -201,8 +223,7 @@ export const authMiddleware = async (req, res, next) => {
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
-   optionalAuth — attach user if a valid access token is present,
-                   but never block the request
+   optionalAuth — attach user if valid access token present, never block
 ───────────────────────────────────────────────────────────────────────── */
 
 export const optionalAuth = async (req, res, next) => {
@@ -210,20 +231,12 @@ export const optionalAuth = async (req, res, next) => {
     const accessToken = req.cookies.accessToken;
     if (accessToken) {
       try {
-        // Check blacklist first
         if (await isTokenBlacklisted(accessToken)) {
           req.user = null;
           return next();
         }
-
         const decoded = verifyAccessToken(accessToken);
-        
-        // Validate token type
-        if (decoded.type === 'access') {
-          req.user = decoded;
-        } else {
-          req.user = null;
-        }
+        req.user = decoded.type === 'access' ? decoded : null;
       } catch {
         req.user = null;
       }

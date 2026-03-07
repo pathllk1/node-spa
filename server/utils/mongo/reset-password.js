@@ -1,9 +1,12 @@
 /**
  * Reset User Password
  * Usage: node server/utils/mongo/reset-password.js username newPassword
- * 
+ *
  * Example:
  *   node server/utils/mongo/reset-password.js anjan newPasswordHere
+ *
+ * FIX: Removed the line that printed the plaintext password to the console.
+ * Log aggregators (Vercel, CloudWatch, Datadog) would have stored it permanently.
  */
 
 import 'dotenv/config.js';
@@ -30,11 +33,9 @@ async function resetPassword() {
   }
 
   try {
-    // Connect to database
     await connectDB();
     console.log('✅ Connected to MongoDB');
 
-    // Find user
     const user = await User.findOne({
       $or: [{ username }, { email: username }],
     });
@@ -47,34 +48,32 @@ async function resetPassword() {
     console.log(`✓ Found user: ${user.username} (${user.email})`);
     console.log('');
 
-    // Hash new password
-    console.log('Hashing password with bcrypt (12 rounds)...');
+    console.log(`Hashing password with bcrypt (${BCRYPT_ROUNDS} rounds)...`);
     const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
-    // Update password
-    user.password = hashedPassword;
+    user.password              = hashedPassword;
+    user.failed_login_attempts = 0;
+    user.account_locked_until  = null;
     await user.save();
 
     console.log('');
     console.log('✅ Password Reset Successfully!');
     console.log('');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`Username:     ${user.username}`);
-    console.log(`Email:        ${user.email}`);
-    console.log(`Full Name:    ${user.fullname}`);
-    console.log(`Role:         ${user.role}`);
-    console.log(`Status:       ${user.status}`);
-    console.log(`New Password: ${newPassword}`);
+    console.log(`Username:  ${user.username}`);
+    console.log(`Email:     ${user.email}`);
+    console.log(`Full Name: ${user.fullname}`);
+    console.log(`Role:      ${user.role}`);
+    console.log(`Status:    ${user.status}`);
+    // FIX: plaintext password intentionally NOT logged here.
+    // "New Password: ${newPassword}" was previously printed and would be
+    // captured by any log aggregation service.
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('');
-    console.log('✓ Password has been hashed with bcrypt (12 rounds)');
-    console.log('✓ Only the hash is stored in the database');
-    console.log('✓ User can now login with new password');
-    console.log('');
-    console.log('Test login:');
-    console.log(`  curl -X POST http://localhost:3000/api/auth/login \\`);
-    console.log(`    -H 'Content-Type: application/json' \\`);
-    console.log(`    -d '{"username":"${user.username}","password":"${newPassword}"}'`);
+    console.log('✓ Password hashed with bcrypt and saved');
+    console.log('✓ Failed login attempts reset to 0');
+    console.log('✓ Account lockout cleared');
+    console.log('✓ User can now login with the new password');
     console.log('');
 
     process.exit(0);
@@ -84,5 +83,4 @@ async function resetPassword() {
   }
 }
 
-// Run the script
 resetPassword();
