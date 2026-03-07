@@ -162,7 +162,7 @@ export function openCreateStockModal(state, onStockSaved) {
         if (btnSpinner)  btnSpinner.classList.remove('hidden');
 
         try {
-            const response = await fetchWithCSRF('/api/inventory/sales/stocks', {
+            const response = await fetchWithCSRF('/api/inventory/purchase/stocks', {
                 method: 'POST',
                 body:   JSON.stringify(data),
             });
@@ -410,7 +410,7 @@ export function openEditStockModal(stock, state, onStockSaved) {
         if (btnSpinner)  btnSpinner.classList.remove('hidden');
 
         try {
-            const response = await fetchWithCSRF(`/api/inventory/sales/stocks/${stockId}`, {
+            const response = await fetchWithCSRF(`/api/inventory/purchase/stocks/${stockId}`, {
                 method: 'PUT',
                 body:   JSON.stringify(data),
             });

@@ -30,7 +30,7 @@ export function createInitialState() {
 
 export async function fetchCurrentUserFirmName(state) {
     try {
-        const response = await fetch('/api/inventory/sales/current-firm', {
+        const response = await fetch('/api/inventory/purchase/current-firm', {
             method:      'GET',
             credentials: 'same-origin',
             headers:     { 'Content-Type': 'application/json' },
@@ -51,7 +51,7 @@ export async function fetchCurrentUserFirmName(state) {
 
 export async function fetchNextBillNumber(state) {
     try {
-        const response = await fetch('/api/inventory/sales/next-bill-number', {
+        const response = await fetch('/api/inventory/purchase/next-bill-number', {
             method:      'GET',
             credentials: 'same-origin',
             headers:     { 'Content-Type': 'application/json' },
@@ -75,7 +75,7 @@ export async function loadExistingBillData(state, billId) {
     // FIX: Removed all [LOAD_BILL_DATA] console.logs — 15+ debug statements
     // cluttered production logs with internal data structures.
     try {
-        const response = await fetch(`/api/inventory/sales/bills/${billId}`, {
+        const response = await fetch(`/api/inventory/purchase/bills/${billId}`, {
             method:      'GET',
             credentials: 'same-origin',
             headers:     { 'Content-Type': 'application/json' },
@@ -163,7 +163,7 @@ export async function loadExistingBillData(state, billId) {
 export async function fetchData(state) {
     try {
         // Stocks
-        const stockResponse = await fetch('/api/inventory/sales/stocks', {
+        const stockResponse = await fetch('/api/inventory/purchase/stocks', {
             method: 'GET', credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
         });
@@ -177,7 +177,7 @@ export async function fetchData(state) {
 
         // Parties
         try {
-            const partyResponse = await fetch('/api/inventory/sales/parties', {
+            const partyResponse = await fetch('/api/inventory/purchase/parties', {
                 method: 'GET', credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -197,7 +197,7 @@ export async function fetchData(state) {
         if (!state.meta.billNo || state.meta.billNo === 'Will be generated on save') {
             state.meta.billNo = 'Will be generated on save';
             try {
-                const previewResponse = await fetch('/api/inventory/sales/next-bill-number', {
+                const previewResponse = await fetch('/api/inventory/purchase/next-bill-number', {
                     method: 'GET', credentials: 'same-origin',
                     headers: { 'Content-Type': 'application/json' },
                 });

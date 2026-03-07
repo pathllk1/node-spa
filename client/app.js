@@ -13,6 +13,7 @@ const loadSuperAdmin = () => import('./pages/superAdmin.js').then(m => m.renderS
 const loadMasterRoll = () => import('./pages/master-roll.js').then(m => m.renderMasterRoll);
 const loadWagesDashboard = () => import('./pages/WagesDashboard.js').then(m => m.renderWagesDashboard);
 const loadSales = () => import('./pages/sales.js').then(m => m.renderSales);
+const loadPurchase = () => import('./pages/purchase.js').then(m => m.renderPurchase);
 const loadStocks = () => import('./pages/stocks.js').then(m => m.renderStocks);
 const loadInventoryDashboard = () => import('./pages/inventory-dashboard.js').then(m => m.renderInventoryDashboard);
 const loadInventoryCategories = () => import('./pages/inventory-categories.js').then(m => m.renderInventoryCategories);
@@ -121,6 +122,7 @@ router
 
   // Inventory
   .on('/inventory/sls',             navigate(loadSales))
+  .on('/inventory/prs',             navigate(loadPurchase))
   .on('/inventory/stocks',          navigate(loadStocks))
   .on('/inventory/dashboard',       navigate(loadInventoryDashboard))
   .on('/inventory/categories',      navigate(loadInventoryCategories))

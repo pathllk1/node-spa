@@ -131,7 +131,7 @@ export function openCreatePartyModal(state, onPartySaved) {
         data.pan        = data.pan     || null;
 
         try {
-            const response = await fetchWithCSRF('/api/inventory/sales/parties', {
+            const response = await fetchWithCSRF('/api/inventory/purchase/parties', {
                 method: 'POST',
                 body:   JSON.stringify(data),
             });

@@ -158,7 +158,7 @@ export async function renderPartyCard(state) {
         const partyId   = getPartyId(state.selectedParty);
 
         try {
-            const response = await fetch(`/api/inventory/sales/party-balance/${partyId}`, {
+            const response = await fetch(`/api/inventory/purchase/party-balance/${partyId}`, {
                 method: 'GET', credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
             });

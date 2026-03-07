@@ -65,7 +65,7 @@ export async function fetchPartyByGST(buttonElement) {
     buttonElement.disabled   = true;
 
     try {
-        const response = await fetchWithCSRF('/api/inventory/sales/gst-lookup', {
+        const response = await fetchWithCSRF('/api/inventory/purchase/gst-lookup', {
             method: 'POST',
             body:   JSON.stringify({ gstin }),
         });

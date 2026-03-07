@@ -1,5 +1,5 @@
 /**
- * SALES SYSTEM (SLS) - MAIN ORCHESTRATOR
+ * PURCHASE SYSTEM (PRS) - MAIN ORCHESTRATOR
  * Coordinates all components and manages the application lifecycle
  */
 
@@ -19,8 +19,8 @@ import { showToast } from './toast.js';
 import { exportInvoiceToPDF } from './invoiceExport.js';
 import { fetchWithCSRF } from '../../../utils/api.js';
 
-export function initSalesSystem(router) {
-    const container = document.getElementById('sales-system');
+export function initPurchaseSystem(router) {
+    const container = document.getElementById('purchase-system');
     if (!container) return;
 
     // FIX: Removed all [LOAD_BILL_DATA] and URL/param debug console.log calls
@@ -109,7 +109,7 @@ export function initSalesSystem(router) {
             <div class="bg-white border-b border-gray-200 p-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shadow-sm z-20">
                 <div class="flex flex-col sm:flex-row flex-wrap gap-2">
                     <div class="flex items-center gap-2">
-                        <h1 class="text-lg font-bold text-gray-800">Sales Invoice</h1>
+                        <h1 class="text-lg font-bold text-gray-800">Purchase Invoice</h1>
                         ${isEditMode ? '<span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full border border-orange-200">EDIT MODE</span>' : ''}
                     </div>
                     <div class="flex flex-col">
@@ -146,7 +146,7 @@ export function initSalesSystem(router) {
                     <button id="btn-reset"         class="px-3 py-1.5 text-xs text-red-600 border border-red-200 bg-red-50 rounded hover:bg-red-100 transition-colors whitespace-nowrap">Reset</button>
                     <button id="btn-save"          class="px-4 py-1.5 bg-slate-800 text-white text-xs rounded hover:bg-slate-900 shadow font-medium flex items-center gap-2 transition-colors whitespace-nowrap">
                         <span id="save-icon">💾</span>
-                        <span id="save-text">${isEditMode ? 'Update Bill' : 'Save Invoice'}</span>
+                        <span id="save-text">${isEditMode ? 'Update Purchase Bill' : 'Save Purchase Invoice'}</span>
                         <div id="save-spinner" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2"></div>
                     </button>
                 </div>
@@ -286,7 +286,7 @@ export function initSalesSystem(router) {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
                     </div>
-                    <h3 class="text-base font-bold tracking-wide">Invoice Saved!</h3>
+                    <h3 class="text-base font-bold tracking-wide">Purchase Saved!</h3>
                     <p class="text-green-100 text-sm mt-1">Bill No: <span id="modal-bill-no" class="font-bold text-white"></span></p>
                 </div>
                 <div class="p-5 flex flex-col gap-2">
@@ -351,7 +351,7 @@ export function initSalesSystem(router) {
     // ── Helper: refresh stocks list ────────────────────────────────────────
     async function refreshStocks() {
         try {
-            const response = await fetch('/api/inventory/sales/stocks', {
+            const response = await fetch('/api/inventory/purchase/stocks', {
                 method: 'GET', credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -486,8 +486,8 @@ export function initSalesSystem(router) {
 
                     const method   = isEditMode ? 'PUT' : 'POST';
                     const url      = isEditMode
-                        ? `/api/inventory/sales/bills/${editBillId}`
-                        : '/api/inventory/sales/bills';
+                        ? `/api/inventory/purchase/bills/${editBillId}`
+                        : '/api/inventory/purchase/bills';
 
                     const response = await fetchWithCSRF(url, {
                         method,
@@ -507,14 +507,14 @@ export function initSalesSystem(router) {
                     }
 
                     const successMsg = isEditMode
-                        ? `Bill updated! Bill No: ${result.billNo || state.meta.billNo}`
-                        : `Invoice saved! Bill No: ${result.billNo}`;
+                        ? `Purchase bill updated! Bill No: ${result.billNo || state.meta.billNo}`
+                        : `Purchase saved! Bill No: ${result.billNo}`;
                     showToast(successMsg, 'success');
                     showSaveConfirmationModal(result.id, result.billNo, isEditMode);
 
                 } catch (err) {
                     console.error('Error saving bill:', err);
-                    showToast((isEditMode ? 'Error updating bill: ' : 'Error saving invoice: ') + err.message, 'error');
+                    showToast((isEditMode ? 'Error updating purchase bill: ' : 'Error saving purchase: ') + err.message, 'error');
                 } finally {
                     hideSaveSpinner();
                 }

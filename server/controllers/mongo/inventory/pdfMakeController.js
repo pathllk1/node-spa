@@ -141,39 +141,41 @@ const numberToWords = (num) => {
 };
 
 const getInvoiceTypeLabel = (bill) => {
-    if (bill.type) {
-        const billType = bill.type.toUpperCase();
-        switch (billType) {
-            case 'SALES': return 'SALES INVOICE';
-            case 'PURCHASE': return 'PURCHASE INVOICE';
-            case 'CREDIT NOTE': return 'CREDIT NOTE';
-            case 'DEBIT NOTE': return 'DEBIT NOTE';
-            case 'DELIVERY NOTE': return 'DELIVERY NOTE';
-            default: return billType;
-        }
+    // btype is the canonical field in the Bill model (not 'type')
+    const raw = bill.btype || bill.type || 'SALES';
+    switch (raw.toUpperCase()) {
+        case 'SALES':         return 'SALES INVOICE';
+        case 'PURCHASE':      return 'PURCHASE INVOICE';
+        case 'CREDIT NOTE':   return 'CREDIT NOTE';
+        case 'DEBIT NOTE':    return 'DEBIT NOTE';
+        case 'DELIVERY NOTE': return 'DELIVERY NOTE';
+        default:              return raw.toUpperCase();
     }
-    return 'SALES INVOICE';
 };
 
 const getPartyLabels = (bill) => {
-    const type = bill.type?.toUpperCase() || 'SALES';
+    // btype is the canonical field in the Bill model (not 'type')
+    const type = (bill.btype || bill.type || 'SALES').toUpperCase();
     switch (type) {
-        case 'SALES': return { billTo: 'Bill To (Buyer)', shipTo: 'Ship To (Consignee)' };
-        case 'PURCHASE': return { billTo: 'Bill From (Supplier)', shipTo: 'Bill To (Receiver)' };
-        case 'CREDIT NOTE': return { billTo: 'Bill To (Recipient)', shipTo: 'Ship To (Consignee)' };
-        case 'DEBIT NOTE': return { billTo: 'Bill From (Supplier)', shipTo: 'Bill To (Recipient)' };
-        case 'DELIVERY NOTE': return { billTo: 'Deliver From (Supplier)', shipTo: 'Deliver To (Recipient)' };
-        default: return { billTo: 'Bill To (Buyer)', shipTo: 'Ship To (Consignee)' };
+        case 'SALES':         return { billTo: 'Bill To (Buyer)',            shipTo: 'Ship To (Consignee)' };
+        case 'PURCHASE':      return { billTo: 'Bill From (Supplier)',       shipTo: 'Bill To (Receiver)' };
+        case 'CREDIT NOTE':   return { billTo: 'Bill To (Recipient)',        shipTo: 'Ship To (Consignee)' };
+        case 'DEBIT NOTE':    return { billTo: 'Bill From (Supplier)',       shipTo: 'Bill To (Recipient)' };
+        case 'DELIVERY NOTE': return { billTo: 'Deliver From (Supplier)',    shipTo: 'Deliver To (Recipient)' };
+        default:              return { billTo: 'Bill To (Buyer)',            shipTo: 'Ship To (Consignee)' };
     }
 };
 
 const getBillType = (bill) => {
-    const billTypeSource = (bill.type || '').toString().toLowerCase();
-    if (billTypeSource.includes('intra')) return 'intra-state';
-    if (billTypeSource.includes('inter')) return 'inter-state';
-    const cgst = Number(bill.cgst) || 0;
-    const sgst = Number(bill.sgst) || 0;
-    return (cgst > 0 || sgst > 0) ? 'intra-state' : 'inter-state';
+    // bill_subtype stores 'INTRA-STATE' or 'INTER-STATE' for purchase bills
+    // (purchase bills set btype='PURCHASE', so we cannot rely on btype here)
+    // For sales bills, btype itself may contain 'INTRA-STATE'/'INTER-STATE'.
+    // Fall back to reading cgst/sgst stored amounts as a reliable last resort.
+    const src = (bill.bill_subtype || bill.btype || '').toLowerCase();
+    if (src.includes('intra')) return 'intra-state';
+    if (src.includes('inter')) return 'inter-state';
+    // Authoritative fallback: if we actually stored CGST/SGST the bill is intra-state
+    return (Number(bill.cgst) > 0 || Number(bill.sgst) > 0) ? 'intra-state' : 'inter-state';
 };
 
 const buildHsnSummary = (bill, items, otherCharges, gstEnabled) => {
@@ -242,22 +244,15 @@ const isGstEnabled = async (firmId) => {
 export const generateInvoicePDF = async (req, res) => {
     try {
         const billId = req.params.id;
-        console.log('PDF Request - billId:', billId, 'Type:', typeof billId);
         if (!billId) return res.status(400).json({ error: 'Bill ID is required' });
 
-        // Get firm_id from authenticated user
         const firmId = req.user?.firm_id;
-        console.log('PDF Request - firmId:', firmId, 'Type:', typeof firmId);
-
-        console.log('PDF Request - firmId:', firmId);
         if (!firmId) return res.status(401).json({ error: 'Unauthorized - No firm associated' });
 
         const bill = await Bill.findOne({ _id: billId, firm_id: firmId }).lean();
-        console.log('PDF Request - bill found:', !!bill, 'Bill data:', bill);
         if (!bill) return res.status(404).json({ error: 'Bill not found' });
 
         const items = await StockReg.find({ bill_id: billId, firm_id: firmId }).lean();
-        console.log('PDF Request - items found:', items.length, 'Items:', items);
 
         let otherCharges = [];
         if (bill.other_charges) {
@@ -267,40 +262,50 @@ export const generateInvoicePDF = async (req, res) => {
         // Check GST setting from MongoDB
         const gstEnabled = await isGstEnabled(firmId);
 
-        // Seller info - using firm from MongoDB
+        // Seller info - fetch from MongoDB
+        // 'firm' must be declared outside the try block so it's in scope below
+        let firm = null;
         let firmAddress = '';
         let firmGstin = '';
 
         try {
-            const firm = await Firm.findById(firmId).select('name address gst_number').lean();
-
-            if (!firm) {
-                return res.status(404).json({ error: 'Firm not found' });
-            }
-
+            firm = await Firm.findById(firmId).select('name address gst_number').lean();
+            if (!firm) return res.status(404).json({ error: 'Firm not found' });
             firmAddress = firm.address || '';
             firmGstin = firm.gst_number || '';
         } catch (err) {
             console.error('Error fetching firm:', err.message);
-            res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json({ error: 'Internal server error' });
         }
 
-        const seller = { name: bill.firm || firm.name || 'Company Name', address: firmAddress, gstin: firmGstin || '' };
+        const seller = { name: bill.firm || firm?.name || 'Company Name', address: firmAddress, gstin: firmGstin || '' };
 
-        console.log('PDF Request - seller info:', seller);
-        console.log('PDF Request - bill type:', getBillType(bill));
-        console.log('PDF Request - gstEnabled:', gstEnabled);
-
-        const billType = getBillType(bill);
+        const billType    = getBillType(bill);
         const partyLabels = getPartyLabels(bill);
-        const hsnSummary = buildHsnSummary(bill, items, otherCharges, gstEnabled);
+        const hsnSummary  = buildHsnSummary(bill, items, otherCharges, gstEnabled);
 
-        console.log('PDF Request - about to create PDF docDefinition');
+        // ── Purchase-vs-Sales derived values ──────────────────────────────────
+        // isPurchase drives every label, party-box, and terms that differs by type.
+        const isPurchase = (bill.btype || bill.type || '').toUpperCase() === 'PURCHASE';
 
-        const formattedBuyerAddress = bill.addr && bill.pin ? `${bill.addr}, PIN: ${bill.pin}` : (bill.addr || `PIN: ${bill.pin}`);
-        const formattedConsigneeAddress = (bill.consignee_address || bill.addr) && (bill.consignee_pin || bill.pin) ?
-            `${bill.consignee_address || bill.addr}, PIN: ${bill.consignee_pin || bill.pin}` :
-            ((bill.consignee_address || bill.addr) || `PIN: ${bill.consignee_pin || bill.pin}`);
+        const formattedBuyerAddress =
+            bill.addr && bill.pin  ? `${bill.addr}, PIN: ${bill.pin}` :
+            bill.addr              ? bill.addr :
+            bill.pin               ? `PIN: ${bill.pin}` : '';
+
+        // For sales: right box = consignee (ship-to).
+        // For purchase: right box = our own firm (receiver / buyer).
+        const rightBoxName  = isPurchase
+            ? (bill.firm || seller.name || '')
+            : (bill.consignee_name || '');
+        const rightBoxAddr  = isPurchase
+            ? seller.address
+            : (bill.consignee_address && (bill.consignee_pin || bill.pin)
+                ? `${bill.consignee_address}, PIN: ${bill.consignee_pin || bill.pin}`
+                : (bill.consignee_address || (bill.consignee_pin ? `PIN: ${bill.consignee_pin}` : '')
+                    || (bill.addr && bill.pin ? `${bill.addr}, PIN: ${bill.pin}` : (bill.addr || ''))));
+        const rightBoxState = isPurchase ? '' : (bill.consignee_state || bill.state || '');
+        const rightBoxGstin = isPurchase ? seller.gstin : (bill.consignee_gstin || bill.gstin || '');
 
         const taxableValue = bill.gtot || 0;
         const totalTax = gstEnabled ? ((bill.cgst || 0) + (bill.sgst || 0) + (bill.igst || 0)) : 0;
@@ -361,7 +366,7 @@ export const generateInvoicePDF = async (req, res) => {
                                             widths: ['auto', '*'],
                                             body: [
                                                 [
-                                                    { text: 'Invoice No', style: 'metaLabel' },
+                                                    { text: isPurchase ? 'Bill No' : 'Invoice No', style: 'metaLabel' },
                                                     { text: bill.bno || '', style: 'metaValue' }
                                                 ],
                                                 [
@@ -417,7 +422,7 @@ export const generateInvoicePDF = async (req, res) => {
                     table: {
                         widths: ['*', '*'],
                         body: [[
-                            // Bill To — no fill, bordered box
+                            // Bill To / Bill From — no fill, bordered box
                             {
                                 stack: [
                                     { text: partyLabels.billTo.toUpperCase(), style: 'partyBoxTitle' },
@@ -428,14 +433,16 @@ export const generateInvoicePDF = async (req, res) => {
                                 ],
                                 margin: [8, 7, 8, 7]
                             },
-                            // Ship To — no fill, bordered box
+                            // Ship To / Bill To (Receiver) — no fill, bordered box
+                            // For purchase: shows our own firm (we are the receiver).
+                            // For sales: shows consignee details.
                             {
                                 stack: [
                                     { text: partyLabels.shipTo.toUpperCase(), style: 'partyBoxTitle' },
-                                    { text: bill.consignee_name || bill.party_id || '', style: 'partyName', margin: [0, 3, 0, 1] },
-                                    { text: formattedConsigneeAddress, style: 'partyMeta' },
-                                    { text: (bill.consignee_state || bill.state) ? `State: ${bill.consignee_state || bill.state}` : '', style: 'partyMeta' },
-                                    { text: (bill.consignee_gstin || bill.gstin) ? `GSTIN: ${bill.consignee_gstin || bill.gstin}` : '', style: 'partyGstin' },
+                                    { text: rightBoxName,  style: 'partyName', margin: [0, 3, 0, 1] },
+                                    { text: rightBoxAddr,  style: 'partyMeta' },
+                                    { text: rightBoxState ? `State: ${rightBoxState}` : '', style: 'partyMeta' },
+                                    { text: rightBoxGstin ? `GSTIN: ${rightBoxGstin}` : '', style: 'partyGstin' },
                                 ],
                                 margin: [8, 7, 8, 7]
                             }
@@ -502,9 +509,9 @@ export const generateInvoicePDF = async (req, res) => {
                                 { text: '1', alignment: 'center', style: 'tblCell' },
                                 { text: 'NOS', alignment: 'center', style: 'tblCell' },
                                 { text: formatCurrency(ch.amount), alignment: 'right', style: 'tblCell' },
-                                { text: '0.00%', alignment: 'right', style: 'tableCell' },
-                                { text: gstEnabled ? formatPercentage(ch.gstRate) : '-', alignment: 'right', style: 'tableCell' },
-                                { text: formatCurrency(ch.amount), alignment: 'right', bold: true, style: 'tableCell' }
+                                { text: '0.00%', alignment: 'right', style: 'tblCell' },
+                                { text: gstEnabled ? formatPercentage(ch.gstRate) : '-', alignment: 'right', style: 'tblCell' },
+                                { text: formatCurrency(ch.amount), alignment: 'right', bold: true, style: 'tblCell' }
                             ])
                         ]
                     },
@@ -654,14 +661,17 @@ export const generateInvoicePDF = async (req, res) => {
                             {
                                 stack: [
                                     { text: 'TERMS & CONDITIONS', style: 'footerSectionTitle', margin: [0, 0, 0, 4] },
-                                    { text: '1. Goods once sold will not be taken back.', fontSize: 7.5, color: C.textLight },
+                                    { text: isPurchase
+                                        ? '1. Subject to mutually agreed payment terms.'
+                                        : '1. Goods once sold will not be taken back.',
+                                      fontSize: 7.5, color: C.textLight },
                                     { text: '2. Subject to local jurisdiction only.', fontSize: 7.5, color: C.textLight },
                                     { text: '3. E. & O.E.', fontSize: 7.5, color: C.textLight },
                                     {
                                         canvas: [{ type: 'line', x1: 0, y1: 0, x2: 130, y2: 0, lineWidth: 0.75, lineColor: C.border }],
                                         margin: [0, 28, 0, 4]
                                     },
-                                    { text: "Receiver's Signature", style: 'sigLabel' },
+                                    { text: isPurchase ? 'Authorised Signatory' : "Receiver's Signature", style: 'sigLabel' },
                                     { text: '(Authorised Signatory)', fontSize: 7.5, color: C.textLight }
                                 ],
                                 margin: [8, 8, 8, 8]
@@ -735,11 +745,9 @@ export const generateInvoicePDF = async (req, res) => {
         };
 
         const pdfDoc = await printer.createPdfKitDocument(docDefinition);
-        console.log('PDF document created successfully');
 
         const safeBillNo = String(bill.bno || `BILL-${bill._id}`).replace(/[^a-zA-Z0-9._-]/g, '_');
         const filename = `Invoice_${safeBillNo}.pdf`;
-        console.log('PDF filename:', filename);
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -748,14 +756,8 @@ export const generateInvoicePDF = async (req, res) => {
         res.setHeader('Expires', '0');
 
         pdfDoc.pipe(res);
-        pdfDoc.on('end', () => {
-            console.log('PDF generation completed');
-        });
-        pdfDoc.on('error', (err) => {
-            console.error('PDF generation error:', err);
-        });
+        pdfDoc.on('error', (err) => { console.error('[PDF] generation error:', err); });
         pdfDoc.end();
-        console.log('PDF sent to client');
 
     } catch (err) {
         console.error('pdfmake export error:', err);

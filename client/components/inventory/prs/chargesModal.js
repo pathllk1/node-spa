@@ -156,7 +156,7 @@ export function openOtherChargesModal(state, callbacks) {
     // where user types before fetch completes and sees no suggestions.
     (async () => {
         try {
-            const response = await fetch('/api/inventory/sales/other-charges-types', {
+            const response = await fetch('/api/inventory/purchase/other-charges-types', {
                 method: 'GET', credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
             });

@@ -46,7 +46,7 @@ export async function openPartyItemHistoryModal(stock, state) {
     if (!historyData) {
         try {
             const response = await fetch(
-                `/api/inventory/sales/party-item-history?partyId=${partyId}&stockId=${stock.id}&limit=all`,
+                `/api/inventory/purcahse/party-item-history?partyId=${partyId}&stockId=${stock.id}&limit=all`,
                 { method: 'GET', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } }
             );
             if (response.ok) {
