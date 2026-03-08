@@ -1,9 +1,18 @@
 @import "tailwindcss";
 
+/*
+  Sidebar positioning uses #sidebar-menu (ID selector), NOT a Tailwind class.
+  Reason: Tailwind v4 does not reliably scan JS template literals, so any
+  class added in sidebar.js may never appear in output.css after build.
+  An ID-based rule in input.css is always compiled — no scanning involved.
 
-.sidebar-panel {
+  Navbar  = h-12 = 3rem (48px)
+  Footer  = h-8  = 2rem (32px)
+  Sidebar = 100vh - 3rem - 2rem
+*/
+#sidebar-menu {
   position: fixed;
-  top: 3rem;       /* navbar height (h-12) */
+  top: 3rem;
   left: 0;
-  height: calc(100vh - 3rem - 2rem); /* full viewport minus navbar and footer */
+  height: calc(100vh - 3rem - 2rem);
 }

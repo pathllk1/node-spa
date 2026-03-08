@@ -8,7 +8,7 @@ export function renderSidebar(router) {
   if (!sidebarContainer) return;
 
   const sidebarHTML = `
-    <div class="sidebar-panel w-16 bg-gradient-to-b from-purple-700 via-purple-600 to-indigo-700 text-white z-10 flex flex-col justify-between transition-all duration-300" id="sidebar-menu" data-collapsed="true">
+    <div class="w-16 bg-gradient-to-b from-purple-700 via-purple-600 to-indigo-700 text-white z-10 flex flex-col justify-between transition-all duration-300" id="sidebar-menu" data-collapsed="true">
       <!-- Sidebar menu items -->
       <ul class="flex flex-col mt-4 space-y-1 relative pb-20 px-0">
         <li>
