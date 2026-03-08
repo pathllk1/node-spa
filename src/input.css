@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+
+.sidebar-panel {
+  position: fixed;
+  top: 3rem;       /* navbar height (h-12) */
+  left: 0;
+  height: calc(100vh - 3rem - 2rem); /* full viewport minus navbar and footer */
+}
