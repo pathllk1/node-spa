@@ -11,7 +11,7 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "nodemon server/server.js",
-    "build:css": "npx @tailwindcss/cli -i ./src/input.css -o ./public/output.css --minify",
+    "build:css": "npx @tailwindcss/cli -i ./src/input.css -o ./client/public/css/output.css --minify",
     "watch:css": "npx @tailwindcss/cli -i ./src/input.css -o ./client/public/css/output.css --watch"
   },
   "nodemonConfig": {

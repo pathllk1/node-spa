@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm install",
+  "buildCommand": "npm install && npm run build:css",
   "env": {
     "NODE_ENV": "production"
   },
