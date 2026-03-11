@@ -76,10 +76,15 @@ The Dashboard system serves as the main landing page for authenticated users, pr
 ```javascript
 async function loadDashboardData() {
   try {
-    const response = await api.get('/api/pages/dashboard');
+    // Note: uses credentials: 'same-origin' to automatically send HttpOnly cookies
+    const response = await fetch('/api/pages/dashboard', {
+      credentials: 'same-origin'
+    });
 
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to fetch dashboard data');
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to fetch dashboard data');
     }
 
     const data = response.data;

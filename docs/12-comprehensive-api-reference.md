@@ -4,14 +4,18 @@
 
 This document provides a comprehensive reference for all API endpoints available in the Node.js SPA Business Management Application. The API follows RESTful conventions with JSON responses and JWT authentication.
 
-## Authentication
+## Authentication & CSRF
 
-All API endpoints (except login) require authentication via JWT token in the `Authorization` header.
+The API uses **HTTP-only cookies** for JWT authentication, meaning you do not need to manually attach an `Authorization` header if your client supports cookies (e.g., `credentials: 'same-origin'` in `fetch`).
+
+Additionally, all state-changing endpoints (POST, PUT, DELETE, PATCH) require a CSRF token to be sent in the headers.
 
 ```javascript
+// Example of a state-changing request
+const csrfToken = getCookie('csrfToken'); // Custom helper to read non-HttpOnly cookie
 const headers = {
-  'Authorization': `Bearer ${token}`,
-  'Content-Type': 'application/json'
+  'Content-Type': 'application/json',
+  'x-csrf-token': csrfToken
 };
 ```
 
@@ -63,7 +67,7 @@ Authenticate user and receive JWT tokens.
 - `tokenExpiry`: Expiry timestamp for client-side refresh
 
 ### POST /api/auth/logout
-Clear authentication tokens and log out user.
+Clear authentication tokens and log out user (Requires CSRF Token).
 
 **Response:**
 ```json
@@ -1048,10 +1052,21 @@ const loginResponse = await fetch('/api/auth/login', {
   body: JSON.stringify({ username: 'admin', password: 'password' })
 });
 
-// Use token for authenticated requests
-const token = getCookie('accessToken');
+// Authenticated requests automatically use HTTP-only cookies
 const response = await fetch('/api/master-rolls', {
-  headers: { 'Authorization': `Bearer ${token}` }
+  credentials: 'same-origin' // Ensures cookies are sent
+});
+
+// State-changing requests need CSRF token
+const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrfToken=')).split('=')[1];
+const createResponse = await fetch('/api/master-rolls', {
+  method: 'POST',
+  credentials: 'same-origin',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-csrf-token': csrfToken
+  },
+  body: JSON.stringify({ /* employee data */ })
 });
 ```
 

@@ -15,43 +15,40 @@ The Master Roll Management System provides comprehensive employee data managemen
 - **Role-Based Access**: Different permissions for users, managers, and admins
 - **IFSC Lookup Integration**: Real-time bank and branch validation using Razorpay API
 
-### Database Schema
+### Database Schema (Mongoose)
 
-#### Master Rolls Table
-```sql
-CREATE TABLE master_rolls (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  firm_id INTEGER NOT NULL,
-  employee_name TEXT NOT NULL,
-  father_husband_name TEXT,
-  date_of_birth TEXT,
-  aadhar TEXT UNIQUE NOT NULL,
-  pan TEXT,
-  phone_no TEXT NOT NULL,
-  address TEXT NOT NULL,
-  bank TEXT NOT NULL,
-  account_no TEXT NOT NULL,
-  ifsc TEXT,
-  branch TEXT,
-  uan TEXT,
-  esic_no TEXT,
-  s_kalyan_no TEXT,
-  category TEXT,
-  p_day_wage REAL,
-  project TEXT,
-  site TEXT,
-  date_of_joining TEXT NOT NULL,
-  date_of_exit TEXT,
-  doe_rem TEXT,
-  status TEXT DEFAULT 'Active',
-  created_by INTEGER,
-  updated_by INTEGER,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (firm_id) REFERENCES firms(id),
-  FOREIGN KEY (created_by) REFERENCES users(id),
-  FOREIGN KEY (updated_by) REFERENCES users(id)
-);
+#### Master Roll Model
+```javascript
+const masterRollSchema = new Schema({
+  firm_id:             { type: Schema.Types.ObjectId, ref: 'Firm', required: true },
+  employee_name:       { type: String, required: true },
+  father_husband_name: { type: String },
+  date_of_birth:       { type: String },
+  aadhar:              { type: String, required: true },
+  pan:                 { type: String },
+  phone_no:            { type: String, required: true },
+  address:             { type: String },
+  bank:                { type: String },
+  account_no:          { type: String },
+  ifsc:                { type: String },
+  branch:              { type: String },
+  uan:                 { type: String },
+  esic_no:             { type: String },
+  s_kalyan_no:         { type: String },
+  category:            { type: String },
+  p_day_wage:          { type: Number },
+  project:             { type: String },
+  site:                { type: String },
+  date_of_joining:     { type: String, required: true },
+  date_of_exit:        { type: String },
+  doe_rem:             { type: String },
+  status:              { type: String, default: 'Active' },
+  created_by:          { type: Schema.Types.ObjectId, ref: 'User' },
+  updated_by:          { type: Schema.Types.ObjectId, ref: 'User' }
+}, { timestamps: true });
+
+// Compound index for unique Aadhar per firm
+masterRollSchema.index({ aadhar: 1, firm_id: 1 }, { unique: true });
 ```
 
 ## Employee Data Structure
@@ -118,23 +115,18 @@ GET    /api/master-rolls/lookup-ifsc/:ifsc # IFSC bank lookup
 ### Access Control Logic
 ```javascript
 // Role-based access control
-if (role === 'super_admin') {
-  // Access all firms
-  rows = getAllStmt.all();
-} else {
-  // Access only own firm
-  rows = getAllByFirmStmt.all(firm_id);
-}
+const filter = (role === 'admin' && req.query.all_firms === 'true') ? {} : { firm_id };
+const rows = await MasterRoll.find(filter).lean();
 ```
 
 ### Ownership Verification
 ```javascript
-// Check firm ownership for operations
-const ownership = checkFirmOwnership.get(masterId, firmId);
-if (!ownership) {
-  return res.status(404).json({
-    error: 'Employee not found or access denied'
-  });
+// Check firm ownership for operations via Mongoose query
+const filter = role === 'super_admin' ? { _id: id } : { _id: id, firm_id };
+const existing = await MasterRoll.findOne(filter);
+
+if (!existing) {
+  return res.status(404).json({ success: false, error: 'Employee not found or access denied' });
 }
 ```
 
@@ -142,38 +134,38 @@ if (!ownership) {
 
 ### Activity Logging
 ```javascript
-// Automatic activity logging
-const activities = db.prepare(`
-  SELECT 
-    'created' as action,
-    created_at as timestamp,
-    u.fullname as user_name
-  FROM master_rolls mr
-  LEFT JOIN users u ON u.id = mr.created_by
-  WHERE mr.id = ?
-  
-  UNION ALL
-  
-  SELECT 
-    'updated' as action,
-    updated_at as timestamp,
-    u.fullname as user_name
-  FROM master_rolls mr
-  LEFT JOIN users u ON u.id = mr.updated_by
-  WHERE mr.id = ? AND mr.updated_at != mr.created_at
-`).all(id, id);
+// Manual activity log derivation from timestamps and populated references
+const doc = await MasterRoll.findOne({ _id: req.params.id, firm_id })
+  .populate('created_by', 'fullname username role')
+  .populate('updated_by', 'fullname username role')
+  .lean();
+
+// Extract creation details
+const activities = [{
+  action: 'created',
+  timestamp: doc.createdAt,
+  user_name: doc.created_by?.fullname
+}];
+
+// Append update details if modified
+if (doc.updatedAt && doc.updatedAt.getTime() !== doc.createdAt.getTime()) {
+  activities.push({
+    action: 'updated',
+    timestamp: doc.updatedAt,
+    user_name: doc.updated_by?.fullname
+  });
+}
 ```
 
 ### User Tracking
 ```javascript
 // All operations track the user
-const result = insertStmt.run(
+const doc = await MasterRoll.create({
   firm_id,
-  employee_name,
-  // ... other fields
-  user_id,  // created_by
-  user_id   // updated_by
-);
+  ...req.body,
+  created_by: user_id,
+  updated_by: user_id,
+});
 ```
 
 ## Bulk Operations
@@ -272,14 +264,14 @@ for (const field of requiredFields) {
 
 ### Unique Constraints
 ```javascript
-// Aadhar must be unique across the system
+// Aadhar must be unique within the firm (handled by MongoDB driver index)
 try {
-  const result = insertStmt.run(...params);
+  await MasterRoll.create(employeeData);
 } catch (err) {
-  if (err.message.includes('UNIQUE constraint')) {
+  if (err.code === 11000) {
     return res.status(400).json({
       success: false,
-      error: 'Employee with this Aadhar already exists'
+      error: 'Employee with this Aadhar already exists in your firm'
     });
   }
 }
@@ -316,31 +308,34 @@ Response: {
 
 ## Performance Optimizations
 
-### Prepared Statements
+### Bulk Operations
 ```javascript
-const insertStmt = db.prepare(`
-  INSERT INTO master_rolls (
-    firm_id, employee_name, father_husband_name, date_of_birth,
-    aadhar, pan, phone_no, address, bank, account_no, ifsc,
-    branch, uan, esic_no, s_kalyan_no, category, p_day_wage,
-    project, site, date_of_joining, date_of_exit, doe_rem,
-    status, created_by, updated_by
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
+// Promise.allSettled for concurrent creation with error tracking
+const settled = await Promise.allSettled(
+  employees.map((emp, i) =>
+    MasterRoll.create({ firm_id, ...emp, created_by: user_id, updated_by: user_id })
+  )
+);
 ```
 
 ### Indexed Queries
 ```javascript
-// Optimized search with LIMIT/OFFSET
-const searchStmt = db.prepare(`
-  SELECT * FROM master_rolls
-  WHERE firm_id = ? AND (
-    employee_name LIKE ? OR aadhar LIKE ? OR
-    phone_no LIKE ? OR project LIKE ? OR site LIKE ?
-  )
-  ORDER BY created_at DESC
-  LIMIT ? OFFSET ?
-`);
+// Mongoose RegExp search with lean() and projection limits
+const regex = new RegExp(q, 'i');
+const rows = await MasterRoll.find({
+  firm_id,
+  $or: [
+    { employee_name: regex },
+    { aadhar:        regex },
+    { phone_no:      regex },
+    { project:       regex },
+    { site:          regex },
+  ],
+})
+  .sort({ createdAt: -1 })
+  .skip(parseInt(offset))
+  .limit(parseInt(limit))
+  .lean();
 ```
 
 ## Security Features

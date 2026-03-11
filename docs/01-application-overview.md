@@ -8,9 +8,9 @@ This is a comprehensive business management Single Page Application (SPA) built 
 
 ### Backend (Node.js + Express)
 - **Framework**: Express.js with ES modules
-- **Database**: Turso (SQLite cloud database)
+- **Database**: MongoDB (Object Data Modeling via Mongoose)
 - **Authentication**: JWT dual-token system (Access + Refresh tokens)
-- **Security**: HTTP-only cookies, CSP headers, XSS protection
+- **Security**: HTTP-only cookies, CSRF protection, CSP headers, XSS protection
 - **Architecture**: RESTful API with modular controllers and routes
 
 ### Frontend (Vanilla JavaScript SPA)
@@ -80,11 +80,12 @@ This is a comprehensive business management Single Page Application (SPA) built 
 
 ### Backend Dependencies
 - `express`: Web framework
-- `libsql`: Turso database client
+- `mongoose`: MongoDB object modeling
 - `jsonwebtoken`: JWT token handling
 - `bcrypt`: Password hashing
 - `cookie-parser`: Cookie handling
 - `pdfmake`: PDF generation
+- `exceljs`: Excel generation
 - `dotenv`: Environment variables
 
 ### Frontend Technologies
@@ -95,12 +96,13 @@ This is a comprehensive business management Single Page Application (SPA) built 
 
 ## Database Schema
 
-The application uses Turso (SQLite cloud) with the following key tables:
+The application uses MongoDB with the following key collections:
 - `users`: User authentication and profiles
 - `firms`: Multi-firm support
-- `inventory_*`: Inventory management tables
-- `wages_*`: Wages management tables
-- `master_roll_*`: Employee master data
+- `stocks`, `parties`, `bills`: Inventory management collections
+- `wages`: Wages management collection
+- `master_rolls`: Employee master data
+- `refresh_tokens`: Active user sessions
 
 ## Security Features
 
